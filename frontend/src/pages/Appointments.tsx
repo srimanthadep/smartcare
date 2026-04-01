@@ -1,0 +1,387 @@
+import React, { useMemo, useState } from "react";
+import { motion } from "framer-motion";
+import { format } from "date-fns";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CalendarPlus, Clock, MoreHorizontal, Users } from "lucide-react";
+import { toast } from "sonner";
+import { api } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import StatusBadge from "@/components/StatusBadge";
+
+const STATUS_ORDER = ["Waiting", "In Triage", "In Chair", "X-Ray", "Billing", "Completed"] as const;
+
+const PROCEDURE_TYPES = ["Checkup", "Root Canal", "Extraction", "Orthodontics", "Cosmetic", "Consultation", "Prosthodontics", "Filling", "Emergency", "Follow-up"] as const;
+
+const Appointments: React.FC = () => {
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [selectedDay, setSelectedDay] = useState<Date>(new Date());
+  const selectedIso = format(selectedDay, "yyyy-MM-dd");
+  const todayIso = format(new Date(), "yyyy-MM-dd");
+  const queryClient = useQueryClient();
+
+  const bootstrapQuery = useQuery({
+    queryKey: ["bootstrap"],
+    queryFn: api.getBootstrap,
+  });
+
+  const patientsQuery = useQuery({
+    queryKey: ["patients", "appointment-options"],
+    queryFn: () => api.getPatients({}),
+  });
+
+  const appointmentsQuery = useQuery({
+    queryKey: ["appointments"],
+    queryFn: () => api.getAppointments(),
+  });
+
+  const createAppointment = useMutation({
+    mutationFn: api.createAppointment,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      toast.success("Appointment booked");
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Unable to create appointment");
+    },
+  });
+
+  const updateAppointment = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: Record<string, string> }) => api.updateAppointment(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Unable to update appointment");
+    },
+  });
+
+  const appointments = appointmentsQuery.data || [];
+  const bootstrap = bootstrapQuery.data;
+
+  const filteredAppointments = useMemo(
+    () => appointments.filter((item) => (typeFilter === "all" ? true : item.type === typeFilter)),
+    [appointments, typeFilter],
+  );
+
+  const dayAppointments = useMemo(
+    () => filteredAppointments.filter((item) => item.date === selectedIso).sort((left, right) => left.time.localeCompare(right.time)),
+    [filteredAppointments, selectedIso],
+  );
+
+  const upcoming = useMemo(
+    () => filteredAppointments.filter((item) => item.date >= todayIso).sort((left, right) => `${left.date}${left.time}`.localeCompare(`${right.date}${right.time}`)),
+    [filteredAppointments, todayIso],
+  );
+
+  const queue = useMemo(() => {
+    const items = bootstrap?.queue || [];
+    const filtered = items.filter((item) => (typeFilter === "all" ? true : item.type === typeFilter));
+    return STATUS_ORDER.map((status) => ({
+      status,
+      items: filtered.filter((item) => item.status === status),
+    }));
+  }, [bootstrap?.queue, typeFilter]);
+
+  const AppointmentRow = ({ appointment }: { appointment: typeof appointments[number] }) => (
+    <div className="flex flex-col justify-between gap-2 rounded-lg border border-border/50 bg-secondary/30 p-4 sm:flex-row sm:items-center">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+          <Clock className="h-4 w-4 text-primary" />
+        </div>
+        <div>
+          <p className="text-sm font-medium">{appointment.patientName}</p>
+          <p className="text-xs text-muted-foreground">{appointment.date} · {appointment.time} · {appointment.doctorName}</p>
+          {appointment.reason && <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{appointment.reason}</p>}
+        </div>
+      </div>
+      <div className="ml-auto flex items-center gap-2 sm:ml-0">
+        <StatusBadge status={appointment.type} />
+        <StatusBadge status={appointment.status} />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-9 w-9">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => updateAppointment.mutate({ id: appointment.id, payload: { status: "Completed" } })}>
+              Mark completed
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => updateAppointment.mutate({ id: appointment.id, payload: { status: "Cancelled" } })}>
+              Cancel appointment
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
+  );
+
+  const BookDialog = () => {
+    const [patientId, setPatientId] = useState("");
+    const [doctorName, setDoctorName] = useState(bootstrap?.doctors[0]?.name || "");
+    const [date, setDate] = useState(selectedIso);
+    const [time, setTime] = useState("10:30");
+    const [mode, setMode] = useState<string>("Checkup");
+    const [reason, setReason] = useState("Routine dental checkup");
+
+    const patientOptions = patientsQuery.data || [];
+    const selectedPatient = patientOptions.find((item) => item.id === patientId);
+
+    return (
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button><CalendarPlus className="mr-1 h-4 w-4" /> Book</Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-heading">Book appointment</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Patient</Label>
+              <Select value={patientId} onValueChange={setPatientId}>
+                <SelectTrigger><SelectValue placeholder="Select patient" /></SelectTrigger>
+                <SelectContent>
+                  {patientOptions.map((patient) => (
+                    <SelectItem key={patient.id} value={patient.id}>{patient.name} ({patient.id})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Doctor</Label>
+                <Select value={doctorName} onValueChange={setDoctorName}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(bootstrap?.doctors || []).map((doctor) => (
+                      <SelectItem key={doctor.id} value={doctor.name}>{doctor.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Procedure Type</Label>
+                <Select value={mode} onValueChange={setMode}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {PROCEDURE_TYPES.map((t) => (
+                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <Input type="date" value={date} onChange={(event) => setDate(event.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Time</Label>
+                <Input type="time" value={time} onChange={(event) => setTime(event.target.value)} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Reason</Label>
+              <Textarea value={reason} onChange={(event) => setReason(event.target.value)} />
+            </div>
+            <div className="flex justify-end">
+              <Button
+                onClick={() => {
+                  if (!selectedPatient) {
+                    toast.error("Select a patient");
+                    return;
+                  }
+                  createAppointment.mutate({
+                    patientId,
+                    patientName: selectedPatient.name,
+                    doctorName,
+                    date,
+                    time,
+                    type: mode as any,
+                    status: "Scheduled",
+                    reason,
+                  });
+                }}
+                disabled={createAppointment.isPending}
+              >
+                {createAppointment.isPending ? "Booking..." : "Confirm booking"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
+  if (appointmentsQuery.isLoading || bootstrapQuery.isLoading || patientsQuery.isLoading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-14 w-72" />
+        <Skeleton className="h-80 w-full" />
+      </div>
+    );
+  }
+
+  if (appointmentsQuery.isError || bootstrapQuery.isError || !bootstrap) {
+    return (
+      <Card className="border-destructive/40 bg-destructive/5">
+        <CardContent className="py-4 text-sm text-destructive">
+          Failed to load appointments data.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-heading font-bold">Appointments</h1>
+          <p className="text-sm text-muted-foreground">Scheduling, availability and queue management</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <ToggleGroup type="single" value={typeFilter} onValueChange={(value) => setTypeFilter(value || "all")}>
+            <ToggleGroupItem value="all">All</ToggleGroupItem>
+            <ToggleGroupItem value="Checkup">Checkup</ToggleGroupItem>
+            <ToggleGroupItem value="Root Canal">Root Canal</ToggleGroupItem>
+            <ToggleGroupItem value="Orthodontics">Ortho</ToggleGroupItem>
+          </ToggleGroup>
+          <BookDialog />
+        </div>
+      </div>
+
+      <Tabs defaultValue="calendar">
+        <TabsList>
+          <TabsTrigger value="calendar">Calendar</TabsTrigger>
+          <TabsTrigger value="availability">Availability</TabsTrigger>
+          <TabsTrigger value="queue">Queue</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="calendar" className="mt-4 space-y-4">
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+            <Card className="border-border/50">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-heading">Pick a day</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Calendar mode="single" selected={selectedDay} onSelect={(value) => value && setSelectedDay(value)} className="rounded-md border border-border/50" />
+                <p className="mt-3 text-xs text-muted-foreground">Selected: <span className="font-medium text-foreground">{selectedIso}</span></p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/50 xl:col-span-2">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-heading">Day schedule</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {dayAppointments.length === 0 ? (
+                  <div className="p-10 text-center text-sm text-muted-foreground">No appointments on this day</div>
+                ) : (
+                  dayAppointments.map((appointment) => <AppointmentRow key={appointment.id} appointment={appointment} />)
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="border-border/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-heading">Upcoming</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {upcoming.length === 0 ? (
+                <div className="p-10 text-center text-sm text-muted-foreground">No upcoming appointments</div>
+              ) : (
+                upcoming.slice(0, 10).map((appointment) => <AppointmentRow key={appointment.id} appointment={appointment} />)
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="availability" className="mt-4">
+          <Card className="border-border/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-heading">Dentist Availability</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+                {bootstrap.doctors.map((doctor) => {
+                  const slots = bootstrap.doctorAvailability.filter((item) => item.doctorId === doctor.id);
+                  return (
+                    <div key={doctor.id} className="rounded-lg border border-border/50 bg-secondary/20 p-4">
+                      <p className="font-medium">{doctor.name}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{doctor.department}</p>
+                      <div className="mt-3 space-y-2">
+                        {slots.map((slot, index) => (
+                          <div key={`${doctor.id}-${index}`} className="flex items-center justify-between rounded-md border border-border/50 bg-card px-3 py-2 text-sm">
+                            <span className="text-muted-foreground">{slot.day}</span>
+                            <span className="font-medium">{slot.start}-{slot.end}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="queue" className="mt-4">
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+            {queue.map((group) => (
+              <Card key={group.status} className="border-border/50">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center justify-between text-base font-heading">
+                    <span>{group.status}</span>
+                    <span className="text-xs text-muted-foreground">{group.items.length}</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {group.items.length === 0 ? (
+                    <div className="py-6 text-center text-sm text-muted-foreground">No patients</div>
+                  ) : (
+                    group.items.map((item) => (
+                      <div key={item.id} className="rounded-lg border border-border/50 bg-secondary/25 p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-medium">{item.patientName}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">{item.arrivedAt} · {item.doctorName}</p>
+                          </div>
+                          <StatusBadge status={item.type} />
+                        </div>
+                        {item.notes && <p className="mt-2 text-sm text-muted-foreground">{item.notes}</p>}
+                        <div className="mt-3 flex items-center justify-between">
+                          <p className="text-xs text-muted-foreground">{item.patientId}</p>
+                          <Button size="sm" variant="outline" onClick={() => toast.message(`Queue action for ${item.patientName}`)}>
+                            <Users className="mr-1 h-4 w-4" /> View
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+      </Tabs>
+    </motion.div>
+  );
+};
+
+export default Appointments;

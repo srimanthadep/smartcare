@@ -1,0 +1,646 @@
+{
+  "users": [
+    {
+      "id": "U001",
+      "name": "Dr. Priya Sharma",
+      "email": "admin@smartdental.com",
+      "role": "dentist",
+      "avatar": "",
+      "password": "$2b$10$2cgcAA2y6xBFCru1rNQi9OkLaOqVH7nYE/5FEBC/Ux6zpdlXGW2dq"
+    },
+    {
+      "id": "U002",
+      "name": "Admin User",
+      "email": "admin@smartdental.com",
+      "role": "admin",
+      "avatar": "",
+      "password": "$2b$10$2cgcAA2y6xBFCru1rNQi9OkLaOqVH7nYE/5FEBC/Ux6zpdlXGW2dq"
+    },
+    {
+      "id": "U003",
+      "name": "Anita Deshmukh",
+      "email": "admin@smartdental.com",
+      "role": "receptionist",
+      "avatar": "",
+      "password": "$2b$10$2cgcAA2y6xBFCru1rNQi9OkLaOqVH7nYE/5FEBC/Ux6zpdlXGW2dq"
+    }
+  ],
+  "doctors": [
+    {
+      "id": "D001",
+      "name": "Dr. Saikiran",
+      "department": "General Dentistry"
+    }
+  ],
+  "doctorAvailability": [
+    {
+      "doctorId": "D001",
+      "doctorName": "Dr. Saikiran",
+      "day": "Mon",
+      "start": "09:00",
+      "end": "17:00"
+    },
+    {
+      "doctorId": "D001",
+      "doctorName": "Dr. Saikiran",
+      "day": "Tue",
+      "start": "09:00",
+      "end": "17:00"
+    },
+    {
+      "doctorId": "D001",
+      "doctorName": "Dr. Saikiran",
+      "day": "Wed",
+      "start": "09:00",
+      "end": "17:00"
+    },
+    {
+      "doctorId": "D001",
+      "doctorName": "Dr. Saikiran",
+      "day": "Thu",
+      "start": "09:00",
+      "end": "17:00"
+    },
+    {
+      "doctorId": "D001",
+      "doctorName": "Dr. Saikiran",
+      "day": "Fri",
+      "start": "09:00",
+      "end": "17:00"
+    },
+    {
+      "doctorId": "D001",
+      "doctorName": "Dr. Saikiran",
+      "day": "Sat",
+      "start": "09:00",
+      "end": "13:00"
+    }
+  ],
+  "queue": [
+    {
+      "id": "Q001",
+      "patientId": "P002",
+      "patientName": "Priya Patel",
+      "doctorName": "Dr. Saikiran",
+      "type": "Checkup",
+      "status": "Waiting",
+      "arrivedAt": "08:50"
+    },
+    {
+      "id": "Q002",
+      "patientId": "P001",
+      "patientName": "Aarav Sharma",
+      "doctorName": "Dr. Saikiran",
+      "type": "Checkup",
+      "status": "In Chair",
+      "arrivedAt": "09:05",
+      "notes": "Tooth #36 follow-up"
+    },
+    {
+      "id": "Q003",
+      "patientId": "P003",
+      "patientName": "Rahul Verma",
+      "doctorName": "Dr. Saikiran",
+      "type": "Root Canal",
+      "status": "X-Ray",
+      "arrivedAt": "09:20",
+      "notes": "OPG + periapical #46"
+    },
+    {
+      "id": "Q004",
+      "patientId": "P006",
+      "patientName": "Meera Reddy",
+      "doctorName": "Dr. Saikiran",
+      "type": "Checkup",
+      "status": "Billing",
+      "arrivedAt": "10:10"
+    }
+  ],
+  "patients": [
+    {
+      "id": "P001",
+      "name": "Aarav Sharma",
+      "age": 34,
+      "gender": "Male",
+      "phone": "+91 98765 43210",
+      "email": "aarav@email.com",
+      "bloodGroup": "B+",
+      "status": "Active",
+      "lastVisit": "2026-03-15",
+      "registeredOn": "2024-06-10",
+      "address": "42 MG Road, Mumbai",
+      "allergies": [
+        "Penicillin",
+        "Latex"
+      ],
+      "conditions": [
+        "Bruxism",
+        "Mild Gingivitis"
+      ],
+      "medications": [
+        {
+          "name": "Chlorhexidine Mouthwash",
+          "dosage": "10ml",
+          "frequency": "Twice daily"
+        }
+      ],
+      "insuranceProvider": "Star Health",
+      "policyNumber": "SH-P001",
+      "coverageNotes": "Dental cover up to Rs 25,000/year",
+      "notes": "Night guard recommended. Review in 6 months."
+    },
+    {
+      "id": "P002",
+      "name": "Priya Patel",
+      "age": 28,
+      "gender": "Female",
+      "phone": "+91 87654 32109",
+      "email": "priya@email.com",
+      "bloodGroup": "O+",
+      "status": "Active",
+      "lastVisit": "2026-03-17",
+      "registeredOn": "2025-01-22",
+      "address": "15 Nehru Street, Delhi",
+      "allergies": [
+        "Sulfa drugs"
+      ],
+      "conditions": [
+        "Orthodontic treatment in progress"
+      ],
+      "medications": [],
+      "insuranceProvider": "",
+      "policyNumber": "",
+      "coverageNotes": "",
+      "notes": "Braces adjustment scheduled every 4 weeks."
+    },
+    {
+      "id": "P003",
+      "name": "Rahul Verma",
+      "age": 55,
+      "gender": "Male",
+      "phone": "+91 76543 21098",
+      "email": "rahul@email.com",
+      "bloodGroup": "A-",
+      "status": "Critical",
+      "lastVisit": "2026-03-18",
+      "registeredOn": "2023-11-05",
+      "address": "8 Park Avenue, Bangalore",
+      "allergies": [],
+      "conditions": [
+        "Dental abscess #46",
+        "Advanced periodontitis"
+      ],
+      "medications": [
+        {
+          "name": "Amoxicillin",
+          "dosage": "500mg",
+          "frequency": "Three times daily"
+        },
+        {
+          "name": "Ibuprofen",
+          "dosage": "400mg",
+          "frequency": "As needed"
+        }
+      ],
+      "insuranceProvider": "MediAssist",
+      "policyNumber": "MA-P003",
+      "coverageNotes": "Requires pre-auth for root canal",
+      "notes": "Urgent root canal needed on #46. Diabetic — check blood sugar before procedure."
+    },
+    {
+      "id": "P004",
+      "name": "Sneha Gupta",
+      "age": 42,
+      "gender": "Female",
+      "phone": "+91 65432 10987",
+      "email": "sneha@email.com",
+      "bloodGroup": "AB+",
+      "status": "Active",
+      "lastVisit": "2026-03-10",
+      "registeredOn": "2025-07-18",
+      "address": "23 Lake Road, Kolkata",
+      "allergies": [
+        "Ibuprofen"
+      ],
+      "conditions": [
+        "TMJ Disorder",
+        "Teeth Sensitivity"
+      ],
+      "medications": [
+        {
+          "name": "Sensodyne Toothpaste",
+          "dosage": "Pea-size",
+          "frequency": "Twice daily"
+        }
+      ],
+      "insuranceProvider": "",
+      "policyNumber": "",
+      "coverageNotes": "",
+      "notes": "Avoid cold beverages. Night guard being fabricated."
+    },
+    {
+      "id": "P005",
+      "name": "Vikram Singh",
+      "age": 67,
+      "gender": "Male",
+      "phone": "+91 54321 09876",
+      "email": "vikram@email.com",
+      "bloodGroup": "O-",
+      "status": "Inactive",
+      "lastVisit": "2026-01-20",
+      "registeredOn": "2022-03-14",
+      "address": "7 Civil Lines, Jaipur",
+      "allergies": [
+        "Latex"
+      ],
+      "conditions": [
+        "Edentulous (partial)",
+        "Denture wearer"
+      ],
+      "medications": [],
+      "insuranceProvider": "CarePlus",
+      "policyNumber": "CP-P005",
+      "coverageNotes": "Prosthetic reimbursement up to Rs 15,000",
+      "notes": "Denture relining due. Recall overdue."
+    },
+    {
+      "id": "P006",
+      "name": "Meera Reddy",
+      "age": 31,
+      "gender": "Female",
+      "phone": "+91 43210 98765",
+      "email": "meera@email.com",
+      "bloodGroup": "B-",
+      "status": "Active",
+      "lastVisit": "2026-03-16",
+      "registeredOn": "2025-09-01",
+      "address": "56 Tank Bund, Hyderabad",
+      "allergies": [],
+      "conditions": [
+        "Teeth Whitening — in progress"
+      ],
+      "medications": [],
+      "insuranceProvider": "",
+      "policyNumber": "",
+      "coverageNotes": "",
+      "notes": "Home-whitening kit dispensed. Follow-up in 2 weeks."
+    }
+  ],
+  "diagnoses": [
+    {
+      "id": "DX001",
+      "patientId": "P001",
+      "name": "Chronic Bruxism",
+      "icd10": "G47.63",
+      "status": "Active",
+      "recordedOn": "2024-06-12"
+    },
+    {
+      "id": "DX002",
+      "patientId": "P001",
+      "name": "Chronic Gingivitis",
+      "icd10": "K05.1",
+      "status": "Active",
+      "recordedOn": "2024-06-12"
+    },
+    {
+      "id": "DX003",
+      "patientId": "P002",
+      "name": "Malocclusion (Class II)",
+      "icd10": "K07.1",
+      "status": "Active",
+      "recordedOn": "2025-01-25"
+    },
+    {
+      "id": "DX004",
+      "patientId": "P004",
+      "name": "TMJ Disorder",
+      "icd10": "K07.6",
+      "status": "Active",
+      "recordedOn": "2025-07-21"
+    },
+    {
+      "id": "DX005",
+      "patientId": "P005",
+      "name": "Partial Edentulism",
+      "icd10": "K08.1",
+      "status": "Active",
+      "recordedOn": "2022-03-20"
+    }
+  ],
+  "reports": [
+    {
+      "id": "RPT001",
+      "patientId": "P001",
+      "title": "Full Mouth X-Ray (OPG)",
+      "type": "Image",
+      "date": "2026-03-15",
+      "previewUrl": "/placeholder.svg",
+      "notes": "Mild bone loss around lower molars. No caries detected."
+    },
+    {
+      "id": "RPT002",
+      "patientId": "P002",
+      "title": "Cephalometric Analysis",
+      "type": "PDF",
+      "date": "2026-03-17",
+      "previewUrl": "/placeholder.svg"
+    },
+    {
+      "id": "RPT003",
+      "patientId": "P003",
+      "title": "Periapical Radiograph #46",
+      "type": "Image",
+      "date": "2026-03-18",
+      "previewUrl": "/placeholder.svg",
+      "notes": "Periapical radiolucency confirmed. Root canal indicated."
+    }
+  ],
+  "appointments": [
+    {
+      "id": "A001",
+      "patientId": "P001",
+      "patientName": "Aarav Sharma",
+      "doctorName": "Dr. Priya Sharma",
+      "date": "2026-03-18",
+      "time": "09:00",
+      "type": "Checkup",
+      "status": "Scheduled",
+      "reason": "Routine dental checkup & cleaning"
+    },
+    {
+      "id": "A002",
+      "patientId": "P002",
+      "patientName": "Priya Patel",
+      "doctorName": "Dr. Rajesh Mehta",
+      "date": "2026-03-18",
+      "time": "09:30",
+      "type": "Orthodontics",
+      "status": "In Progress",
+      "reason": "Braces adjustment"
+    },
+    {
+      "id": "A003",
+      "patientId": "P003",
+      "patientName": "Rahul Verma",
+      "doctorName": "Dr. Anjali Desai",
+      "date": "2026-03-18",
+      "time": "10:00",
+      "type": "Root Canal",
+      "status": "Scheduled",
+      "reason": "Root canal treatment #46"
+    },
+    {
+      "id": "A004",
+      "patientId": "P004",
+      "patientName": "Sneha Gupta",
+      "doctorName": "Dr. Priya Sharma",
+      "date": "2026-03-18",
+      "time": "11:00",
+      "type": "Consultation",
+      "status": "Scheduled",
+      "reason": "TMJ evaluation & night guard fitting"
+    },
+    {
+      "id": "A005",
+      "patientId": "P006",
+      "patientName": "Meera Reddy",
+      "doctorName": "Dr. Priya Sharma",
+      "date": "2026-03-18",
+      "time": "14:00",
+      "type": "Cosmetic",
+      "status": "Completed",
+      "reason": "Teeth whitening follow-up"
+    },
+    {
+      "id": "A006",
+      "patientId": "P005",
+      "patientName": "Vikram Singh",
+      "doctorName": "Dr. Rajesh Mehta",
+      "date": "2026-03-19",
+      "time": "10:00",
+      "type": "Prosthodontics",
+      "status": "Cancelled",
+      "reason": "Denture relining"
+    },
+    {
+      "id": "A007",
+      "patientId": "P001",
+      "patientName": "Aarav Sharma",
+      "doctorName": "Dr. Priya Sharma",
+      "date": "2026-04-01",
+      "time": "10:30",
+      "type": "Checkup",
+      "status": "Scheduled",
+      "reason": "Scaling & polishing"
+    }
+  ],
+  "invoices": [
+    {
+      "id": "INV001",
+      "patientId": "P001",
+      "patientName": "Aarav Sharma",
+      "date": "2026-03-15",
+      "items": [
+        {
+          "description": "Consultation Fee",
+          "amount": 500
+        },
+        {
+          "description": "Scaling & Polishing",
+          "amount": 1500
+        },
+        {
+          "description": "Full Mouth X-Ray (OPG)",
+          "amount": 800
+        }
+      ],
+      "total": 2800,
+      "status": "Paid"
+    },
+    {
+      "id": "INV002",
+      "patientId": "P002",
+      "patientName": "Priya Patel",
+      "date": "2026-03-17",
+      "items": [
+        {
+          "description": "Orthodontic Adjustment",
+          "amount": 2000
+        },
+        {
+          "description": "Wire Change",
+          "amount": 500
+        }
+      ],
+      "total": 2500,
+      "status": "Pending"
+    },
+    {
+      "id": "INV003",
+      "patientId": "P003",
+      "patientName": "Rahul Verma",
+      "date": "2026-03-18",
+      "items": [
+        {
+          "description": "Root Canal Treatment #46",
+          "amount": 8000
+        },
+        {
+          "description": "Periapical X-Ray",
+          "amount": 400
+        },
+        {
+          "description": "Temporary Filling",
+          "amount": 300
+        },
+        {
+          "description": "Antibiotics",
+          "amount": 250
+        }
+      ],
+      "total": 8950,
+      "status": "Pending"
+    },
+    {
+      "id": "INV004",
+      "patientId": "P004",
+      "patientName": "Sneha Gupta",
+      "date": "2026-03-10",
+      "items": [
+        {
+          "description": "Consultation",
+          "amount": 500
+        },
+        {
+          "description": "Night Guard Fabrication",
+          "amount": 3500
+        }
+      ],
+      "total": 4000,
+      "status": "Paid"
+    }
+  ],
+  "medicines": [
+    {
+      "id": "M001",
+      "name": "Ibuprofen",
+      "strength": "400mg",
+      "form": "Tablet"
+    },
+    {
+      "id": "M002",
+      "name": "Amoxicillin",
+      "strength": "500mg",
+      "form": "Capsule"
+    },
+    {
+      "id": "M003",
+      "name": "Metronidazole",
+      "strength": "400mg",
+      "form": "Tablet"
+    },
+    {
+      "id": "M004",
+      "name": "Chlorhexidine Mouthwash",
+      "strength": "0.2%",
+      "form": "Liquid"
+    },
+    {
+      "id": "M005",
+      "name": "Clindamycin",
+      "strength": "300mg",
+      "form": "Capsule"
+    },
+    {
+      "id": "M006",
+      "name": "Diclofenac Sodium",
+      "strength": "50mg",
+      "form": "Tablet"
+    },
+    {
+      "id": "M007",
+      "name": "Ornidazole",
+      "strength": "500mg",
+      "form": "Tablet"
+    },
+    {
+      "id": "M008",
+      "name": "Fluconazole",
+      "strength": "150mg",
+      "form": "Capsule"
+    },
+    {
+      "id": "M009",
+      "name": "Lignocaine Gel",
+      "strength": "2%",
+      "form": "Gel"
+    }
+  ],
+  "prescriptionTemplates": [
+    {
+      "id": "T001",
+      "name": "Post-Extraction",
+      "medicines": [
+        {
+          "name": "Amoxicillin 500mg",
+          "dosage": "1 cap",
+          "frequency": "TID",
+          "duration": "5 days"
+        },
+        {
+          "name": "Ibuprofen 400mg",
+          "dosage": "1 tab",
+          "frequency": "TID (after food)",
+          "duration": "3 days"
+        },
+        {
+          "name": "Chlorhexidine Mouthwash 0.2%",
+          "dosage": "10ml rinse",
+          "frequency": "BID",
+          "duration": "7 days"
+        }
+      ],
+      "notes": "Do not spit or rinse for 24 hours. Soft diet for 2 days. Apply ice pack if swelling occurs. Avoid hot food and beverages."
+    },
+    {
+      "id": "T002",
+      "name": "Post-Root Canal",
+      "medicines": [
+        {
+          "name": "Amoxicillin 500mg",
+          "dosage": "1 cap",
+          "frequency": "TID",
+          "duration": "5 days"
+        },
+        {
+          "name": "Metronidazole 400mg",
+          "dosage": "1 tab",
+          "frequency": "TID",
+          "duration": "5 days"
+        },
+        {
+          "name": "Ibuprofen 400mg",
+          "dosage": "1 tab",
+          "frequency": "BID (after food)",
+          "duration": "3 days"
+        }
+      ],
+      "notes": "Avoid chewing on treated side. Return for crown placement within 2 weeks. Contact clinic if pain persists beyond 48 hours."
+    },
+    {
+      "id": "T003",
+      "name": "Scaling & Polishing",
+      "medicines": [
+        {
+          "name": "Chlorhexidine Mouthwash 0.2%",
+          "dosage": "10ml rinse",
+          "frequency": "BID",
+          "duration": "7 days"
+        }
+      ],
+      "notes": "Mild sensitivity is normal for 2–3 days. Use a soft-bristled toothbrush. Avoid staining foods (tea, coffee) for 48 hours."
+    }
+  ],
+  "prescriptions": []
+}
