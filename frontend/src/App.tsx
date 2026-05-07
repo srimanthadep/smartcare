@@ -17,13 +17,12 @@ import Appointments from "@/pages/Appointments";
 import Prescriptions from "@/pages/Prescriptions";
 import Billing from "@/pages/Billing";
 import Analytics from "@/pages/Analytics";
-import Lab from "@/pages/Lab";
 import Pharmacy from "@/pages/Pharmacy";
 import AI from "@/pages/AI";
 import Notifications from "@/pages/Notifications";
 import Settings from "@/pages/Settings";
 import RecallSystem from "@/pages/RecallSystem";
-import ConsentForms from "@/pages/ConsentForms";
+import ActivityLogs from "@/pages/ActivityLogs";
 import PlaceholderPage from "@/pages/PlaceholderPage";
 import NotFound from "@/pages/NotFound";
 import PublicLayout from "@/components/PublicLayout";
@@ -55,13 +54,12 @@ const App = () => (
                 <Route path="appointments" element={<Appointments />} />
                 <Route path="prescriptions" element={<Prescriptions />} />
                 <Route path="billing" element={<Billing />} />
-                <Route path="lab" element={<Lab />} />
                 <Route path="pharmacy" element={<Pharmacy />} />
                 <Route path="recalls" element={<RecallSystem />} />
-                <Route path="consents" element={<ConsentForms />} />
                 <Route path="analytics" element={<Analytics />} />
                 <Route path="ai" element={<AI />} />
                 <Route path="notifications" element={<Notifications />} />
+                <Route path="logs" element={<ActivityLogs />} />
                 <Route path="settings" element={<Settings />} />
               </Route>
               <Route path="*" element={<NotFound />} />

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
-import { Activity, AlertTriangle, ArrowLeft, Droplets, FileText, Pill, Smile } from "lucide-react";
+import { Activity, AlertTriangle, ArrowLeft, Droplets, FileText, Pill, Smile, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DentalChart from "@/components/DentalChart";
 import { ToothRecord } from "@/types";
 import { ClipboardList, PlusCircle } from "lucide-react";
+import InvoiceModal from "@/components/InvoiceModal";
+import InvoiceEditModal from "@/components/InvoiceEditModal";
+import { Invoice } from "@/types";
 
 const PatientProfile: React.FC = () => {
   const { id = "" } = useParams<{ id: string }>();
@@ -42,6 +45,34 @@ const PatientProfile: React.FC = () => {
     },
     onError: (mutationError) => {
       toast.error(mutationError instanceof Error ? mutationError.message : "Unable to update patient");
+    },
+  });
+
+  const { data: dentalChartData, isLoading: isLoadingChart } = useQuery({
+    queryKey: ["dental-chart", id],
+    queryFn: () => api.getDentalChart(id),
+    enabled: !!id,
+  });
+
+  const { data: invoices } = useQuery({
+    queryKey: ["invoices", id],
+    queryFn: api.getInvoices,
+    select: (data) => data.filter(inv => inv.patientId === id),
+    enabled: !!id,
+  });
+
+  const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
+  const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
+  const [isNewInvoiceOpen, setIsNewInvoiceOpen] = useState(false);
+
+  const updateDentalChart = useMutation({
+    mutationFn: (teeth: ToothRecord[]) => api.updateDentalChart(id, teeth),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["dental-chart", id] });
+      toast.success("Dental chart updated");
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : "Unable to update dental chart");
     },
   });
 
@@ -102,11 +133,11 @@ const PatientProfile: React.FC = () => {
         <TabsList className="w-full justify-start overflow-x-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="dental-chart">Dental Chart</TabsTrigger>
+          <TabsTrigger value="billing">Billing</TabsTrigger>
           <TabsTrigger value="treatment-plans">Treatment Plans</TabsTrigger>
           <TabsTrigger value="diagnoses">Diagnoses</TabsTrigger>
           <TabsTrigger value="allergies">Allergies</TabsTrigger>
           <TabsTrigger value="medications">Medications</TabsTrigger>
-          <TabsTrigger value="reports">Reports</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-4 space-y-4">
@@ -201,10 +232,58 @@ const PatientProfile: React.FC = () => {
               <CardTitle className="flex items-center gap-2 text-base font-heading"><Smile className="h-4 w-4" /> Interactive Dental Chart</CardTitle>
             </CardHeader>
             <CardContent>
-              <DentalChart 
-                teeth={[]} // Initially empty, in a real app this would come from the API
-                onTeethChange={(newTeeth) => toast.info(`Tooth chart updated locally for #${id}`)}
-              />
+              {isLoadingChart ? (
+                <Skeleton className="h-96 w-full" />
+              ) : (
+                <DentalChart 
+                  teeth={dentalChartData?.teeth || []} 
+                  onTeethChange={(newTeeth) => updateDentalChart.mutate(newTeeth)}
+                />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="billing" className="mt-4 space-y-4">
+          <Card className="border-border/50">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-base font-heading"><Receipt className="h-4 w-4 text-primary" /> Patient Invoices</CardTitle>
+                <Button size="sm" onClick={() => setIsNewInvoiceOpen(true)}>
+                  <PlusCircle className="mr-2 h-4 w-4" /> New Invoice
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {invoices && invoices.length > 0 ? (
+                <div className="space-y-3">
+                  {invoices.map((inv) => (
+                    <div key={inv.id} className="flex items-center justify-between rounded-lg border border-border/50 p-4 transition-colors hover:bg-secondary/20">
+                      <div className="flex items-center gap-4">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                          <Receipt className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{inv.id}</p>
+                          <p className="text-xs text-muted-foreground">{inv.date}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <p className="font-bold">Rs {inv.total.toLocaleString()}</p>
+                          <StatusBadge status={inv.status} />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={() => setViewingInvoice(inv)}>View</Button>
+                          <Button size="sm" variant="outline" onClick={() => setEditingInvoice(inv)}>Edit</Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-12 text-center text-sm text-muted-foreground italic">No invoices recorded for this patient.</div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -277,44 +356,23 @@ const PatientProfile: React.FC = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="reports" className="mt-4">
-          <Card className="border-border/50">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-base font-heading"><FileText className="h-4 w-4" /> Reports</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {reports.length === 0 ? (
-                <div className="py-8 text-center text-sm text-muted-foreground">No reports uploaded</div>
-              ) : (
-                reports.map((report) => (
-                  <Dialog key={report.id}>
-                    <DialogTrigger asChild>
-                      <button className="w-full rounded-lg border border-border/50 bg-secondary/25 p-4 text-left transition-colors hover:bg-secondary/35">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="truncate font-medium">{report.title}</p>
-                            <p className="mt-1 text-xs text-muted-foreground">{report.type} · {report.date}</p>
-                          </div>
-                          <Badge variant="outline" className="text-xs">Preview</Badge>
-                        </div>
-                        {report.notes && <p className="mt-2 text-sm text-muted-foreground">{report.notes}</p>}
-                      </button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-3xl">
-                      <DialogHeader>
-                        <DialogTitle className="font-heading">{report.title}</DialogTitle>
-                      </DialogHeader>
-                      <div className="overflow-hidden rounded-lg border border-border/50 bg-muted">
-                        <img src={report.previewUrl} alt={`${report.title} preview`} className="h-[420px] w-full object-contain" />
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                ))
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
+      <InvoiceModal 
+        invoice={viewingInvoice} 
+        open={!!viewingInvoice} 
+        onOpenChange={(open) => !open && setViewingInvoice(null)} 
+      />
+      <InvoiceEditModal
+        invoice={editingInvoice}
+        open={!!editingInvoice}
+        onOpenChange={(open) => !open && setEditingInvoice(null)}
+      />
+      <InvoiceEditModal
+        open={isNewInvoiceOpen}
+        onOpenChange={setIsNewInvoiceOpen}
+        patientId={id}
+        patientName={patient.name}
+      />
     </motion.div>
   );
 };

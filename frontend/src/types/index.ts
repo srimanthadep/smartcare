@@ -1,4 +1,4 @@
-export type UserRole = "dentist" | "admin" | "receptionist";
+export type UserRole = "doctor" | "admin";
 
 export interface User {
   id: string;
@@ -92,8 +92,8 @@ export interface Doctor {
 export interface DashboardStats {
   dailyPatients: number;
   revenue: number;
+  profit: number;
   appointments: number;
-  pendingLabs: number;
 }
 
 export interface RevenuePoint {
@@ -122,6 +122,16 @@ export interface PatientDiagnosis {
   notes?: string;
 }
 
+export interface ActivityLog {
+  id: string;
+  userId: string;
+  userName: string;
+  action: string;
+  details: string;
+  timestamp: string;
+  ip?: string;
+}
+
 export interface PatientReport {
   id: string;
   patientId: string;
@@ -132,7 +142,7 @@ export interface PatientReport {
   notes?: string;
 }
 
-export type QueueStatus = "Waiting" | "In Triage" | "In Chair" | "X-Ray" | "Billing" | "Completed";
+export type QueueStatus = "Waiting" | "In Triage" | "In Chair" | "Billing" | "Completed";
 
 export interface QueueItem {
   id: string;
@@ -254,16 +264,6 @@ export interface Chair {
   estimatedFreeAt?: string;
 }
 
-export interface ConsentForm {
-  id: string;
-  patientId: string;
-  patientName: string;
-  procedureType: string;
-  dentistName: string;
-  date: string;
-  signed: boolean;
-  signedAt?: string;
-}
 
 export interface RecallEntry {
   id: string;

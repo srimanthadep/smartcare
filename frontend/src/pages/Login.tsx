@@ -13,15 +13,14 @@ import { toast } from "sonner";
 import logo from "@/assets/smartcare-logo.png";
 
 const roleIcons: Record<UserRole, React.ReactNode> = {
-  dentist: <Smile className="h-5 w-5" />,
+  doctor: <Smile className="h-5 w-5" />,
   admin: <ShieldCheck className="h-5 w-5" />,
-  receptionist: <UserCheck className="h-5 w-5" />,
 };
 
 const Login: React.FC = () => {
-  const [email, setEmail] = useState("admin@smartdental.com");
+  const [email, setEmail] = useState("doctor@siaradental.com");
   const [password, setPassword] = useState("password");
-  const [role, setRole] = useState<UserRole>("dentist");
+  const [role, setRole] = useState<UserRole>("doctor");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -49,8 +48,8 @@ const Login: React.FC = () => {
         className="w-full max-w-md"
       >
         <div className="mb-8 flex flex-col items-center">
-          <img src={logo} alt="SmartCare" className="mb-3 h-16 w-16" />
-          <h1 className="text-3xl font-heading font-bold text-foreground">SmartDental</h1>
+          <img src={logo} alt="Siara Dental" className="mb-3 h-16 w-16" />
+          <h1 className="text-3xl font-heading font-bold text-foreground">Siara Dental</h1>
           <p className="mt-1 text-sm text-muted-foreground">Modern Dental Records</p>
         </div>
 
@@ -68,7 +67,7 @@ const Login: React.FC = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {(["dentist", "admin", "receptionist"] as UserRole[]).map((value) => (
+                    {(["doctor", "admin"] as UserRole[]).map((value) => (
                       <SelectItem key={value} value={value}>
                         <span className="flex items-center gap-2">
                           {roleIcons[value]}
@@ -87,7 +86,7 @@ const Login: React.FC = () => {
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  placeholder="you@smartdental.com"
+                  placeholder="you@siaradental.com"
                 />
               </div>
 

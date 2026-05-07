@@ -8,8 +8,8 @@ const PublicLayout: React.FC = () => {
     <div className="min-h-screen bg-background">
       <header className="h-14 border-b border-border bg-card flex items-center px-4">
         <Link to="/" className="flex items-center gap-2">
-          <img src={logo} alt="SmartCare" className="h-8 w-8" />
-          <span className="font-heading font-bold">SmartDental</span>
+          <img src={logo} alt="Siara Dental" className="h-8 w-8" />
+          <span className="font-heading font-bold">Siara Dental</span>
         </Link>
         <nav className="ml-auto flex items-center gap-2">
           <Button asChild variant="ghost" size="sm">
@@ -24,7 +24,7 @@ const PublicLayout: React.FC = () => {
         <Outlet />
       </main>
       <footer className="p-6 text-center text-xs text-muted-foreground">
-        © 2026 SmartDental · Public demo pages
+        © 2026 Siara Dental · Public demo pages
       </footer>
     </div>
   );

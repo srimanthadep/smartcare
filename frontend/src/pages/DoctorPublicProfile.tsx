@@ -45,7 +45,7 @@ const DoctorPublicProfile: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="rounded-lg border border-border/50 p-4">
                 <p className="font-medium text-foreground">Clinic</p>
-                <p className="mt-1 flex items-center gap-2"><MapPin className="h-4 w-4" /> SmartDental Clinic, Mumbai</p>
+                <p className="mt-1 flex items-center gap-2"><MapPin className="h-4 w-4" /> Siara Dental Clinic, Mumbai</p>
               </div>
               <div className="rounded-lg border border-border/50 p-4">
                 <p className="font-medium text-foreground">Contact</p>

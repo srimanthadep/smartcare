@@ -49,11 +49,11 @@ export const mockPatients: Patient[] = [
 ];
 
 export const mockAppointments: Appointment[] = [
-  { id: 'A001', patientId: 'P001', patientName: 'Aarav Sharma', doctorName: 'Dr. Priya Sharma', date: '2026-03-18', time: '09:00', type: 'Checkup', status: 'Scheduled', reason: 'Routine dental checkup & cleaning' },
+  { id: 'A001', patientId: 'P001', patientName: 'Aarav Sharma', doctorName: 'Dr. Saikiran', date: '2026-03-18', time: '09:00', type: 'Checkup', status: 'Scheduled', reason: 'Routine dental checkup & cleaning' },
   { id: 'A002', patientId: 'P002', patientName: 'Priya Patel', doctorName: 'Dr. Rajesh Mehta', date: '2026-03-18', time: '09:30', type: 'Orthodontics', status: 'In Progress', reason: 'Braces adjustment' },
   { id: 'A003', patientId: 'P003', patientName: 'Rahul Verma', doctorName: 'Dr. Anjali Desai', date: '2026-03-18', time: '10:00', type: 'Root Canal', status: 'Scheduled', reason: 'Root canal treatment #46' },
-  { id: 'A004', patientId: 'P004', patientName: 'Sneha Gupta', doctorName: 'Dr. Priya Sharma', date: '2026-03-18', time: '11:00', type: 'Consultation', status: 'Scheduled', reason: 'TMJ evaluation & night guard fitting' },
-  { id: 'A005', patientId: 'P006', patientName: 'Meera Reddy', doctorName: 'Dr. Priya Sharma', date: '2026-03-18', time: '14:00', type: 'Cosmetic', status: 'Completed', reason: 'Teeth whitening follow-up' },
+  { id: 'A004', patientId: 'P004', patientName: 'Sneha Gupta', doctorName: 'Dr. Saikiran', date: '2026-03-18', time: '11:00', type: 'Consultation', status: 'Scheduled', reason: 'TMJ evaluation & night guard fitting' },
+  { id: 'A005', patientId: 'P006', patientName: 'Meera Reddy', doctorName: 'Dr. Saikiran', date: '2026-03-18', time: '14:00', type: 'Cosmetic', status: 'Completed', reason: 'Teeth whitening follow-up' },
   { id: 'A006', patientId: 'P005', patientName: 'Vikram Singh', doctorName: 'Dr. Rajesh Mehta', date: '2026-03-19', time: '10:00', type: 'Prosthodontics', status: 'Cancelled', reason: 'Denture relining' },
 ];
 
@@ -68,7 +68,6 @@ export const mockDashboardStats = {
   dailyPatients: 18,
   revenue: 42500,
   appointments: 12,
-  pendingLabs: 3,
 };
 
 export const mockRevenueData = [
@@ -99,7 +98,7 @@ export const mockDepartmentData = [
 ];
 
 export const mockDoctors = [
-  { id: 'D001', name: 'Dr. Priya Sharma', department: 'General Dentistry' },
+  { id: 'D001', name: 'Dr. Saikiran', department: 'General Dentistry' },
   { id: 'D002', name: 'Dr. Rajesh Mehta', department: 'Orthodontics' },
   { id: 'D003', name: 'Dr. Anjali Desai', department: 'Endodontics' },
 ] as const;
@@ -111,7 +110,6 @@ export type AnalyticsDailyPoint = {
   revenue: number;
   patientVisits: number;
   appointments: number;
-  pendingLabs: number;
 };
 
 const addDays = (isoDate: string, deltaDays: number) => {
@@ -144,7 +142,6 @@ export const mockAnalyticsDaily: AnalyticsDailyPoint[] = (() => {
         revenue,
         patientVisits,
         appointments,
-        pendingLabs,
       });
     }
   }
@@ -160,35 +157,6 @@ export type PatientReport = {
   previewUrl: string; // public url (mock)
   notes?: string;
 };
-
-export const mockPatientReports: PatientReport[] = [
-  {
-    id: 'RPT001',
-    patientId: 'P001',
-    title: 'Full Mouth X-Ray (OPG)',
-    type: 'Image',
-    date: '2026-03-15',
-    previewUrl: '/placeholder.svg',
-    notes: 'Mild bone loss around lower molars. No caries detected.',
-  },
-  {
-    id: 'RPT002',
-    patientId: 'P002',
-    title: 'Cephalometric Analysis',
-    type: 'PDF',
-    date: '2026-03-17',
-    previewUrl: '/placeholder.svg',
-  },
-  {
-    id: 'RPT003',
-    patientId: 'P003',
-    title: 'Periapical Radiograph #46',
-    type: 'Image',
-    date: '2026-03-18',
-    previewUrl: '/placeholder.svg',
-    notes: 'Periapical radiolucency confirmed. Root canal indicated.',
-  },
-];
 
 export type PatientDiagnosis = {
   id: string;
@@ -222,9 +190,9 @@ export type QueueItem = {
 
 export const mockQueue: QueueItem[] = [
   { id: 'Q001', patientId: 'P002', patientName: 'Priya Patel', doctorName: 'Dr. Rajesh Mehta', type: 'Checkup', status: 'Waiting', arrivedAt: '08:50' },
-  { id: 'Q002', patientId: 'P001', patientName: 'Aarav Sharma', doctorName: 'Dr. Priya Sharma', type: 'Checkup', status: 'In Chair', arrivedAt: '09:05', notes: 'Tooth #36 follow-up' },
-  { id: 'Q003', patientId: 'P003', patientName: 'Rahul Verma', doctorName: 'Dr. Anjali Desai', type: 'Root Canal', status: 'X-Ray', arrivedAt: '09:20', notes: 'OPG + periapical #46' },
-  { id: 'Q004', patientId: 'P006', patientName: 'Meera Reddy', doctorName: 'Dr. Priya Sharma', type: 'Cosmetic', status: 'Billing', arrivedAt: '10:10' },
+  { id: 'Q002', patientId: 'P001', patientName: 'Aarav Sharma', doctorName: 'Dr. Saikiran', type: 'Checkup', status: 'In Chair', arrivedAt: '09:05', notes: 'Tooth #36 follow-up' },
+  { id: 'Q003', patientId: 'P003', patientName: 'Rahul Verma', doctorName: 'Dr. Anjali Desai', type: 'Root Canal', status: 'Waiting', arrivedAt: '09:20', notes: 'Root canal #46' },
+  { id: 'Q004', patientId: 'P006', patientName: 'Meera Reddy', doctorName: 'Dr. Saikiran', type: 'Cosmetic', status: 'Billing', arrivedAt: '10:10' },
 ];
 
 export type DoctorAvailabilitySlot = {
@@ -236,9 +204,9 @@ export type DoctorAvailabilitySlot = {
 };
 
 export const mockDoctorAvailability: DoctorAvailabilitySlot[] = [
-  { doctorId: 'D001', doctorName: 'Dr. Priya Sharma', day: 'Mon', start: '09:00', end: '13:00' },
-  { doctorId: 'D001', doctorName: 'Dr. Priya Sharma', day: 'Wed', start: '10:00', end: '14:00' },
-  { doctorId: 'D001', doctorName: 'Dr. Priya Sharma', day: 'Fri', start: '09:00', end: '12:00' },
+  { doctorId: 'D001', doctorName: 'Dr. Saikiran', day: 'Mon', start: '09:00', end: '13:00' },
+  { doctorId: 'D001', doctorName: 'Dr. Saikiran', day: 'Wed', start: '10:00', end: '14:00' },
+  { doctorId: 'D001', doctorName: 'Dr. Saikiran', day: 'Fri', start: '09:00', end: '12:00' },
   { doctorId: 'D002', doctorName: 'Dr. Rajesh Mehta', day: 'Mon', start: '09:00', end: '17:00' },
   { doctorId: 'D002', doctorName: 'Dr. Rajesh Mehta', day: 'Thu', start: '09:00', end: '17:00' },
   { doctorId: 'D003', doctorName: 'Dr. Anjali Desai', day: 'Tue', start: '11:00', end: '16:00' },
@@ -285,59 +253,6 @@ export const mockPrescriptionTemplates: PrescriptionTemplate[] = [
   },
 ];
 
-export type LabTest = {
-  id: string;
-  name: string;
-  category: 'X-Ray' | 'Imaging' | 'Diagnostic' | 'Pathology';
-  price: number;
-  tatHours: number;
-};
-
-export const mockLabCatalog: LabTest[] = [
-  { id: 'LT001', name: 'Periapical Radiograph', category: 'X-Ray', price: 400, tatHours: 1 },
-  { id: 'LT002', name: 'Full Mouth X-Ray (OPG)', category: 'X-Ray', price: 800, tatHours: 1 },
-  { id: 'LT003', name: 'Cephalometric X-Ray', category: 'Imaging', price: 1200, tatHours: 2 },
-  { id: 'LT004', name: 'CBCT Scan', category: 'Imaging', price: 3500, tatHours: 4 },
-  { id: 'LT005', name: 'Pulp Vitality Test', category: 'Diagnostic', price: 300, tatHours: 1 },
-  { id: 'LT006', name: 'Biopsy (Oral Lesion)', category: 'Pathology', price: 2000, tatHours: 72 },
-];
-
-export type LabOrderStatus = 'Ordered' | 'Sample Collected' | 'Processing' | 'Reported' | 'Cancelled';
-export type LabOrder = {
-  id: string;
-  patientId: string;
-  patientName: string;
-  doctorName: string;
-  date: string;
-  status: LabOrderStatus;
-  priority: 'Routine' | 'Urgent';
-  tests: LabTest[];
-  reportUrl?: string;
-};
-
-export const mockLabOrders: LabOrder[] = [
-  {
-    id: 'LAB001',
-    patientId: 'P001',
-    patientName: 'Aarav Sharma',
-    doctorName: 'Dr. Priya Sharma',
-    date: '2026-03-15',
-    status: 'Reported',
-    priority: 'Routine',
-    tests: [mockLabCatalog[1]],
-    reportUrl: '/placeholder.svg',
-  },
-  {
-    id: 'LAB002',
-    patientId: 'P003',
-    patientName: 'Rahul Verma',
-    doctorName: 'Dr. Anjali Desai',
-    date: '2026-03-18',
-    status: 'Processing',
-    priority: 'Urgent',
-    tests: [mockLabCatalog[0], mockLabCatalog[3]],
-  },
-];
 
 export type InventoryItem = {
   id: string;

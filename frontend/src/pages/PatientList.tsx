@@ -146,7 +146,7 @@ const PatientList: React.FC = () => {
           </div>
 
           <div className="mt-4 flex items-center justify-between gap-3">
-            <p className="text-xs text-muted-foreground">Page {page} of {totalPages}</p>
+            <p className="text-xs text-muted-foreground whitespace-nowrap">Page {page} of {totalPages}</p>
             <Pagination>
               <PaginationContent>
                 <PaginationItem>

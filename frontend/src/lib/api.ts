@@ -8,6 +8,9 @@ import {
   Prescription,
   User,
   UserRole,
+  ActivityLog,
+  ToothChart,
+  ToothRecord,
 } from "@/types";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
@@ -89,8 +92,8 @@ export const api = {
     return apiFetch<{ user: User }>("/api/auth/me");
   },
 
-  getDashboard() {
-    return apiFetch<DashboardResponse>("/api/dashboard");
+  getDashboard(period?: string) {
+    return apiFetch<DashboardResponse>(`/api/dashboard${buildQuery({ period })}`);
   },
 
   getBootstrap() {
@@ -175,6 +178,21 @@ export const api = {
     return apiFetch<Prescription>("/api/prescriptions", {
       method: "POST",
       body: JSON.stringify(payload),
+    });
+  },
+  
+  getActivityLogs() {
+    return apiFetch<ActivityLog[]>("/api/activity-logs");
+  },
+
+  getDentalChart(patientId: string) {
+    return apiFetch<ToothChart>(`/api/dental-chart/${patientId}`);
+  },
+
+  updateDentalChart(patientId: string, teeth: ToothRecord[]) {
+    return apiFetch<ToothChart>(`/api/dental-chart/${patientId}`, {
+      method: "POST",
+      body: JSON.stringify({ teeth }),
     });
   },
 };

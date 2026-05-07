@@ -5,7 +5,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { mockAnalyticsDaily, mockDoctors } from '@/data/mockData';
-import { IndianRupee, Users, CalendarDays, Scan } from 'lucide-react';
+import { IndianRupee, Users, CalendarDays, Scan, Activity, Server, Clock, Zap } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import StatsCard from '@/components/StatsCard';
 import {
   CartesianGrid,
@@ -32,6 +33,8 @@ const Analytics: React.FC = () => {
   const [to, setTo] = useState(todayIso);
   const [doctorId, setDoctorId] = useState<DoctorFilter>('all');
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
 
   useEffect(() => {
     const t = window.setTimeout(() => setLoading(false), 450);
@@ -55,8 +58,7 @@ const Analytics: React.FC = () => {
     const revenue = filtered.reduce((sum, p) => sum + p.revenue, 0);
     const patientVisits = filtered.reduce((sum, p) => sum + p.patientVisits, 0);
     const appointments = filtered.reduce((sum, p) => sum + p.appointments, 0);
-    const pendingLabs = filtered.reduce((sum, p) => sum + p.pendingLabs, 0);
-    return { revenue, patientVisits, appointments, pendingLabs };
+    return { revenue, patientVisits, appointments };
   }, [filtered]);
 
   const revenueSeries = useMemo(() => {
@@ -111,10 +113,9 @@ const Analytics: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {loading ? (
           <>
-            <Skeleton className="h-[104px] rounded-lg" />
             <Skeleton className="h-[104px] rounded-lg" />
             <Skeleton className="h-[104px] rounded-lg" />
             <Skeleton className="h-[104px] rounded-lg" />
@@ -124,7 +125,6 @@ const Analytics: React.FC = () => {
             <StatsCard title="Revenue" value={`₹${kpis.revenue.toLocaleString()}`} change={`${from} → ${to}`} changeType="neutral" icon={IndianRupee} />
             <StatsCard title="Patient Visits" value={kpis.patientVisits} change="Total visits" changeType="neutral" icon={Users} />
             <StatsCard title="Appointments" value={kpis.appointments} change="Scheduled + completed" changeType="neutral" icon={CalendarDays} />
-            <StatsCard title="Pending X-Rays" value={kpis.pendingLabs} change="Operational backlog" changeType={kpis.pendingLabs > 15 ? 'negative' : 'neutral'} icon={Scan} />
           </>
         )}
       </div>
@@ -182,6 +182,50 @@ const Analytics: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      {isAdmin && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 pt-6 border-t border-border/50">
+          <div className="flex items-center gap-2">
+            <Activity className="h-5 w-5 text-primary" />
+            <h2 className="text-xl font-heading font-bold">System Performance</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Card className="bg-success/5 border-success/20">
+              <CardContent className="p-4 flex items-center gap-4">
+                <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center">
+                  <Server className="h-5 w-5 text-success" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Server Uptime</p>
+                  <p className="text-lg font-bold">99.998%</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-info/5 border-info/20">
+              <CardContent className="p-4 flex items-center gap-4">
+                <div className="h-10 w-10 rounded-full bg-info/10 flex items-center justify-center">
+                  <Clock className="h-5 w-5 text-info" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Avg Response Time</p>
+                  <p className="text-lg font-bold">42ms</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="bg-warning/5 border-warning/20">
+              <CardContent className="p-4 flex items-center gap-4">
+                <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center">
+                  <Zap className="h-5 w-5 text-warning" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">API Throughput</p>
+                  <p className="text-lg font-bold">85 req/min</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </motion.div>
+      )}
     </motion.div>
   );
 };

@@ -17,12 +17,13 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { CalendarDays, CalendarPlus, FileText, Scan, IndianRupee, UserPlus, Users, CalendarClock } from "lucide-react";
+import { CalendarDays, CalendarPlus, FileText, Scan, IndianRupee, UserPlus, Users, CalendarClock, TrendingUp } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StatsCard from "@/components/StatsCard";
 import StatusBadge from "@/components/StatusBadge";
 
@@ -39,9 +40,11 @@ const item = {
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [period, setPeriod] = React.useState("monthly");
+  
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["dashboard"],
-    queryFn: api.getDashboard,
+    queryKey: ["dashboard", period],
+    queryFn: () => api.getDashboard(period),
   });
 
   if (isLoading) {
@@ -72,7 +75,7 @@ const Dashboard: React.FC = () => {
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
       <motion.div variants={item}>
-        <h1 className="text-2xl font-heading font-bold">Good morning, {user?.name?.split(" ")[0]}</h1>
+        <h1 className="text-2xl font-heading font-bold">Good morning, {user?.name?.replace("Dr. ", "")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">Here&apos;s what&apos;s happening at your clinic today.</p>
       </motion.div>
 
@@ -86,11 +89,22 @@ const Dashboard: React.FC = () => {
         <Button size="sm" variant="outline" onClick={() => navigate("/prescriptions")}>
           <FileText className="mr-1 h-4 w-4" /> Create Prescription
         </Button>
+        <div className="ml-auto">
+          <Tabs value={period} onValueChange={setPeriod} className="w-full">
+            <TabsList className="bg-muted/50">
+              <TabsTrigger value="daily" className="text-xs px-3">Daily</TabsTrigger>
+              <TabsTrigger value="weekly" className="text-xs px-3">Weekly</TabsTrigger>
+              <TabsTrigger value="monthly" className="text-xs px-3">Monthly</TabsTrigger>
+              <TabsTrigger value="yearly" className="text-xs px-3">Yearly</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
       </motion.div>
-      <motion.div variants={item} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <motion.div variants={item} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatsCard title="Today's Patients" value={data.stats.dailyPatients} change="Live from appointments" changeType="neutral" icon={Users} />
-        <StatsCard title="Pending Recalls" value="12" change="Patients due this week" changeType="negative" icon={CalendarClock} />
-        <StatsCard title="Revenue (MTD)" value={`Rs ${data.stats.revenue.toLocaleString()}`} change="+12% from last month" changeType="positive" icon={IndianRupee} />
+        <StatsCard title="Revenue" value={`Rs ${data.stats.revenue.toLocaleString()}`} change="+12% from last month" changeType="positive" icon={IndianRupee} />
+        <StatsCard title="Profit" value={`Rs ${data.stats.profit?.toLocaleString() || "0"}`} change="Estimated 80% margin" changeType="positive" icon={TrendingUp} />
+        <StatsCard title="Pending Recalls" value="12" change="Due this week" changeType="negative" icon={CalendarClock} />
       </motion.div>
 
       <motion.div variants={item} className="grid grid-cols-1 gap-4 lg:grid-cols-3">

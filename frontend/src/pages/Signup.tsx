@@ -13,9 +13,9 @@ import logo from '@/assets/smartcare-logo.svg';
 
 const Signup: React.FC = () => {
   const [name, setName] = useState('Demo User');
-  const [email, setEmail] = useState('demo@smartdental.com');
+  const [email, setEmail] = useState('demo@siaradental.com');
   const [password, setPassword] = useState('password');
-  const [role, setRole] = useState<UserRole>('receptionist');
+  const [role, setRole] = useState<UserRole>('doctor');
   const { signup } = useAuth();
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -24,9 +24,9 @@ const Signup: React.FC = () => {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
-          <img src={logo} alt="SmartCare" className="h-16 w-16 mb-3" />
+          <img src={logo} alt="Siara Dental" className="h-16 w-16 mb-3" />
           <h1 className="text-3xl font-heading font-bold text-foreground">Create account</h1>
-          <p className="text-muted-foreground text-sm mt-1">Join the SmartDental network</p>
+          <p className="text-muted-foreground text-sm mt-1">Join the Siara Dental network</p>
         </div>
 
         <Card className="border-border/50 shadow-lg">
@@ -68,9 +68,8 @@ const Signup: React.FC = () => {
                 <Select value={role} onValueChange={(v) => setRole(v as UserRole)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="dentist">Dentist</SelectItem>
+                    <SelectItem value="doctor">Doctor</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="receptionist">Receptionist</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

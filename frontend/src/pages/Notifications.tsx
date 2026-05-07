@@ -25,7 +25,7 @@ type Reminder = {
 
 const initial: Reminder[] = [
   { id: 'N001', patientId: 'P001', patientName: 'Aarav Sharma', channel: 'WhatsApp', when: '2026-03-19 09:00', message: 'Reminder: Follow-up appointment tomorrow at 09:00.', enabled: true },
-  { id: 'N002', patientId: 'P003', patientName: 'Rahul Verma', channel: 'SMS', when: '2026-03-18 18:00', message: 'Please collect your X-ray report from SmartDental.', enabled: true },
+  { id: 'N002', patientId: 'P003', patientName: 'Rahul Verma', channel: 'SMS', when: '2026-03-18 18:00', message: 'Please collect your X-ray report from Siara Dental.', enabled: true },
   { id: 'N003', patientId: 'P002', patientName: 'Priya Patel', channel: 'Email', when: '2026-03-20 10:00', message: 'Your spirometry report is available on the portal.', enabled: false },
 ];
 

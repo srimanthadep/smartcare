@@ -1,31 +1,21 @@
 import React, { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { IndianRupee, Plus, Receipt, Trash2 } from "lucide-react";
+import { IndianRupee, Plus, Receipt } from "lucide-react";
 import { Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import StatsCard from "@/components/StatsCard";
 import StatusBadge from "@/components/StatusBadge";
-
-const CDT_CODES = [
-  { code: "D0120", description: "Periodic Oral Evaluation", amount: 800 },
-  { code: "D1110", description: "Prophylaxis - Adult (Cleaning)", amount: 1200 },
-  { code: "D2140", description: "Amalgam - 1 Surface", amount: 1500 },
-  { code: "D2330", description: "Resin-Based Composite - 1 Surface", amount: 2000 },
-  { code: "D3310", description: "Endodontic Therapy - Anterior (Root Canal)", amount: 8500 },
-  { code: "D3330", description: "Endodontic Therapy - Molar (Root Canal)", amount: 12500 },
-  { code: "D7140", description: "Extraction, Erupted Tooth", amount: 1800 },
-  { code: "D6010", description: "Surgical Placement of Implant Body", amount: 45000 },
-  { code: "D2750", description: "Crown - Porcelain Fused to High Noble Metal", amount: 15000 },
-];
+import InvoiceModal from "@/components/InvoiceModal";
+import InvoiceEditModal from "@/components/InvoiceEditModal";
+import { Invoice, Patient } from "@/types";
 
 const Billing: React.FC = () => {
   const queryClient = useQueryClient();
@@ -33,27 +23,25 @@ const Billing: React.FC = () => {
     queryKey: ["invoices"],
     queryFn: api.getInvoices,
   });
+  
+  const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
+  const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
+  const [isNewInvoiceOpen, setIsNewInvoiceOpen] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+
   const patientsQuery = useQuery({
     queryKey: ["patients", "billing-options"],
     queryFn: () => api.getPatients({}),
   });
+  
   const dashboardQuery = useQuery({
     queryKey: ["dashboard"],
     queryFn: api.getDashboard,
   });
 
-  const createInvoice = useMutation({
-    mutationFn: api.createInvoice,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["invoices"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      toast.success("Invoice created");
-    },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "Unable to create invoice"),
-  });
-
   const updateInvoice = useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: Record<string, string> }) => api.updateInvoice(id, payload),
+    mutationFn: ({ id, payload }: { id: string; payload: Partial<Invoice> }) => api.updateInvoice(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
@@ -81,135 +69,6 @@ const Billing: React.FC = () => {
     return { revenue, pending, paid };
   }, [invoices]);
 
-  const NewInvoiceDialog = () => {
-    const [patientId, setPatientId] = useState(patients[0]?.id || "");
-    const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-    const [status, setStatus] = useState<"Paid" | "Pending" | "Overdue">("Pending");
-    const [items, setItems] = useState([{ description: CDT_CODES[0].description, amount: CDT_CODES[0].amount, toothNumber: "" }]);
-
-    const total = items.reduce((sum, item) => sum + (Number.isFinite(item.amount) ? item.amount : 0), 0);
-    const patient = patients.find((item) => item.id === patientId);
-
-    return (
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button><Plus className="mr-1 h-4 w-4" /> New Invoice</Button>
-        </DialogTrigger>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="font-heading">Create invoice</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="space-y-2">
-                <Label>Patient</Label>
-                <Select value={patientId} onValueChange={setPatientId}>
-                  <SelectTrigger><SelectValue placeholder="Select patient" /></SelectTrigger>
-                  <SelectContent>
-                    {patients.map((patientOption) => (
-                      <SelectItem key={patientOption.id} value={patientOption.id}>{patientOption.name} ({patientOption.id})</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Date</Label>
-                <Input type="date" value={date} onChange={(event) => setDate(event.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <Select value={status} onValueChange={(value) => setStatus(value as typeof status)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Paid">Paid</SelectItem>
-                    <SelectItem value="Pending">Pending</SelectItem>
-                    <SelectItem value="Overdue">Overdue</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-3 rounded-lg border border-border/50 p-4">
-              <div className="flex items-center justify-between">
-                <p className="font-heading font-semibold">Dental Procedures</p>
-                <Button size="sm" variant="outline" onClick={() => setItems((current) => [...current, { description: CDT_CODES[0].description, amount: CDT_CODES[0].amount, toothNumber: "" }])}>
-                  <Plus className="mr-1 h-4 w-4" /> Add Procedure
-                </Button>
-              </div>
-              {items.map((item, index) => (
-                <div key={index} className="grid grid-cols-1 items-end gap-3 sm:grid-cols-12">
-                  <div className="space-y-2 sm:col-span-5">
-                    <Label>Procedure (CDT)</Label>
-                    <Select 
-                      value={item.description} 
-                      onValueChange={(val) => {
-                        const selected = CDT_CODES.find(c => c.description === val);
-                        setItems(current => current.map((row, i) => i === index ? { ...row, description: val, amount: selected?.amount || 0 } : row));
-                      }}
-                    >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {CDT_CODES.map(c => <SelectItem key={c.code} value={c.description}>{c.description}</SelectItem>)}
-                        <SelectItem value="Custom">Other / Custom</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label>Tooth #</Label>
-                    <Input placeholder="e.g. 46" value={item.toothNumber} onChange={(e) => setItems(current => current.map((row, i) => i === index ? { ...row, toothNumber: e.target.value } : row))} />
-                  </div>
-                  <div className="space-y-2 sm:col-span-4">
-                    <Label>Amount (Rs)</Label>
-                    <Input type="number" value={item.amount} onChange={(event) => setItems((current) => current.map((row, rowIndex) => (rowIndex === index ? { ...row, amount: Number(event.target.value) } : row)))} />
-                  </div>
-                  <div className="flex sm:col-span-1 sm:justify-end">
-                    <Button type="button" size="icon" variant="ghost" className="text-destructive" onClick={() => setItems((current) => current.filter((_, rowIndex) => rowIndex !== index))} disabled={items.length === 1}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">Patient: <span className="font-medium text-foreground">{patient?.name || "-"}</span></div>
-              <div className="text-right">
-                <p className="text-xs text-muted-foreground">Total</p>
-                <p className="text-xl font-heading font-bold">Rs {total.toLocaleString()}</p>
-              </div>
-            </div>
-
-            <div className="flex justify-end">
-              <Button
-                onClick={() => {
-                  if (!patient) {
-                    toast.error("Select a patient");
-                    return;
-                  }
-                  if (items.some((item) => !item.description.trim())) {
-                    toast.error("Add descriptions for all items");
-                    return;
-                  }
-                  createInvoice.mutate({
-                    patientId: patient.id,
-                    patientName: patient.name,
-                    date,
-                    items,
-                    total,
-                    status,
-                  });
-                }}
-                disabled={createInvoice.isPending}
-              >
-                {createInvoice.isPending ? "Creating..." : "Create invoice"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  };
-
   if (invoicesQuery.isLoading || patientsQuery.isLoading || dashboardQuery.isLoading) {
     return (
       <div className="space-y-4">
@@ -227,7 +86,9 @@ const Billing: React.FC = () => {
           <h1 className="text-2xl font-heading font-bold">Billing</h1>
           <p className="text-sm text-muted-foreground">Invoices and payment tracking</p>
         </div>
-        <NewInvoiceDialog />
+        <Button onClick={() => setIsNewInvoiceOpen(true)}>
+          <Plus className="mr-1 h-4 w-4" /> New Invoice
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -282,12 +143,18 @@ const Billing: React.FC = () => {
                   ))}
                 </div>
                 <div className="mt-3 flex justify-end gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setViewingInvoice(invoice)}>
+                    View Details
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setEditingInvoice(invoice)}>
+                    Edit
+                  </Button>
                   {invoice.status !== "Paid" && (
-                    <Button size="sm" variant="outline" onClick={() => updateInvoice.mutate({ id: invoice.id, payload: { status: "Paid" } })}>
+                    <Button size="sm" variant="outline" className="border-primary/50 text-primary hover:bg-primary/5" onClick={() => updateInvoice.mutate({ id: invoice.id, payload: { status: "Paid" } })}>
                       Mark paid
                     </Button>
                   )}
-                  <Button size="sm" variant="ghost" className="text-destructive" onClick={() => deleteInvoice.mutate(invoice.id)}>
+                  <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/5" onClick={() => deleteInvoice.mutate(invoice.id)}>
                     Remove
                   </Button>
                 </div>
@@ -296,8 +163,63 @@ const Billing: React.FC = () => {
           </Card>
         ))}
       </div>
+
+      <InvoiceModal 
+        invoice={viewingInvoice} 
+        open={!!viewingInvoice} 
+        onOpenChange={(open) => !open && setViewingInvoice(null)} 
+      />
+
+      <InvoiceEditModal
+        invoice={editingInvoice}
+        open={!!editingInvoice}
+        onOpenChange={(open) => !open && setEditingInvoice(null)}
+      />
+
+      {isNewInvoiceOpen && (
+        <PatientSelector 
+          patients={patients} 
+          onSelect={(p) => {
+            setIsNewInvoiceOpen(false);
+            setEditingInvoice(null);
+            setSelectedPatient(p);
+            setShowEditModal(true);
+          }}
+          onClose={() => setIsNewInvoiceOpen(false)}
+        />
+      )}
+
+      {showEditModal && (
+        <InvoiceEditModal
+          open={showEditModal}
+          onOpenChange={setShowEditModal}
+          patientId={selectedPatient?.id}
+          patientName={selectedPatient?.name}
+        />
+      )}
     </motion.div>
   );
 };
+
+const PatientSelector = ({ patients, onSelect, onClose }: { patients: Patient[], onSelect: (p: Patient) => void, onClose: () => void }) => (
+  <Dialog open onOpenChange={onClose}>
+    <DialogContent className="max-w-md">
+      <DialogHeader>
+        <DialogTitle>Create New Invoice</DialogTitle>
+      </DialogHeader>
+      <div className="space-y-4 pt-4">
+        <div className="space-y-2">
+          <Label>Select Patient</Label>
+          <Select onValueChange={(val) => onSelect(patients.find(p => p.id === val)!)}>
+            <SelectTrigger><SelectValue placeholder="Select patient" /></SelectTrigger>
+            <SelectContent>
+              {patients.map(p => <SelectItem key={p.id} value={p.id}>{p.name} ({p.id})</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </DialogContent>
+  </Dialog>
+);
 
 export default Billing;

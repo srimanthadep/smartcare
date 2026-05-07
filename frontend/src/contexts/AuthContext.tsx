@@ -50,14 +50,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const token = getAuthToken();
-    if (!token || !user) return;
+    if (!token) return;
 
-    api.me().catch(() => {
+    api.me().then(({ user: updatedUser }) => {
+      setUser(updatedUser);
+      sessionStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
+    }).catch(() => {
       clearAuthToken();
       setUser(null);
       sessionStorage.removeItem(USER_STORAGE_KEY);
     });
-  }, [user]);
+  }, []);
 
   const value = useMemo(
     () => ({

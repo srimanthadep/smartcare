@@ -38,8 +38,8 @@ export const AIAssistantPanel: React.FC<{ children?: React.ReactNode }> = ({ chi
     const value = text.trim();
     if (!value) return;
     const answer = data
-      ? `SmartDental AI summary: ${data.stats.dailyPatients} patients today, ${data.stats.appointments} active appointments, Rs ${data.stats.revenue.toLocaleString()} billed, and ${data.stats.pendingLabs} pending X-rays.`
-      : "SmartDental AI is waiting for live dashboard data.";
+      ? `Siara Dental AI summary: ${data.stats.dailyPatients} patients today, ${data.stats.appointments} active appointments, Rs ${data.stats.revenue.toLocaleString()} billed, and ${data.stats.pendingLabs} pending X-rays.`
+      : "Siara Dental AI is waiting for live dashboard data.";
     setMessages((current) => [
       ...current,
       { id: `u-${Date.now()}`, role: "user", text: value },
@@ -110,7 +110,7 @@ export const AIAssistantPanel: React.FC<{ children?: React.ReactNode }> = ({ chi
                 <Send className="h-4 w-4" />
               </Button>
             </div>
-            <p className="mt-2 text-[11px] text-muted-foreground">Responses are generated from your live SmartDental dashboard data.</p>
+            <p className="mt-2 text-[11px] text-muted-foreground">Responses are generated from your live Siara Dental dashboard data.</p>
           </div>
         </div>
       </SheetContent>

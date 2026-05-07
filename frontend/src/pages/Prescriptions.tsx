@@ -222,7 +222,7 @@ const Prescriptions: React.FC = () => {
             <div ref={printRef} className="p-6 print:p-0">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-xl font-heading font-bold">SmartDental Prescription</p>
+                  <p className="text-xl font-heading font-bold">Siara Dental Prescription</p>
                   <p className="mt-1 text-sm text-muted-foreground">For clinical use</p>
                 </div>
                 <div className="text-right">
