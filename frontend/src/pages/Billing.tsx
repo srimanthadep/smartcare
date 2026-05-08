@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { IndianRupee, Plus, Receipt } from "lucide-react";
 import { Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -16,6 +17,8 @@ import StatusBadge from "@/components/StatusBadge";
 import InvoiceModal from "@/components/InvoiceModal";
 import InvoiceEditModal from "@/components/InvoiceEditModal";
 import { Invoice, Patient } from "@/types";
+import { pdfService } from "@/lib/pdfService";
+import { FileDown } from "lucide-react";
 
 const Billing: React.FC = () => {
   const queryClient = useQueryClient();
@@ -40,6 +43,30 @@ const Billing: React.FC = () => {
     queryFn: api.getDashboard,
   });
 
+  const invoices = invoicesQuery.data || [];
+  const patients = patientsQuery.data || [];
+  const revenueTrend = dashboardQuery.data?.revenueTrend || [];
+
+  const [searchParams] = useSearchParams();
+  const urlPatientId = searchParams.get("patientId");
+
+  useEffect(() => {
+    if (urlPatientId && patients.length > 0) {
+      const p = patients.find(p => p.id === urlPatientId);
+      if (p) {
+        setSelectedPatient(p);
+        setShowEditModal(true);
+      }
+    }
+  }, [urlPatientId, patients]);
+
+  const totals = useMemo(() => {
+    const revenue = invoices.reduce((sum, item) => sum + item.total, 0);
+    const pending = invoices.filter((item) => item.status !== "Paid").reduce((sum, item) => sum + item.total, 0);
+    const paid = invoices.filter((item) => item.status === "Paid").reduce((sum, item) => sum + item.total, 0);
+    return { revenue, pending, paid };
+  }, [invoices]);
+
   const updateInvoice = useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: Partial<Invoice> }) => api.updateInvoice(id, payload),
     onSuccess: () => {
@@ -57,17 +84,6 @@ const Billing: React.FC = () => {
       toast.success("Invoice removed");
     },
   });
-
-  const invoices = invoicesQuery.data || [];
-  const patients = patientsQuery.data || [];
-  const revenueTrend = dashboardQuery.data?.revenueTrend || [];
-
-  const totals = useMemo(() => {
-    const revenue = invoices.reduce((sum, item) => sum + item.total, 0);
-    const pending = invoices.filter((item) => item.status !== "Paid").reduce((sum, item) => sum + item.total, 0);
-    const paid = invoices.filter((item) => item.status === "Paid").reduce((sum, item) => sum + item.total, 0);
-    return { revenue, pending, paid };
-  }, [invoices]);
 
   if (invoicesQuery.isLoading || patientsQuery.isLoading || dashboardQuery.isLoading) {
     return (
@@ -148,6 +164,18 @@ const Billing: React.FC = () => {
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => setEditingInvoice(invoice)}>
                     Edit
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="border-primary/30"
+                    onClick={() => {
+                      const patient = patients.find(p => p.id === invoice.patientId);
+                      if (patient) pdfService.generateInvoicePDF(patient, invoice);
+                      else toast.error("Patient details not found");
+                    }}
+                  >
+                    <FileDown className="mr-1 h-3.5 w-3.5" /> PDF
                   </Button>
                   {invoice.status !== "Paid" && (
                     <Button size="sm" variant="outline" className="border-primary/50 text-primary hover:bg-primary/5" onClick={() => updateInvoice.mutate({ id: invoice.id, payload: { status: "Paid" } })}>

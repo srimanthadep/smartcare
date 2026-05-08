@@ -110,30 +110,6 @@
   ],
   "patients": [
     {
-      "id": "P008",
-      "name": "",
-      "age": 0,
-      "gender": "Male",
-      "phone": "",
-      "email": "",
-      "bloodGroup": "A+",
-      "address": "",
-      "allergies": [],
-      "conditions": [],
-      "medications": [],
-      "insuranceProvider": "",
-      "policyNumber": "",
-      "coverageNotes": "",
-      "notes": "",
-      "dentalHistory": {
-        "lastVisit": "",
-        "hygiene": "Good",
-        "history": "",
-        "tobacco": "No"
-      },
-      "registeredOn": "2026-05-07"
-    },
-    {
       "id": "P007",
       "name": "Srimanth",
       "age": 21,
@@ -141,23 +117,19 @@
       "phone": "+919912858513",
       "email": "srimanthadep@gmail.com",
       "bloodGroup": "A+",
-      "status": "Active",
-      "lastVisit": "",
-      "registeredOn": "2026-05-07",
       "address": "Chaitanya Puri X Road Hyderabad 500060\nhyderabad",
       "allergies": [],
       "conditions": [],
       "medications": [],
-      "insuranceProvider": "",
-      "policyNumber": "",
-      "coverageNotes": "",
       "notes": "",
       "dentalHistory": {
         "lastVisit": "",
         "hygiene": "Good",
         "history": "",
         "tobacco": "No"
-      }
+      },
+      "consultationFee": 300,
+      "registeredOn": "2026-05-08"
     },
     {
       "id": "P001",
@@ -448,17 +420,6 @@
       "type": "Checkup",
       "status": "Scheduled",
       "reason": "Scaling & polishing"
-    },
-    {
-      "id": "A008",
-      "patientId": "P007",
-      "patientName": "Srimanth",
-      "doctorName": "Dr. Saikiran",
-      "date": "2026-05-07",
-      "time": "10:30",
-      "type": "Checkup",
-      "status": "Scheduled",
-      "reason": "Routine dental checkup"
     }
   ],
   "invoices": [
@@ -476,58 +437,6 @@
       ],
       "total": 800,
       "status": "Pending"
-    },
-    {
-      "id": "INV006",
-      "patientId": "P007",
-      "patientName": "Srimanth",
-      "date": "2026-05-07",
-      "items": [
-        {
-          "description": "Periodic Oral Evaluation",
-          "amount": 800,
-          "toothNumber": ""
-        }
-      ],
-      "total": 800,
-      "status": "Pending"
-    },
-    {
-      "id": "INV005",
-      "patientId": "P007",
-      "patientName": "Srimanth",
-      "date": "2026-05-07",
-      "items": [
-        {
-          "description": "Amalgam - 1 Surface",
-          "amount": 1500,
-          "toothNumber": ""
-        }
-      ],
-      "total": 1500,
-      "status": "Pending"
-    },
-    {
-      "id": "INV001",
-      "patientId": "P001",
-      "patientName": "Aarav Sharma",
-      "date": "2026-03-15",
-      "items": [
-        {
-          "description": "Consultation Fee",
-          "amount": 500
-        },
-        {
-          "description": "Scaling & Polishing",
-          "amount": 1500
-        },
-        {
-          "description": "Full Mouth X-Ray (OPG)",
-          "amount": 800
-        }
-      ],
-      "total": 2800,
-      "status": "Paid"
     },
     {
       "id": "INV002",
@@ -713,8 +622,200 @@
       "notes": "Mild sensitivity is normal for 2–3 days. Use a soft-bristled toothbrush. Avoid staining foods (tea, coffee) for 48 hours."
     }
   ],
-  "prescriptions": [],
+  "prescriptions": [
+    {
+      "id": "RX002",
+      "patientId": "P007",
+      "patientName": "Srimanth",
+      "doctorName": "Dr. Saikiran",
+      "date": "2026-05-08",
+      "medicines": [
+        {
+          "name": "Amoxicillin 500mg",
+          "dosage": "1 cap",
+          "frequency": "TID",
+          "duration": "5 days"
+        },
+        {
+          "name": "Ibuprofen 400mg",
+          "dosage": "1 tab",
+          "frequency": "TID (after food)",
+          "duration": "3 days"
+        },
+        {
+          "name": "Chlorhexidine Mouthwash 0.2%",
+          "dosage": "10ml rinse",
+          "frequency": "BID",
+          "duration": "7 days"
+        }
+      ],
+      "notes": "Do not spit or rinse for 24 hours. Soft diet for 2 days. Apply ice pack if swelling occurs. Avoid hot food and beverages."
+    },
+    {
+      "id": "RX003",
+      "patientId": "P002",
+      "patientName": "Priya Patel",
+      "doctorName": "",
+      "date": "2026-05-08",
+      "medicines": [
+        {
+          "name": "Amoxicillin 500mg",
+          "dosage": "1 cap",
+          "frequency": "TID",
+          "duration": "5 days"
+        },
+        {
+          "name": "Ibuprofen 400mg",
+          "dosage": "1 tab",
+          "frequency": "TID (after food)",
+          "duration": "3 days"
+        },
+        {
+          "name": "Chlorhexidine Mouthwash 0.2%",
+          "dosage": "10ml rinse",
+          "frequency": "BID",
+          "duration": "7 days"
+        }
+      ],
+      "notes": "Do not spit or rinse for 24 hours. Soft diet for 2 days. Apply ice pack if swelling occurs. Avoid hot food and beverages."
+    }
+  ],
   "activityLogs": [
+    {
+      "id": "LOG1778217017496_204",
+      "userId": "U001",
+      "userName": "doctor@siaradental.com",
+      "action": "Create Prescription",
+      "details": "Created prescription for patient Srimanth",
+      "timestamp": "2026-05-08T05:10:17.496Z",
+      "ip": "::1"
+    },
+    {
+      "id": "LOG1778216820626_634",
+      "userId": "U001",
+      "userName": "Dr. Saikiran",
+      "action": "Login",
+      "details": "User logged in successfully",
+      "timestamp": "2026-05-08T05:07:00.626Z",
+      "ip": "::1"
+    },
+    {
+      "id": "LOG1778215934974_669",
+      "userId": "U001",
+      "userName": "doctor@siaradental.com",
+      "action": "Delete Patient",
+      "details": "Deleted patient srimanth (P007)",
+      "timestamp": "2026-05-08T04:52:14.974Z",
+      "ip": "::1"
+    },
+    {
+      "id": "LOG1778215672665_733",
+      "userId": "U001",
+      "userName": "doctor@siaradental.com",
+      "action": "Create Patient",
+      "details": "Created patient srimanth (P007)",
+      "timestamp": "2026-05-08T04:47:52.665Z",
+      "ip": "::1"
+    },
+    {
+      "id": "LOG1778215649272_654",
+      "userId": "U001",
+      "userName": "doctor@siaradental.com",
+      "action": "Delete Patient",
+      "details": "Deleted patient Srimanth (P007)",
+      "timestamp": "2026-05-08T04:47:29.272Z",
+      "ip": "::1"
+    },
+    {
+      "id": "LOG1778211452699_228",
+      "userId": "U001",
+      "userName": "doctor@siaradental.com",
+      "action": "Create Prescription",
+      "details": "Created prescription for patient Priya Patel",
+      "timestamp": "2026-05-08T03:37:32.699Z",
+      "ip": "::1"
+    },
+    {
+      "id": "LOG1778210359833_61",
+      "userId": "U001",
+      "userName": "doctor@siaradental.com",
+      "action": "Delete Prescription",
+      "details": "Deleted prescription RX001",
+      "timestamp": "2026-05-08T03:19:19.833Z",
+      "ip": "::1"
+    },
+    {
+      "id": "LOG1778210336739_820",
+      "userId": "U001",
+      "userName": "doctor@siaradental.com",
+      "action": "Create Prescription",
+      "details": "Created prescription for patient Srimanth",
+      "timestamp": "2026-05-08T03:18:56.739Z",
+      "ip": "::1"
+    },
+    {
+      "id": "LOG1778210124147_803",
+      "userId": "U001",
+      "userName": "doctor@siaradental.com",
+      "action": "Create Prescription",
+      "details": "Created prescription for patient Srimanth",
+      "timestamp": "2026-05-08T03:15:24.147Z",
+      "ip": "::1"
+    },
+    {
+      "id": "LOG1778209689195_814",
+      "userId": "U001",
+      "userName": "doctor@siaradental.com",
+      "action": "Delete Patient",
+      "details": "Deleted patient  (P008)",
+      "timestamp": "2026-05-08T03:08:09.195Z",
+      "ip": "::1"
+    },
+    {
+      "id": "LOG1778207143548_52",
+      "userId": "U001",
+      "userName": "Dr. Saikiran",
+      "action": "Login",
+      "details": "User logged in successfully",
+      "timestamp": "2026-05-08T02:25:43.549Z",
+      "ip": "::1"
+    },
+    {
+      "id": "LOG1778207012454_167",
+      "userId": "U001",
+      "userName": "Dr. Saikiran",
+      "action": "Login",
+      "details": "User logged in successfully",
+      "timestamp": "2026-05-08T02:23:32.454Z",
+      "ip": "::1"
+    },
+    {
+      "id": "LOG1778205549618_186",
+      "userId": "U001",
+      "userName": "Dr. Saikiran",
+      "action": "Login",
+      "details": "User logged in successfully",
+      "timestamp": "2026-05-08T01:59:09.618Z",
+      "ip": "::1"
+    },
+    {
+      "id": "LOG1778165016610_220",
+      "userId": "U001",
+      "userName": "Dr. Saikiran",
+      "action": "Login",
+      "details": "User logged in successfully",
+      "timestamp": "2026-05-07T14:43:36.610Z",
+      "ip": "::1"
+    },
+    {
+      "id": "LOG1778164905934_640",
+      "userId": "U001",
+      "userName": "Dr. Saikiran",
+      "action": "Login",
+      "details": "User logged in successfully",
+      "timestamp": "2026-05-07T14:41:45.934Z",
+      "ip": "::1"
+    },
     {
       "id": "LOG1778158810655_574",
       "userId": "U001",

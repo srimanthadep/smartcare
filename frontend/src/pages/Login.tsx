@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserRole } from "@/types";
 import { toast } from "sonner";
-import logo from "@/assets/smartcare-logo.png";
+import logo from "@/assets/logo.png";
 
 const roleIcons: Record<UserRole, React.ReactNode> = {
   doctor: <Smile className="h-5 w-5" />,

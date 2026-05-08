@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
-import { Activity, AlertTriangle, ArrowLeft, Droplets, FileText, Pill, Smile, Receipt } from "lucide-react";
+import { Activity, AlertTriangle, ArrowLeft, Droplets, FileText, Pill, Smile, Receipt, Trash2, Eye, Edit3, Mail, FileDown } from "lucide-react";
+import { pdfService } from "@/lib/pdfService";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -48,16 +49,37 @@ const PatientProfile: React.FC = () => {
     },
   });
 
+  const deletePrescription = useMutation({
+    mutationFn: (prescriptionId: string) => api.deletePrescription(prescriptionId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["prescriptions", id] });
+      toast.success("Prescription deleted");
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : "Failed to delete prescription");
+    },
+  });
+
   const { data: dentalChartData, isLoading: isLoadingChart } = useQuery({
     queryKey: ["dental-chart", id],
     queryFn: () => api.getDentalChart(id),
     enabled: !!id,
   });
 
-  const { data: invoices } = useQuery({
+  const { data: invoices, error: invoiceError, refetch: refetchInvoices } = useQuery({
     queryKey: ["invoices", id],
     queryFn: api.getInvoices,
     select: (data) => data.filter(inv => inv.patientId === id),
+    enabled: !!id,
+  });
+
+  if (invoiceError) {
+    console.error(`Invoice fetch error for ${id}:`, invoiceError);
+  }
+
+  const { data: prescriptions } = useQuery({
+    queryKey: ["prescriptions", id],
+    queryFn: () => api.getPrescriptions(id),
     enabled: !!id,
   });
 
@@ -120,6 +142,20 @@ const PatientProfile: React.FC = () => {
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">{patient.id} · {patient.age} years · {patient.gender} · Registered {patient.registeredOn}</p>
           </div>
+          <Button variant="outline" size="sm" onClick={() => navigate(`/patients?editId=${id}`)}>
+            Edit Profile
+          </Button>
+          <Button 
+            variant="destructive" 
+            size="sm" 
+            onClick={() => {
+              if (window.confirm("Are you sure you want to delete this patient?")) {
+                deletePatient.mutate(id!);
+              }
+            }}
+          >
+            Delete
+          </Button>
         </div>
       </div>
 
@@ -134,6 +170,7 @@ const PatientProfile: React.FC = () => {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="dental-chart">Dental Chart</TabsTrigger>
           <TabsTrigger value="billing">Billing</TabsTrigger>
+          <TabsTrigger value="prescriptions">Prescriptions</TabsTrigger>
           <TabsTrigger value="treatment-plans">Treatment Plans</TabsTrigger>
           <TabsTrigger value="diagnoses">Diagnoses</TabsTrigger>
           <TabsTrigger value="allergies">Allergies</TabsTrigger>
@@ -249,9 +286,14 @@ const PatientProfile: React.FC = () => {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2 text-base font-heading"><Receipt className="h-4 w-4 text-primary" /> Patient Invoices</CardTitle>
-                <Button size="sm" onClick={() => setIsNewInvoiceOpen(true)}>
-                  <PlusCircle className="mr-2 h-4 w-4" /> New Invoice
-                </Button>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => refetchInvoices()}>
+                    Refresh
+                  </Button>
+                  <Button size="sm" onClick={() => setIsNewInvoiceOpen(true)}>
+                    <PlusCircle className="mr-2 h-4 w-4" /> New Invoice
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -276,6 +318,26 @@ const PatientProfile: React.FC = () => {
                         <div className="flex gap-2">
                           <Button size="sm" variant="outline" onClick={() => setViewingInvoice(inv)}>View</Button>
                           <Button size="sm" variant="outline" onClick={() => setEditingInvoice(inv)}>Edit</Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => pdfService.generateInvoicePDF(patient, inv)}
+                          >
+                            <FileDown className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => {
+                              toast.promise(api.sendInvoiceEmail(inv.id), {
+                                loading: 'Sending invoice email...',
+                                success: 'Email sent successfully!',
+                                error: 'Failed to send email'
+                              });
+                            }}
+                          >
+                            <Mail className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -283,6 +345,88 @@ const PatientProfile: React.FC = () => {
                 </div>
               ) : (
                 <div className="py-12 text-center text-sm text-muted-foreground italic">No invoices recorded for this patient.</div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="prescriptions" className="mt-4 space-y-4">
+          <Card className="border-border/50">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-base font-heading"><ClipboardList className="h-4 w-4 text-primary" /> Patient Prescriptions</CardTitle>
+                <Button size="sm" onClick={() => navigate(`/prescriptions?patientId=${id}`)}>
+                  <PlusCircle className="mr-2 h-4 w-4" /> New Prescription
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {prescriptions && prescriptions.length > 0 ? (
+                <div className="space-y-3">
+                  {prescriptions.map((px) => (
+                    <div key={px.id} className="flex items-center justify-between rounded-lg border border-border/50 p-4 transition-colors hover:bg-secondary/20">
+                      <div className="flex items-center gap-4">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                          <ClipboardList className="h-4 w-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium">Prescription - {new Date(px.date).toLocaleDateString()}</p>
+                          <p className="text-xs text-muted-foreground">{px.doctorName || "Dr. Saikiran"}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <p className="text-xs font-medium">{px.medicines.length} Medicines</p>
+                          <p className="text-[10px] text-muted-foreground">{px.id}</p>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => navigate(`/prescriptions?editId=${px.id}`)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => navigate(`/prescriptions?editId=${px.id}`)}>
+                            <Edit3 className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            className="h-8 w-8"
+                            onClick={() => pdfService.generatePrescriptionPDF(patient, px)}
+                          >
+                            <FileDown className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            className="h-8 w-8"
+                            onClick={() => {
+                              toast.promise(api.sendPrescriptionEmail(px.id), {
+                                loading: 'Sending prescription email...',
+                                success: 'Email sent successfully!',
+                                error: 'Failed to send email'
+                              });
+                            }}
+                          >
+                            <Mail className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            className="h-8 w-8 text-destructive hover:bg-destructive/10" 
+                            onClick={() => {
+                              if (confirm("Are you sure you want to delete this prescription?")) {
+                                deletePrescription.mutate(px.id);
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-12 text-center text-sm text-muted-foreground italic">No prescriptions recorded for this patient.</div>
               )}
             </CardContent>
           </Card>

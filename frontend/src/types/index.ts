@@ -170,6 +170,19 @@ export interface MedicineCatalogItem {
   form: string;
 }
 
+export interface MedicineSearchItem {
+  id: string;
+  brand_name: string;
+  generic_name: string;
+  strength: string;
+  dosage_form: string;
+  drug_category: string;
+  indication: string;
+  manufacturer: string;
+  prescription_type: string;
+  packaging: string;
+}
+
 export interface PrescriptionTemplate {
   id: string;
   name: string;

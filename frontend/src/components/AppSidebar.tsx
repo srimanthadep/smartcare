@@ -11,7 +11,7 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter,
   useSidebar,
 } from '@/components/ui/sidebar';
-import logo from '@/assets/smartcare-logo.svg';
+import logo from "@/assets/logo.png";
 
 const allNavItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard, roles: ['doctor', 'admin'] },

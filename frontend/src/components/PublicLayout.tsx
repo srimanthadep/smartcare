@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, Link } from 'react-router-dom';
-import logo from '@/assets/smartcare-logo.svg';
+import logo from '@/assets/logo.png';
 import { Button } from '@/components/ui/button';
 
 const PublicLayout: React.FC = () => {

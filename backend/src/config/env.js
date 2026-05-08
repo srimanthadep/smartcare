@@ -9,6 +9,7 @@ const envSchema = z.object({
   AUTH_SECRET: z.string().min(32, "Auth secret should be at least 32 characters for security"),
   TOKEN_TTL_HOURS: z.string().default('12').transform(Number),
   CORS_ORIGINS: z.string().default('http://localhost:8080,http://127.0.0.1:8080').transform((s) => s.split(',').map(i => i.trim())),
+  GEMINI_API_KEY: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

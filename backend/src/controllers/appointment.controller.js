@@ -45,3 +45,15 @@ export const updateAppointment = async (req, res, next) => {
     next(error);
   }
 };
+
+export const deleteAppointment = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const db = await dbService.read();
+    db.appointments = db.appointments.filter(a => a.id !== id);
+    await dbService.write(db);
+    res.status(204).end();
+  } catch (error) {
+    next(error);
+  }
+};

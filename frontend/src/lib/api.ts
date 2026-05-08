@@ -127,6 +127,12 @@ export const api = {
       body: JSON.stringify(payload),
     });
   },
+  
+  deletePatient(id: string) {
+    return apiFetch<{ message: string }>(`/api/patients/${id}`, {
+      method: "DELETE",
+    });
+  },
 
   getAppointments(params: { date?: string; type?: string } = {}) {
     return apiFetch<Appointment[]>(`/api/appointments${buildQuery(params)}`);
@@ -180,6 +186,19 @@ export const api = {
       body: JSON.stringify(payload),
     });
   },
+
+  updatePrescription(id: string, payload: Partial<Prescription>) {
+    return apiFetch<Prescription>(`/api/prescriptions/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  deletePrescription(id: string) {
+    return apiFetch<{ message: string }>(`/api/prescriptions/${id}`, {
+      method: "DELETE",
+    });
+  },
   
   getActivityLogs() {
     return apiFetch<ActivityLog[]>("/api/activity-logs");
@@ -194,5 +213,28 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ teeth }),
     });
+  },
+
+  searchMedicines(query: string) {
+    return apiFetch<{ data: import("@/types").MedicineSearchItem[] }>(`/api/medicines/search${buildQuery({ q: query })}`);
+  },
+
+  generateAIPrescription(payload: any) {
+    return apiFetch<{ data: Prescription }>("/api/ai/generate-prescription", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  sendWelcomeEmail(id: string) {
+    return apiFetch<{ message: string }>(`/api/patients/${id}/send-welcome`, { method: "POST" });
+  },
+
+  sendPrescriptionEmail(id: string) {
+    return apiFetch<{ message: string }>(`/api/prescriptions/${id}/send-email`, { method: "POST" });
+  },
+
+  sendInvoiceEmail(id: string) {
+    return apiFetch<{ message: string }>(`/api/invoices/${id}/send-email`, { method: "POST" });
   },
 };

@@ -1,8 +1,10 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useMemo, useRef, useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FileText, MessageCircle, Plus, Printer, Share2, Trash2 } from "lucide-react";
+import { FileText, MessageCircle, Plus, Printer, Share2, Trash2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,10 +14,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { MedicineCombobox } from "@/components/MedicineCombobox";
 
 const Prescriptions: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const urlPatientId = searchParams.get("patientId");
+  const editId = searchParams.get("editId");
   const printRef = useRef<HTMLDivElement | null>(null);
   const queryClient = useQueryClient();
+  
   const patientsQuery = useQuery({
     queryKey: ["patients", "prescriptions-options"],
     queryFn: () => api.getPatients({}),
@@ -28,6 +35,7 @@ const Prescriptions: React.FC = () => {
     queryKey: ["prescriptions"],
     queryFn: () => api.getPrescriptions(),
   });
+
   const createPrescription = useMutation({
     mutationFn: api.createPrescription,
     onSuccess: () => {
@@ -37,11 +45,34 @@ const Prescriptions: React.FC = () => {
     onError: (error) => toast.error(error instanceof Error ? error.message : "Unable to save prescription"),
   });
 
+  const updatePrescription = useMutation({
+    mutationFn: (payload: any) => api.updatePrescription(editId!, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["prescriptions"] });
+      toast.success("Prescription updated");
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "Unable to update prescription"),
+  });
+
+  const generateAI = useMutation({
+    mutationFn: api.generateAIPrescription,
+    onSuccess: (res) => {
+      if (res.data.medicines && res.data.medicines.length > 0) {
+        setMedicines(res.data.medicines);
+      }
+      if (res.data.notes) {
+        setNotes(res.data.notes);
+      }
+      toast.success("AI suggested prescription loaded. Please review carefully.");
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "AI generation failed"),
+  });
+
   const patients = patientsQuery.data || [];
   const bootstrap = bootstrapQuery.data;
   const savedPrescriptions = prescriptionsQuery.data || [];
 
-  const [patientId, setPatientId] = useState("");
+  const [patientId, setPatientId] = useState(urlPatientId || "");
   const [doctorName, setDoctorName] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [templateId, setTemplateId] = useState("none");
@@ -49,6 +80,45 @@ const Prescriptions: React.FC = () => {
   const [medicines, setMedicines] = useState([{ name: "", dosage: "", frequency: "", duration: "" }]);
 
   const patient = useMemo(() => patients.find((item) => item.id === patientId), [patientId, patients]);
+
+  useEffect(() => {
+    if (editId && savedPrescriptions.length > 0) {
+      const px = savedPrescriptions.find(p => p.id === editId);
+      if (px) {
+        setPatientId(px.patientId);
+        setDoctorName(px.doctorName);
+        setDate(px.date);
+        setMedicines(px.medicines);
+        setNotes(px.notes);
+      }
+    }
+  }, [editId, savedPrescriptions]);
+
+  const handleSave = () => {
+    if (!patient) {
+      toast.error("Select a patient");
+      return;
+    }
+    if (medicines.some((item) => !item.name.trim())) {
+      toast.error("Select medicines before saving");
+      return;
+    }
+    
+    const payload = {
+      patientId,
+      patientName: patient.name,
+      doctorName,
+      date,
+      medicines,
+      notes,
+    };
+
+    if (editId) {
+      updatePrescription.mutate(payload);
+    } else {
+      createPrescription.mutate(payload);
+    }
+  };
 
   const applyTemplate = (value: string) => {
     setTemplateId(value);
@@ -84,21 +154,15 @@ const Prescriptions: React.FC = () => {
           <p className="text-sm text-muted-foreground">Create, print and track prescriptions</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" onClick={() => window.print()}><Printer className="mr-1 h-4 w-4" /> Print</Button>
-          <Button variant="outline" onClick={() => toast.message("Share flow would generate a PDF link.")}>
-            <MessageCircle className="mr-1 h-4 w-4" /> WhatsApp
-          </Button>
-          <Button
+          <Button 
+            variant="outline" 
             onClick={() => {
               if (!patient) {
-                toast.error("Select a patient");
+                toast.error("Select a patient to generate PDF");
                 return;
               }
-              if (medicines.some((item) => !item.name.trim())) {
-                toast.error("Select medicines before saving");
-                return;
-              }
-              createPrescription.mutate({
+              pdfService.generatePrescriptionPDF(patient, {
+                id: editId || "DRAFT",
                 patientId,
                 patientName: patient.name,
                 doctorName,
@@ -107,15 +171,29 @@ const Prescriptions: React.FC = () => {
                 notes,
               });
             }}
-            disabled={createPrescription.isPending}
           >
-            <Plus className="mr-1 h-4 w-4" /> {createPrescription.isPending ? "Saving..." : "Save"}
+            <Printer className="mr-1 h-4 w-4" /> Print PDF
+          </Button>
+          <Button variant="outline" onClick={() => toast.message("Share flow would generate a PDF link.")}>
+            <MessageCircle className="mr-1 h-4 w-4" /> WhatsApp
+          </Button>
+          <Button
+            onClick={handleSave}
+            disabled={createPrescription.isPending || updatePrescription.isPending}
+          >
+            <Plus className="mr-1 h-4 w-4" /> {(createPrescription.isPending || updatePrescription.isPending) ? "Saving..." : (editId ? "Update" : "Save")}
           </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <Card className="border-border/50">
+        <Card className={cn("border-border/50 transition-colors duration-300", generateAI.isSuccess && "border-amber-500/50")}>
+          {generateAI.isSuccess && (
+            <div className="bg-amber-500/10 text-amber-600 px-5 py-3 text-sm font-medium border-b border-amber-500/20 flex items-center justify-center">
+              <Sparkles className="w-4 h-4 mr-2" />
+              AI Suggested Prescription — Doctor Approval Required
+            </div>
+          )}
           <CardContent className="space-y-5 p-5">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
@@ -161,25 +239,50 @@ const Prescriptions: React.FC = () => {
             <Separator />
 
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <p className="font-heading font-semibold">Medicines</p>
-                <Button size="sm" variant="outline" onClick={() => setMedicines((current) => [...current, { name: "", dosage: "", frequency: "", duration: "" }])}>
-                  <Plus className="mr-1 h-4 w-4" /> Add
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button 
+                    size="sm" 
+                    variant="secondary" 
+                    className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20"
+                    onClick={() => {
+                      if (!patientId) {
+                        toast.error("Please select a patient first.");
+                        return;
+                      }
+                      generateAI.mutate({ patientId, context: "General dental visit" });
+                    }}
+                    disabled={generateAI.isPending}
+                  >
+                    <Sparkles className="mr-1 h-4 w-4" /> 
+                    {generateAI.isPending ? "Generating..." : "Auto Generate"}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setMedicines((current) => [...current, { name: "", dosage: "", frequency: "", duration: "" }])}>
+                    <Plus className="mr-1 h-4 w-4" /> Add
+                  </Button>
+                </div>
               </div>
               {medicines.map((medicine, index) => (
                 <div key={index} className="rounded-lg border border-border/50 bg-secondary/20 p-4">
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label>Medicine</Label>
-                      <Select value={medicine.name} onValueChange={(value) => setMedicines((current) => current.map((item, itemIndex) => (itemIndex === index ? { ...item, name: value } : item)))}>
-                        <SelectTrigger><SelectValue placeholder="Select medicine" /></SelectTrigger>
-                        <SelectContent>
-                          {bootstrap.medicines.map((item) => (
-                            <SelectItem key={item.id} value={`${item.name} ${item.strength}`}>{item.name} {item.strength} ({item.form})</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <MedicineCombobox 
+                        value={medicine.name}
+                        onChange={(value, selectedMedicine) => {
+                          setMedicines((current) => current.map((item, itemIndex) => {
+                            if (itemIndex === index) {
+                              const updates = { name: value };
+                              if (selectedMedicine && selectedMedicine.strength) {
+                                (updates as any).dosage = selectedMedicine.strength;
+                              }
+                              return { ...item, ...updates };
+                            }
+                            return item;
+                          }));
+                        }}
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label>Dosage</Label>
