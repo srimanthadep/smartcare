@@ -72,7 +72,7 @@ function buildQuery(params: Record<string, string | undefined>) {
 }
 
 export const api = {
-  login(payload: { email: string; password: string; role: UserRole }) {
+  login(payload: { username: string; password: string; role: UserRole }) {
     return apiFetch<{ token: string; user: User }>("/api/auth/login", {
       method: "POST",
       body: JSON.stringify(payload),
@@ -80,7 +80,7 @@ export const api = {
     });
   },
   
-  register(payload: { name: string; email: string; password: string; role: UserRole }) {
+  register(payload: { name: string; email: string; username: string; password: string; role: UserRole }) {
     return apiFetch<{ token: string; user: User }>("/api/auth/register", {
       method: "POST",
       body: JSON.stringify(payload),
@@ -232,6 +232,37 @@ export const api = {
 
   sendPrescriptionEmail(id: string) {
     return apiFetch<{ message: string }>(`/api/prescriptions/${id}/send-email`, { method: "POST" });
+  },
+
+  chatWithAI(message: string, history: { role: string; content: string }[]) {
+    return apiFetch<{ data: string }>("/api/ai/chat", {
+      method: "POST",
+      body: JSON.stringify({ message, history }),
+    });
+  },
+
+  getTemplates() {
+    return apiFetch<{ data: any[] }>("/api/prescription-templates");
+  },
+
+  createTemplate(payload: any) {
+    return apiFetch<{ data: any }>("/api/prescription-templates", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  updateTemplate(id: string, payload: any) {
+    return apiFetch<{ data: any }>(`/api/prescription-templates/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  deleteTemplate(id: string) {
+    return apiFetch<void>(`/api/prescription-templates/${id}`, {
+      method: "DELETE",
+    });
   },
 
   sendInvoiceEmail(id: string) {

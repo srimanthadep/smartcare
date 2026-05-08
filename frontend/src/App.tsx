@@ -30,7 +30,16 @@ import PublicLayout from "@/components/PublicLayout";
 import PublicBooking from "@/pages/PublicBooking";
 import DoctorPublicProfile from "@/pages/DoctorPublicProfile";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // Data stays "fresh" for 5 minutes
+      gcTime: 1000 * 60 * 15,    // Cache stays in memory for 15 minutes
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

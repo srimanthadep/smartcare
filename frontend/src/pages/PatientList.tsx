@@ -105,11 +105,63 @@ const PatientList: React.FC = () => {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <Skeleton className="h-10 w-48" />
-          <Skeleton className="h-10 w-32" />
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-48" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="h-10 w-24" />
+            <Skeleton className="h-10 w-40" />
+          </div>
         </div>
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-[500px] w-full" />
+        
+        <Card className="border-border/40">
+          <CardContent className="p-4">
+            <Skeleton className="h-11 w-full" />
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/40 overflow-hidden">
+          <div className="p-0">
+            <div className="bg-muted/40 p-4 border-b">
+              <div className="grid grid-cols-6 gap-4">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-24 ml-auto" />
+                <Skeleton className="h-4 w-10 ml-auto" />
+              </div>
+            </div>
+            <div className="divide-y">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="p-4 grid grid-cols-6 gap-4 items-center">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-10 w-10 rounded-full" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-20" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                  <div className="space-y-1">
+                    <Skeleton className="h-3 w-24" />
+                    <Skeleton className="h-3 w-32" />
+                  </div>
+                  <div className="flex gap-1">
+                    <Skeleton className="h-5 w-8" />
+                    <Skeleton className="h-5 w-16" />
+                  </div>
+                  <div className="text-right space-y-1 ml-auto">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                  <Skeleton className="h-8 w-8 rounded-md ml-auto" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
       </div>
     );
   }

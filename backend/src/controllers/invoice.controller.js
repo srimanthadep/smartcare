@@ -3,8 +3,8 @@ import { emailService } from '../services/email.service.js';
 
 export const getInvoices = async (req, res, next) => {
   try {
-    const db = await dbService.read();
-    res.json(db.invoices.sort((a, b) => b.date.localeCompare(a.date)));
+    const result = await dbService.query('SELECT * FROM invoices ORDER BY date DESC');
+    res.json(dbService.mapRows('invoices', result.rows));
   } catch (error) {
     next(error);
   }
@@ -12,22 +12,25 @@ export const getInvoices = async (req, res, next) => {
 
 export const createInvoice = async (req, res, next) => {
   try {
-    const db = await dbService.read();
-    const invoice = {
-      id: dbService.generateId('INV', db.invoices.map(i => i.id)),
-      ...req.body,
-      date: req.body.date || new Date().toISOString().slice(0, 10)
-    };
-    db.invoices.unshift(invoice);
-    await dbService.write(db);
+    const id = await dbService.generateId('INV', 'invoices');
+    const { patientId, patientName, date, items, total, status } = req.body;
+    const invDate = date || new Date().toISOString().slice(0, 10);
+
+    const query = `
+      INSERT INTO invoices (id, patient_id, date, items, total, status)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *
+    `;
+    const params = [id, patientId, invDate, JSON.stringify(items), total, status || 'Pending'];
+    const result = await dbService.query(query, params);
+    const invoice = dbService.mapRows('invoices', result.rows)[0];
 
     // Send invoice email
-    const patient = db.patients.find(p => p.id === invoice.patientId);
+    const patientRes = await dbService.query('SELECT * FROM patients WHERE id = $1', [patientId]);
+    const patient = dbService.mapRows('patients', patientRes.rows)[0];
+
     if (patient && patient.email) {
-      console.log(`🚀 Triggering automatic invoice email for ${patient.email}`);
-      emailService.sendInvoiceEmail(patient, invoice)
-        .then(data => console.log(`✅ Automatic invoice email success: ${data?.id || 'OK'}`))
-        .catch(err => console.error('❌ Automatic invoice email failed:', err));
+      emailService.sendInvoiceEmail(patient, invoice).catch(err => console.error('Invoice email failed:', err));
     }
 
     res.status(201).json(invoice);
@@ -39,25 +42,40 @@ export const createInvoice = async (req, res, next) => {
 export const updateInvoice = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const db = await dbService.read();
-    const index = db.invoices.findIndex(i => i.id === id);
-    if (index === -1) return res.status(404).json({ message: 'Invoice not found' });
-    
-    const oldStatus = db.invoices[index].status;
-    db.invoices[index] = { ...db.invoices[index], ...req.body };
-    const newStatus = db.invoices[index].status;
+    const fields = req.body;
 
-    await dbService.write(db);
+    // Get old state
+    const oldRes = await dbService.query('SELECT * FROM invoices WHERE id = $1', [id]);
+    if (oldRes.rows.length === 0) return res.status(404).json({ message: 'Invoice not found' });
+    const oldInvoice = oldRes.rows[0];
+
+    const updates = [];
+    const params = [id];
+    let i = 2;
+
+    const mapping = { patientId: 'patient_id' };
+
+    for (const [key, value] of Object.entries(fields)) {
+      const dbKey = mapping[key] || key;
+      updates.push(`${dbKey} = $${i}`);
+      params.push(key === 'items' ? JSON.stringify(value) : value);
+      i++;
+    }
+
+    const query = `UPDATE invoices SET ${updates.join(', ')} WHERE id = $1 RETURNING *`;
+    const result = await dbService.query(query, params);
+    const invoice = dbService.mapRows('invoices', result.rows)[0];
 
     // Send payment confirmation email if status changed to Paid
-    if (oldStatus !== 'Paid' && newStatus === 'Paid') {
-      const patient = db.patients.find(p => p.id === db.invoices[index].patientId);
+    if (oldInvoice.status !== 'Paid' && invoice.status === 'Paid') {
+      const patientRes = await dbService.query('SELECT * FROM patients WHERE id = $1', [invoice.patientId]);
+      const patient = dbService.mapRows('patients', patientRes.rows)[0];
       if (patient && patient.email) {
-        emailService.sendInvoiceEmail(patient, db.invoices[index]).catch(err => console.error('Email error:', err));
+        emailService.sendInvoiceEmail(patient, invoice).catch(err => console.error('Email error:', err));
       }
     }
 
-    res.json(db.invoices[index]);
+    res.json(invoice);
   } catch (error) {
     next(error);
   }
@@ -66,9 +84,7 @@ export const updateInvoice = async (req, res, next) => {
 export const deleteInvoice = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const db = await dbService.read();
-    db.invoices = db.invoices.filter(i => i.id !== id);
-    await dbService.write(db);
+    await dbService.query('DELETE FROM invoices WHERE id = $1', [id]);
     res.status(204).end();
   } catch (error) {
     next(error);

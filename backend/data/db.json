@@ -3,18 +3,11 @@
     {
       "id": "U001",
       "name": "Dr. Saikiran",
-      "email": "doctor@siaradental.com",
+      "username": "saikiran",
+      "email": "saikiran@siaradental.in",
       "role": "doctor",
       "avatar": "",
-      "password": "$2b$10$2cgcAA2y6xBFCru1rNQi9OkLaOqVH7nYE/5FEBC/Ux6zpdlXGW2dq"
-    },
-    {
-      "id": "U002",
-      "name": "Admin User",
-      "email": "admin@siaradental.com",
-      "role": "admin",
-      "avatar": "",
-      "password": "$2b$10$2cgcAA2y6xBFCru1rNQi9OkLaOqVH7nYE/5FEBC/Ux6zpdlXGW2dq"
+      "password": "$2b$10$XAwf.HVD8ku3aH6qI8AJV.L9ElL7vQ7DN3XpWs9osfYjjFxpf4a9q"
     }
   ],
   "doctors": [
@@ -116,7 +109,7 @@
       "gender": "Male",
       "phone": "+919912858513",
       "email": "srimanthadep@gmail.com",
-      "bloodGroup": "A+",
+      "bloodGroup": "O+",
       "address": "Chaitanya Puri X Road Hyderabad 500060\nhyderabad",
       "allergies": [],
       "conditions": [],
@@ -424,6 +417,20 @@
   ],
   "invoices": [
     {
+      "id": "INV005",
+      "patientId": "P007",
+      "patientName": "Srimanth",
+      "date": "2026-05-08",
+      "items": [
+        {
+          "description": "Consultation Fee",
+          "amount": 300
+        }
+      ],
+      "total": 300,
+      "status": "Pending"
+    },
+    {
       "id": "INV007",
       "patientId": "P001",
       "patientName": "Aarav Sharma",
@@ -624,34 +631,6 @@
   ],
   "prescriptions": [
     {
-      "id": "RX002",
-      "patientId": "P007",
-      "patientName": "Srimanth",
-      "doctorName": "Dr. Saikiran",
-      "date": "2026-05-08",
-      "medicines": [
-        {
-          "name": "Amoxicillin 500mg",
-          "dosage": "1 cap",
-          "frequency": "TID",
-          "duration": "5 days"
-        },
-        {
-          "name": "Ibuprofen 400mg",
-          "dosage": "1 tab",
-          "frequency": "TID (after food)",
-          "duration": "3 days"
-        },
-        {
-          "name": "Chlorhexidine Mouthwash 0.2%",
-          "dosage": "10ml rinse",
-          "frequency": "BID",
-          "duration": "7 days"
-        }
-      ],
-      "notes": "Do not spit or rinse for 24 hours. Soft diet for 2 days. Apply ice pack if swelling occurs. Avoid hot food and beverages."
-    },
-    {
       "id": "RX003",
       "patientId": "P002",
       "patientName": "Priya Patel",
@@ -681,6 +660,33 @@
     }
   ],
   "activityLogs": [
+    {
+      "id": "LOG1778241117834_980",
+      "userId": "U001",
+      "userName": "Dr. Saikiran",
+      "action": "Login",
+      "details": "User logged in successfully",
+      "timestamp": "2026-05-08T11:51:57.834Z",
+      "ip": "::1"
+    },
+    {
+      "id": "LOG1778240743205_291",
+      "userId": "U001",
+      "userName": "doctor@siaradental.com",
+      "action": "Delete Patient",
+      "details": "Deleted patient Srimanth (P007)",
+      "timestamp": "2026-05-08T11:45:43.205Z",
+      "ip": "::1"
+    },
+    {
+      "id": "LOG1778240719191_309",
+      "userId": "U001",
+      "userName": "Dr. Saikiran",
+      "action": "Login",
+      "details": "User logged in successfully",
+      "timestamp": "2026-05-08T11:45:19.191Z",
+      "ip": "::1"
+    },
     {
       "id": "LOG1778217017496_204",
       "userId": "U001",

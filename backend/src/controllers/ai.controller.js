@@ -9,8 +9,8 @@ export const generatePrescription = async (req, res, next) => {
       return res.status(400).json({ message: 'Patient ID is required' });
     }
 
-    const db = await dbService.read();
-    const patient = db.patients.find(p => p.id === patientId);
+    const patientRes = await dbService.query('SELECT * FROM patients WHERE id = $1', [patientId]);
+    const patient = dbService.mapRows('patients', patientRes.rows)[0];
 
     if (!patient) {
       return res.status(404).json({ message: 'Patient not found' });
@@ -32,6 +32,22 @@ export const generatePrescription = async (req, res, next) => {
     res.json({ data: draft });
   } catch (error) {
     console.error('Error in generatePrescription controller:', error);
+    next(error);
+  }
+};
+
+export const chat = async (req, res, next) => {
+  try {
+    const { message, history } = req.body;
+    console.log('AI Chat Request Received:', { message, historyCount: history?.length });
+
+    if (!message) {
+      return res.status(400).json({ message: 'Message is required' });
+    }
+
+    const response = await aiService.chat(message, history || []);
+    res.json({ data: response });
+  } catch (error) {
     next(error);
   }
 };

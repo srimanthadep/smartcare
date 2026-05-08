@@ -5,8 +5,8 @@ import { User, UserRole } from "@/types";
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string, role: UserRole) => Promise<void>;
-  signup: (name: string, email: string, password: string, role: UserRole) => Promise<void>;
+  login: (username: string, password: string, role: UserRole) => Promise<void>;
+  signup: (name: string, email: string, username: string, password: string, role: UserRole) => Promise<void>;
   logout: () => void;
 }
 
@@ -26,13 +26,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return raw ? JSON.parse(raw) : null;
   });
 
-  const login = useCallback(async (email: string, password: string, role: UserRole) => {
-    const response = await api.login({ email, password, role });
+  const login = useCallback(async (username: string, password: string, role: UserRole) => {
+    const response = await api.login({ username, password, role });
     handleAuthSuccess(response);
   }, []);
 
-  const signup = useCallback(async (name: string, email: string, password: string, role: UserRole) => {
-    const response = await api.register({ name, email, password, role });
+  const signup = useCallback(async (name: string, email: string, username: string, password: string, role: UserRole) => {
+    const response = await api.register({ name, email, username, password, role });
     handleAuthSuccess(response);
   }, []);
 

@@ -5,11 +5,17 @@ import { emailService } from '../services/email.service.js';
 export const getPrescriptions = async (req, res, next) => {
   try {
     const { patientId } = req.query;
-    const db = await dbService.read();
-    const items = patientId 
-      ? db.prescriptions.filter(p => p.patientId === patientId)
-      : db.prescriptions;
-    res.json(items);
+    let query = 'SELECT * FROM prescriptions';
+    const params = [];
+
+    if (patientId) {
+      params.push(patientId);
+      query += ' WHERE patient_id = $1';
+    }
+    query += ' ORDER BY date DESC';
+
+    const result = await dbService.query(query, params);
+    res.json(dbService.mapRows('prescriptions', result.rows));
   } catch (error) {
     next(error);
   }
@@ -17,23 +23,27 @@ export const getPrescriptions = async (req, res, next) => {
 
 export const createPrescription = async (req, res, next) => {
   try {
-    const db = await dbService.read();
-    const prescription = {
-      id: dbService.generateId('RX', db.prescriptions.map(p => p.id)),
-      ...req.body,
-      date: req.body.date || new Date().toISOString().slice(0, 10)
-    };
-    db.prescriptions.unshift(prescription);
-    await dbService.write(db);
-    await activityService.log(req.user.sub, req.user.email, 'Create Prescription', `Created prescription for patient ${prescription.patientName}`, req.ip);
+    const id = await dbService.generateId('RX', 'prescriptions');
+    const { patientId, patientName, doctorName, date, medicines, notes } = req.body;
+    const pxDate = date || new Date().toISOString().slice(0, 10);
+
+    const query = `
+      INSERT INTO prescriptions (id, patient_id, doctor_name, date, medicines, notes)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *
+    `;
+    const params = [id, patientId, doctorName, pxDate, JSON.stringify(medicines), notes];
+    const result = await dbService.query(query, params);
+    const prescription = dbService.mapRows('prescriptions', result.rows)[0];
+
+    await activityService.log(req.user.sub, req.user.username, 'Create Prescription', `Created prescription for patient ${patientName}`, req.ip);
     
     // Send prescription email
-    const patient = db.patients.find(p => p.id === prescription.patientId);
+    const patientRes = await dbService.query('SELECT * FROM patients WHERE id = $1', [patientId]);
+    const patient = dbService.mapRows('patients', patientRes.rows)[0];
+
     if (patient && patient.email) {
-      console.log(`🚀 Triggering automatic prescription email for ${patient.email}`);
-      emailService.sendPrescriptionEmail(patient, prescription)
-        .then(data => console.log(`✅ Automatic prescription email success: ${data?.id || 'OK'}`))
-        .catch(err => console.error('❌ Automatic prescription email failed:', err));
+      emailService.sendPrescriptionEmail(patient, prescription).catch(err => console.error('Email error:', err));
     }
     
     res.status(201).json(prescription);
@@ -45,15 +55,31 @@ export const createPrescription = async (req, res, next) => {
 export const updatePrescription = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const db = await dbService.read();
-    const index = db.prescriptions.findIndex(p => p.id === id);
-    if (index === -1) {
-      return res.status(404).json({ message: 'Prescription not found' });
+    const fields = req.body;
+
+    const updates = [];
+    const params = [id];
+    let i = 2;
+
+    const mapping = {
+      patientId: 'patient_id',
+      doctorName: 'doctor_name'
+    };
+
+    for (const [key, value] of Object.entries(fields)) {
+      const dbKey = mapping[key] || key;
+      updates.push(`${dbKey} = $${i}`);
+      params.push(key === 'medicines' ? JSON.stringify(value) : value);
+      i++;
     }
-    db.prescriptions[index] = { ...db.prescriptions[index], ...req.body };
-    await dbService.write(db);
-    await activityService.log(req.user.sub, req.user.email, 'Update Prescription', `Updated prescription ${id}`, req.ip);
-    res.json(db.prescriptions[index]);
+
+    const query = `UPDATE prescriptions SET ${updates.join(', ')} WHERE id = $1 RETURNING *`;
+    const result = await dbService.query(query, params);
+
+    if (result.rows.length === 0) return res.status(404).json({ message: 'Prescription not found' });
+    
+    await activityService.log(req.user.sub, req.user.username, 'Update Prescription', `Updated prescription ${id}`, req.ip);
+    res.json(dbService.mapRows('prescriptions', result.rows)[0]);
   } catch (error) {
     next(error);
   }
@@ -62,14 +88,10 @@ export const updatePrescription = async (req, res, next) => {
 export const deletePrescription = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const db = await dbService.read();
-    const initialLength = db.prescriptions.length;
-    db.prescriptions = db.prescriptions.filter(p => p.id !== id);
-    if (db.prescriptions.length === initialLength) {
-      return res.status(404).json({ message: 'Prescription not found' });
-    }
-    await dbService.write(db);
-    await activityService.log(req.user.sub, req.user.email, 'Delete Prescription', `Deleted prescription ${id}`, req.ip);
+    const result = await dbService.query('DELETE FROM prescriptions WHERE id = $1 RETURNING id', [id]);
+    if (result.rows.length === 0) return res.status(404).json({ message: 'Prescription not found' });
+    
+    await activityService.log(req.user.sub, req.user.username, 'Delete Prescription', `Deleted prescription ${id}`, req.ip);
     res.json({ message: 'Prescription deleted' });
   } catch (error) {
     next(error);

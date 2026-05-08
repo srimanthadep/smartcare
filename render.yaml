@@ -1,0 +1,48 @@
+services:
+  # Backend Web Service
+  - type: web
+    name: siara-dental-backend
+    env: node
+    rootDir: backend
+    buildCommand: npm install && npm run migrate
+    startCommand: npm start
+    envVars:
+      - key: PORT
+        value: 3001
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: siara-dental-db
+          property: connectionString
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: MISTRAL_API_KEY
+        sync: false # Set manually in Render dashboard
+      - key: RESEND_API_KEY
+        sync: false # Set manually in Render dashboard
+      - key: CORS_ORIGINS
+        value: https://siara-dental.onrender.com # Change to your actual frontend URL
+
+  # Frontend Static Site
+  - type: static
+    name: siara-dental-frontend
+    env: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    publishDir: dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        fromService:
+          type: web
+          name: siara-dental-backend
+          property: host
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+# Optional: Dedicated PostgreSQL if not using Supabase
+# databases:
+#   - name: siara-dental-db
+#     plan: free

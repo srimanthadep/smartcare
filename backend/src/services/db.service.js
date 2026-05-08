@@ -1,76 +1,132 @@
-import { readFile, writeFile } from 'node:fs/promises';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import pg from 'pg';
+import { config } from '../config/env.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dbPath = path.join(__dirname, '../../data/db.json');
+const { Pool } = pg;
 
-let writeQueue = Promise.resolve();
+const pool = new Pool({
+  connectionString: config.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
 
-const DEFAULTS = {
-  users: [],
-  doctors: [],
-  doctorAvailability: [],
-  queue: [],
-  patients: [],
-  diagnoses: [],
-  reports: [],
-  appointments: [],
-  invoices: [],
-  medicines: [],
-  prescriptionTemplates: [],
-  prescriptions: [],
-  activityLogs: [],
-  dentalCharts: [],
-};
+const SCHEMA = config.NODE_ENV === 'production' ? 'smartcare_prod' : 'smartcare_dev';
 
 class DbService {
-  async read() {
+  async query(text, params) {
+    const client = await pool.connect();
     try {
-      const raw = await readFile(dbPath, 'utf8');
-      const db = JSON.parse(raw);
-      this._ensureShape(db);
-      return db;
-    } catch (error) {
-      return { ...DEFAULTS };
+      await client.query(`SET search_path TO ${SCHEMA}`);
+      return await client.query(text, params);
+    } finally {
+      client.release();
     }
   }
 
-  async write(db) {
-    writeQueue = writeQueue.then(() =>
-      writeFile(dbPath, JSON.stringify(db, null, 2), 'utf8')
+  // Optimized read for compatibility - but we should move away from this
+  async read() {
+    const db = {};
+    const tables = [
+      'users', 'patients', 'doctors', 'doctor_availability', 'appointments',
+      'invoices', 'prescriptions', 'medicines', 'prescription_templates',
+      'activity_logs', 'dental_charts', 'queue'
+    ];
+
+    // Run queries in parallel for better performance
+    const results = await Promise.all(
+      tables.map(table => this.query(`SELECT * FROM ${table}`))
     );
-    return writeQueue;
+
+    tables.forEach((table, index) => {
+      // Map database snake_case to app camelCase where needed
+      db[table] = this.mapRows(table, results[index].rows);
+    });
+    
+    return db;
   }
 
-  _ensureShape(db) {
-    for (const [key, value] of Object.entries(DEFAULTS)) {
-      if (!Array.isArray(db[key])) {
-        db[key] = value;
-      }
+  // Mapping helper to maintain compatibility with the frontend/controllers
+  mapRows(table, rows) {
+    if (table === 'patients') {
+      return rows.map(r => ({
+        ...r,
+        bloodGroup: r.blood_group,
+        registeredOn: r.registered_on ? r.registered_on.toISOString().split('T')[0] : null,
+        consultationFee: r.consultation_fee
+      }));
     }
-  }
-
-  async getCollection(name) {
-    const db = await this.read();
-    return db[name] || [];
-  }
-
-  async saveCollection(name, data) {
-    const db = await this.read();
-    db[name] = data;
-    await this.write(db);
-  }
-
-  generateId(prefix, existingIds) {
-    let value = existingIds.length + 1;
-    let next = `${prefix}${String(value).padStart(3, '0')}`;
-    while (existingIds.includes(next)) {
-      value += 1;
-      next = `${prefix}${String(value).padStart(3, '0')}`;
+    if (table === 'doctor_availability') {
+      return rows.map(r => ({
+        ...r,
+        doctorId: r.doctor_id,
+        start: r.start_time,
+        end: r.end_time
+      }));
     }
-    return next;
+    if (table === 'appointments') {
+      return rows.map(r => ({
+        ...r,
+        patientId: r.patient_id,
+        doctorName: r.doctor_name,
+        date: r.date ? r.date.toISOString().split('T')[0] : null
+      }));
+    }
+    if (table === 'invoices') {
+      return rows.map(r => ({
+        ...r,
+        patientId: r.patient_id,
+        date: r.date ? r.date.toISOString().split('T')[0] : null
+      }));
+    }
+    if (table === 'prescriptions') {
+      return rows.map(r => ({
+        ...r,
+        patientId: r.patient_id,
+        doctorName: r.doctor_name,
+        date: r.date ? r.date.toISOString().split('T')[0] : null
+      }));
+    }
+    if (table === 'queue') {
+      return rows.map(r => ({
+        ...r,
+        patientId: r.patient_id,
+        patientName: r.patient_name,
+        doctorName: r.doctor_name,
+        arrivedAt: r.arrived_at
+      }));
+    }
+    return rows;
+  }
+
+  // Placeholder write for compatibility - should be replaced with targeted updates
+  async write(db) {
+    // This is hard to implement generically and safely for a real DB.
+    // We will leave it as a no-op and refactor the controllers to use SQL directly.
+    console.warn('dbService.write() called - this is a no-op. Please use targeted SQL updates.');
+  }
+
+  async generateId(prefix, existingIds) {
+    // existingIds is ignored, we check the DB directly
+    let tableName = '';
+    switch (prefix) {
+      case 'P': tableName = 'patients'; break;
+      case 'U': tableName = 'users'; break;
+      case 'D': tableName = 'doctors'; break;
+      case 'INV': tableName = 'invoices'; break;
+      case 'PR': tableName = 'prescriptions'; break;
+      case 'Q': tableName = 'queue'; break;
+      default: return `${prefix}${Date.now()}`;
+    }
+
+    const res = await this.query(`SELECT id FROM ${tableName} WHERE id LIKE $1 ORDER BY id DESC LIMIT 1`, [`${prefix}%`]);
+    if (res.rows.length === 0) return `${prefix}001`;
+    
+    const lastId = res.rows[0].id;
+    const numMatch = lastId.match(/\d+$/);
+    const num = numMatch ? parseInt(numMatch[0]) + 1 : 1;
+    return `${prefix}${String(num).padStart(3, '0')}`;
   }
 }
 
 export const dbService = new DbService();
+export { pool };

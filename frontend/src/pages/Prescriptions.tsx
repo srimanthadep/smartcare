@@ -15,6 +15,8 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { MedicineCombobox } from "@/components/MedicineCombobox";
+import PrescriptionTemplateModal from "@/components/PrescriptionTemplateModal";
+import { pdfService } from "@/lib/pdfService";
 
 const Prescriptions: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -34,6 +36,10 @@ const Prescriptions: React.FC = () => {
   const prescriptionsQuery = useQuery({
     queryKey: ["prescriptions"],
     queryFn: () => api.getPrescriptions(),
+  });
+  const templatesQuery = useQuery({
+    queryKey: ["prescription-templates"],
+    queryFn: api.getTemplates,
   });
 
   const createPrescription = useMutation({
@@ -122,9 +128,9 @@ const Prescriptions: React.FC = () => {
 
   const applyTemplate = (value: string) => {
     setTemplateId(value);
-    const template = bootstrap?.prescriptionTemplates.find((item) => item.id === value);
+    const template = templatesQuery.data?.data?.find((item: any) => item.id === value);
     if (!template) return;
-    setMedicines(template.medicines.map((item) => ({ ...item })));
+    setMedicines(template.medicines.map((item: any) => ({ ...item })));
     setNotes(template.notes || "");
     toast.message(`Template applied: ${template.name}`);
   };
@@ -154,6 +160,7 @@ const Prescriptions: React.FC = () => {
           <p className="text-sm text-muted-foreground">Create, print and track prescriptions</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <PrescriptionTemplateModal />
           <Button 
             variant="outline" 
             onClick={() => {
@@ -228,7 +235,7 @@ const Prescriptions: React.FC = () => {
                   <SelectTrigger><SelectValue placeholder="Choose template" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
-                    {bootstrap.prescriptionTemplates.map((template) => (
+                    {templatesQuery.data?.data?.map((template: any) => (
                       <SelectItem key={template.id} value={template.id}>{template.name}</SelectItem>
                     ))}
                   </SelectContent>

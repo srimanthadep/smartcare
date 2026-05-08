@@ -1,26 +1,20 @@
-import { GoogleGenAI } from '@google/genai';
 import { config } from '../config/env.js';
 
 class AIService {
   constructor() {
-    // The client gets the API key from the environment variable GEMINI_API_KEY
-    // if initialized with {} or no arguments. But since we use our config, we pass it.
-    if (config.GEMINI_API_KEY) {
-      this.ai = new GoogleGenAI({ apiKey: config.GEMINI_API_KEY });
-    } else {
-      console.warn('GEMINI_API_KEY is not set. AI features will fail.');
-      this.ai = null;
+    if (!config.MISTRAL_API_KEY) {
+      console.warn('MISTRAL_API_KEY is not set. AI features will fail.');
     }
   }
 
   /**
-   * Generates a prescription using Gemini API.
+   * Generates a prescription using Mistral AI API.
    * @param {Object} patientData - Details of the patient and context
    * @returns {Object} JSON response representing the prescription
    */
   async generatePrescriptionDraft(patientData) {
-    if (!this.ai) {
-      throw new Error('AI service is not configured. Missing GEMINI_API_KEY.');
+    if (!config.MISTRAL_API_KEY) {
+      throw new Error('AI service is not configured. Missing MISTRAL_API_KEY.');
     }
 
     const systemPrompt = `You are a helpful AI Assistant for a Dentist. Your task is to suggest a prescription draft based on the patient's dental data, medical history, and current symptoms.
@@ -51,16 +45,34 @@ Current Medications: ${patientData.currentMedications?.length ? patientData.curr
 Please generate a safe, appropriate dental prescription draft.`;
 
     try {
-      const response = await this.ai.models.generateContent({
-        model: 'gemini-2.5-flash', // Use 2.5 flash for speed and reliability
-        contents: systemPrompt + "\n\n" + userPrompt,
+      console.log('Generating AI Prescription Draft...');
+      const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${config.MISTRAL_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'open-mistral-7b',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          response_format: { type: 'json_object' },
+          temperature: 0.2
+        })
       });
 
-      let responseText = response.text || '';
-      
-      // Clean up markdown block if model accidentally included it
-      responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Mistral API Error Details:', errorData);
+        throw new Error(`Mistral API error: ${errorData.message || response.statusText}`);
+      }
 
+      const data = await response.json();
+      const responseText = data.choices[0].message.content;
+      
       const parsedJSON = JSON.parse(responseText);
       
       // Basic validation
@@ -70,21 +82,91 @@ Please generate a safe, appropriate dental prescription draft.`;
 
       return parsedJSON;
     } catch (error) {
-      console.error('AI Generation Error:', error);
-      
-      // Fallback or attempt to parse again if it was a formatting error
-      try {
-        // Try to generate with a smaller flash model if pro failed or just throw
-        const fallbackResponse = await this.ai.models.generateContent({
-          model: 'gemini-1.5-flash',
-          contents: systemPrompt + "\n\n" + userPrompt,
-        });
-        let fallbackText = fallbackResponse.text || '';
-        fallbackText = fallbackText.replace(/```json/g, '').replace(/```/g, '').trim();
-        return JSON.parse(fallbackText);
-      } catch (fallbackError) {
-        throw new Error('Failed to generate prescription from AI. Please try again or write manually.');
+      console.error('Detailed AI Generation Error (Mistral):', error);
+      throw new Error('Failed to generate prescription from AI. Please try again or write manually.');
+    }
+  }
+
+  /**
+   * General purpose chat with full clinical context.
+   * @param {string} message - User message
+   * @param {Array} history - Previous messages
+   * @returns {string} AI response
+   */
+  async chat(message, history = []) {
+    if (!config.MISTRAL_API_KEY) {
+      throw new Error('AI service is not configured.');
+    }
+
+    try {
+      // Import dbService dynamically to avoid circular dependency if any
+      const { dbService } = await import('./db.service.js');
+      console.log('Fetching clinic context for AI...');
+      const contextData = await dbService.read();
+      console.log('Context fetched successfully.');
+
+      const systemPrompt = `You are "Siara AI", an advanced clinical assistant for Siara Dental Clinic. 
+You have access to the following clinic data:
+- Patients: ${contextData.patients.length} records
+- Appointments: ${contextData.appointments.length} records
+- Invoices: ${contextData.invoices.length} records
+- Prescriptions: ${contextData.prescriptions.length} records
+
+DATA CONTEXT:
+${JSON.stringify({
+  summary: {
+    totalPatients: contextData.patients.length,
+    todayAppointments: contextData.appointments.filter(a => a.date === new Date().toISOString().slice(0, 10)).length,
+    pendingInvoices: contextData.invoices.filter(i => i.status !== 'Paid').length
+  },
+  recentPatients: contextData.patients.slice(0, 5).map(p => ({ id: p.id, name: p.name, lastVisit: p.lastVisit })),
+  recentAppointments: contextData.appointments.slice(0, 5).map(a => ({ id: a.id, patient: a.patientName, date: a.date, time: a.time, type: a.type }))
+})}
+
+YOUR ROLE:
+1. Answer questions about clinic operations, patient statistics, and schedule.
+2. Provide general dental health advice based on professional standards.
+3. Help the dentist find information about specific patients if asked.
+4. Be professional, concise, and helpful. 
+
+If asked about medical advice, always add a disclaimer that this is an AI suggestion and the final clinical decision rests with Dr. Saikiran.
+Response format: Markdown.`;
+
+      console.log('System Prompt Length:', systemPrompt.length);
+      console.log('History Count:', history.length);
+      console.log('Calling Mistral API...');
+      const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${config.MISTRAL_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'open-mistral-7b',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            ...history.map(m => ({ role: m.role, content: m.content })),
+            { role: 'user', content: message }
+          ],
+          temperature: 0.7
+        })
+      });
+
+      console.log('Mistral API Status:', response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Mistral Chat API Error Details:', errorData);
+        throw new Error(`Mistral API error: ${errorData.message || response.statusText}`);
       }
+
+      const data = await response.json();
+      console.log('Mistral API response received.');
+      return data.choices[0].message.content;
+    } catch (error) {
+      console.error('Detailed AI Chat Error:', error);
+      throw new Error('Failed to get a response from Siara AI.');
     }
   }
 }

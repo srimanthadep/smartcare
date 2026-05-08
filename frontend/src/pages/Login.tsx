@@ -18,8 +18,8 @@ const roleIcons: Record<UserRole, React.ReactNode> = {
 };
 
 const Login: React.FC = () => {
-  const [email, setEmail] = useState("doctor@siaradental.com");
-  const [password, setPassword] = useState("password");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [role, setRole] = useState<UserRole>("doctor");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -29,7 +29,7 @@ const Login: React.FC = () => {
     event.preventDefault();
     setLoading(true);
     try {
-      await login(email, password, role);
+      await login(username, password, role);
       toast.success("Signed in successfully");
       navigate("/");
     } catch (error) {
@@ -80,13 +80,13 @@ const Login: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="username">Username</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="you@siaradental.com"
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
+                  placeholder="Enter your username"
                 />
               </div>
 
@@ -105,9 +105,7 @@ const Login: React.FC = () => {
                 {loading ? "Signing In..." : "Sign In"}
               </Button>
 
-              <p className="mt-4 text-center text-xs text-muted-foreground">
-                Demo credentials are pre-filled. Use password <strong>password</strong>.
-              </p>
+              {/* Demo credentials removed */}
             </form>
           </CardContent>
         </Card>

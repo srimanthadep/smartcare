@@ -101,13 +101,56 @@ const PatientProfile: React.FC = () => {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <Skeleton className="h-20 w-full" />
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
+        {/* Header Skeleton */}
+        <div className="-mx-4 border-b border-border/60 bg-background px-4 py-3 md:-mx-6 md:px-6">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-9 w-9 rounded-md" />
+            <div className="flex-1 space-y-2">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-6 w-48" />
+                <Skeleton className="h-5 w-16 rounded-full" />
+                <Skeleton className="h-5 w-20 rounded-full" />
+              </div>
+              <Skeleton className="h-3 w-64" />
+            </div>
+            <Skeleton className="h-9 w-24" />
+            <Skeleton className="h-9 w-20" />
+          </div>
         </div>
-        <Skeleton className="h-96 w-full" />
+
+        {/* Contact Info Grid Skeleton */}
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
+        </div>
+
+        {/* Tabs Skeleton */}
+        <div className="flex gap-4 border-b border-border/50 pb-2">
+          <Skeleton className="h-8 w-20" />
+          <Skeleton className="h-8 w-24" />
+          <Skeleton className="h-8 w-16" />
+          <Skeleton className="h-8 w-28" />
+        </div>
+
+        {/* Content Skeleton */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Card className="border-border/50">
+            <CardHeader><Skeleton className="h-5 w-32" /></CardHeader>
+            <CardContent className="space-y-2">
+              <Skeleton className="h-8 w-full rounded-full" />
+              <Skeleton className="h-8 w-3/4 rounded-full" />
+            </CardContent>
+          </Card>
+          <Card className="border-border/50">
+            <CardHeader><Skeleton className="h-5 w-32" /></CardHeader>
+            <CardContent className="space-y-2">
+              <Skeleton className="h-8 w-full rounded-full" />
+              <Skeleton className="h-8 w-1/2 rounded-full" />
+            </CardContent>
+          </Card>
+        </div>
+        <Skeleton className="h-64 w-full" />
       </div>
     );
   }

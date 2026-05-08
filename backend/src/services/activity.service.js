@@ -2,23 +2,18 @@ import { dbService } from './db.service.js';
 
 class ActivityService {
   async log(userId, userName, action, details, ip = '') {
-    const db = await dbService.read();
-    const log = {
-      id: `LOG${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-      userId,
-      userName,
-      action,
-      details,
-      timestamp: new Date().toISOString(),
-      ip,
-    };
+    const id = `LOG${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    const query = `
+      INSERT INTO activity_logs (id, user_id, user_name, action, details, ip)
+      VALUES ($1, $2, $3, $4, $5, $6)
+    `;
+    const params = [id, userId, userName, action, details, ip];
     
-    db.activityLogs.unshift(log);
-    if (db.activityLogs.length > 5000) {
-      db.activityLogs = db.activityLogs.slice(0, 5000);
+    try {
+      await dbService.query(query, params);
+    } catch (err) {
+      console.error('Failed to log activity:', err);
     }
-    
-    await dbService.write(db);
   }
 }
 

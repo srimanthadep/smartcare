@@ -3,7 +3,6 @@ import { dbService } from '../services/db.service.js';
 export const getDashboard = async (req, res, next) => {
   try {
     const { period = 'monthly' } = req.query;
-    const db = await dbService.read();
     const now = new Date();
     const todayStr = now.toISOString().slice(0, 10);
 
@@ -19,25 +18,30 @@ export const getDashboard = async (req, res, next) => {
       startDate.setMonth(0, 1);
       startDate.setHours(0, 0, 0, 0);
     } else {
-      // Default to "all time" or a large range if unknown, but let's stick to the period
       startDate = new Date(0); 
     }
 
-    const filterByDate = (dateStr) => {
-      const d = new Date(`${dateStr}T00:00:00`);
-      return d >= startDate;
-    };
+    const startDateStr = startDate.toISOString().split('T')[0];
 
-    const filteredInvoices = db.invoices.filter(inv => filterByDate(inv.date));
-    const filteredAppointments = db.appointments.filter(a => filterByDate(a.date) && a.status !== 'Cancelled');
-    const todayAppointments = db.appointments.filter(a => a.date === todayStr && a.status !== 'Cancelled');
+    // Parallel fetch only needed tables
+    const [invoicesRes, apptsRes, doctorsRes] = await Promise.all([
+      dbService.query('SELECT * FROM invoices WHERE date >= $1', [startDateStr]),
+      dbService.query('SELECT * FROM appointments WHERE date >= $1 AND status != $2', [startDateStr, 'Cancelled']),
+      dbService.query('SELECT * FROM doctors')
+    ]);
+
+    const invoices = dbService.mapRows('invoices', invoicesRes.rows);
+    const appointments = dbService.mapRows('appointments', apptsRes.rows);
+    const doctors = doctorsRes.rows;
+
+    const todayAppointments = appointments.filter(a => a.date === todayStr);
 
     const revenueTrendMap = new Map();
     const patientVisitMap = new Map();
     const departmentMap = new Map();
-    const doctorDepartmentMap = new Map(db.doctors.map(d => [d.name, d.department]));
+    const doctorDepartmentMap = new Map(doctors.map(d => [d.name, d.department]));
 
-    filteredInvoices.forEach(inv => {
+    invoices.forEach(inv => {
       const date = new Date(`${inv.date}T00:00:00`);
       let label;
       if (period === 'daily' || period === 'weekly') {
@@ -50,21 +54,21 @@ export const getDashboard = async (req, res, next) => {
       revenueTrendMap.set(label, (revenueTrendMap.get(label) || 0) + Number(inv.total || 0));
     });
 
-    filteredAppointments.forEach(app => {
+    appointments.forEach(app => {
       const day = new Date(`${app.date}T00:00:00`).toLocaleString('en-US', { weekday: 'short' });
       patientVisitMap.set(day, (patientVisitMap.get(day) || 0) + 1);
       const dept = doctorDepartmentMap.get(app.doctorName) || 'General Dentistry';
       departmentMap.set(dept, (departmentMap.get(dept) || 0) + 1);
     });
 
-    const totalRevenue = filteredInvoices.reduce((sum, inv) => sum + Number(inv.total || 0), 0);
+    const totalRevenue = invoices.reduce((sum, inv) => sum + Number(inv.total || 0), 0);
 
     res.json({
       stats: {
         dailyPatients: todayAppointments.length,
         revenue: totalRevenue,
         profit: Math.round(totalRevenue * 0.8),
-        appointments: filteredAppointments.length
+        appointments: appointments.length
       },
       revenueTrend: Array.from(revenueTrendMap.entries()).map(([month, revenue]) => ({ month, revenue })),
       patientVisits: Array.from(patientVisitMap.entries()).map(([day, visits]) => ({ day, visits })),
@@ -82,13 +86,20 @@ export const getDashboard = async (req, res, next) => {
 
 export const getBootstrap = async (req, res, next) => {
   try {
-    const db = await dbService.read();
+    const [doctors, availability, queue, medicines, templates] = await Promise.all([
+      dbService.query('SELECT * FROM doctors'),
+      dbService.query('SELECT * FROM doctor_availability'),
+      dbService.query('SELECT * FROM queue'),
+      dbService.query('SELECT * FROM medicines'),
+      dbService.query('SELECT * FROM prescription_templates')
+    ]);
+
     res.json({
-      doctors: db.doctors,
-      doctorAvailability: db.doctorAvailability,
-      queue: db.queue,
-      medicines: db.medicines,
-      prescriptionTemplates: db.prescriptionTemplates
+      doctors: doctors.rows,
+      doctorAvailability: dbService.mapRows('doctor_availability', availability.rows),
+      queue: dbService.mapRows('queue', queue.rows),
+      medicines: medicines.rows,
+      prescriptionTemplates: templates.rows
     });
   } catch (error) {
     next(error);

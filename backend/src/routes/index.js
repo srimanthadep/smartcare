@@ -3,6 +3,7 @@ import authRoutes from './auth.routes.js';
 import patientRoutes from './patient.routes.js';
 import medicineRoutes from './medicine.routes.js';
 import aiRoutes from './ai.routes.js';
+import prescriptionTemplateRoutes from './prescription-template.routes.js';
 import * as dashboardController from '../controllers/dashboard.controller.js';
 import * as appointmentController from '../controllers/appointment.controller.js';
 import * as invoiceController from '../controllers/invoice.controller.js';
@@ -66,6 +67,7 @@ router.post('/invoices/:id/send-email', async (req, res, next) => {
 router.use('/patients', patientRoutes);
 router.use('/medicines', medicineRoutes);
 router.use('/ai', aiRoutes);
+router.use('/prescription-templates', prescriptionTemplateRoutes);
 
 // Appointments
 router.get('/appointments', appointmentController.getAppointments);

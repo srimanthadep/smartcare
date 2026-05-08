@@ -12,10 +12,11 @@ import { toast } from "sonner";
 import logo from '@/assets/logo.png';
 
 const Signup: React.FC = () => {
-  const [name, setName] = useState('Demo User');
-  const [email, setEmail] = useState('demo@siaradental.com');
-  const [password, setPassword] = useState('password');
-  const [role, setRole] = useState<UserRole>('doctor');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState<UserRole>("doctor");
   const { signup } = useAuth();
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -41,7 +42,7 @@ const Signup: React.FC = () => {
                 e.preventDefault();
                 setLoading(true);
                 try {
-                  await signup(name, email, password, role);
+                  await signup(name, email, username, password, role);
                   toast.success("Account created successfully!");
                   navigate('/');
                 } catch (err: any) {
@@ -57,7 +58,11 @@ const Signup: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <Label>Email</Label>
-                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@siaradental.com" />
+              </div>
+              <div className="space-y-2">
+                <Label>Username</Label>
+                <Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Choose a username" />
               </div>
               <div className="space-y-2">
                 <Label>Password</Label>
