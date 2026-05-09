@@ -7,6 +7,7 @@ import { config } from './src/config/env.js';
 import routes from './src/routes/index.js';
 import { errorHandler } from './src/middleware/error.js';
 import { initBackupService } from './src/services/backupService.js';
+import { dbService } from './src/services/db.service.js';
 
 const app = express();
 
@@ -31,9 +32,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// API Routes
-app.use('/api', routes);
-
 // Health Check & Ping Routes
 app.get('/', (req, res) => {
   res.status(200).json({ 
@@ -43,9 +41,19 @@ app.get('/', (req, res) => {
   });
 });
 
-app.get('/health', (req, res) => {
-  res.status(200).send('OK');
+app.get('/health', async (req, res) => {
+  try {
+    // This query keeps Supabase active by performing a real DB operation
+    await dbService.query('SELECT 1');
+    res.status(200).json({ status: 'healthy', database: 'connected' });
+  } catch (err) {
+    console.error('Health check failed:', err);
+    res.status(500).json({ status: 'unhealthy', error: err.message });
+  }
 });
+
+// API Routes
+app.use('/api', routes);
 
 // 404 Handler
 app.use((req, res) => {

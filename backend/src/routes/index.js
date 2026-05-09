@@ -18,6 +18,7 @@ import { emailService } from '../services/email.service.js';
 const router = Router();
 
 // Public routes
+router.get('/', (req, res) => res.json({ status: 'ok', message: 'API is operational' }));
 router.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 router.use('/auth', authRoutes);
 
