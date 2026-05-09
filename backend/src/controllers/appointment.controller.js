@@ -1,22 +1,28 @@
 import { dbService } from '../services/db.service.js';
+import { emitEvent, SOCKET_EVENTS } from '../services/socket.service.js';
 
 export const getAppointments = async (req, res, next) => {
   try {
     const { date, type } = req.query;
     
-    let query = 'SELECT * FROM appointments WHERE 1=1';
+    let query = `
+      SELECT a.*, p.name as patient_name 
+      FROM appointments a
+      JOIN patients p ON a.patient_id = p.id
+      WHERE 1=1
+    `;
     const params = [];
 
     if (date) {
       params.push(date);
-      query += ` AND date = $${params.length}`;
+      query += ` AND a.date = $${params.length}`;
     }
     if (type && type !== 'all') {
       params.push(type);
-      query += ` AND type = $${params.length}`;
+      query += ` AND a.type = $${params.length}`;
     }
 
-    query += ' ORDER BY date ASC, time ASC';
+    query += ' ORDER BY a.date ASC, a.time ASC';
 
     const resAppts = await dbService.query(query, params);
     res.json(dbService.mapRows('appointments', resAppts.rows));
@@ -38,7 +44,18 @@ export const createAppointment = async (req, res, next) => {
     const params = [id, patientId, doctorName, date, time, type, status || 'Scheduled', reason];
     
     const result = await dbService.query(query, params);
-    res.status(201).json(dbService.mapRows('appointments', result.rows)[0]);
+    
+    // Fetch full appointment with patient name for the response
+    const fullApptRes = await dbService.query(`
+      SELECT a.*, p.name as patient_name 
+      FROM appointments a
+      JOIN patients p ON a.patient_id = p.id
+      WHERE a.id = $1
+    `, [id]);
+
+    const appt = dbService.mapRows('appointments', fullApptRes.rows)[0];
+    emitEvent(SOCKET_EVENTS.APPOINTMENT_UPDATED, appt);
+    res.status(201).json(appt);
   } catch (error) {
     next(error);
   }
@@ -58,18 +75,32 @@ export const updateAppointment = async (req, res, next) => {
       doctorName: 'doctor_name'
     };
 
+    const ALLOWED_COLUMNS = ['patient_id', 'doctor_name', 'date', 'time', 'type', 'status', 'reason'];
+
     for (const [key, value] of Object.entries(fields)) {
       const dbKey = mapping[key] || key;
+      if (!ALLOWED_COLUMNS.includes(dbKey)) continue;
+
       updates.push(`${dbKey} = $${i}`);
       params.push(value);
       i++;
     }
 
     const query = `UPDATE appointments SET ${updates.join(', ')} WHERE id = $1 RETURNING *`;
-    const result = await dbService.query(query, params);
+    await dbService.query(query, params);
 
-    if (result.rows.length === 0) return res.status(404).json({ message: 'Appointment not found' });
-    res.json(dbService.mapRows('appointments', result.rows)[0]);
+    // Fetch full appointment with patient name for the response
+    const fullApptRes = await dbService.query(`
+      SELECT a.*, p.name as patient_name 
+      FROM appointments a
+      JOIN patients p ON a.patient_id = p.id
+      WHERE a.id = $1
+    `, [id]);
+
+    if (fullApptRes.rows.length === 0) return res.status(404).json({ message: 'Appointment not found' });
+    const appt = dbService.mapRows('appointments', fullApptRes.rows)[0];
+    emitEvent(SOCKET_EVENTS.APPOINTMENT_UPDATED, appt);
+    res.json(appt);
   } catch (error) {
     next(error);
   }
@@ -79,6 +110,7 @@ export const deleteAppointment = async (req, res, next) => {
   try {
     const { id } = req.params;
     await dbService.query('DELETE FROM appointments WHERE id = $1', [id]);
+    emitEvent(SOCKET_EVENTS.APPOINTMENT_UPDATED, { id, deleted: true });
     res.status(204).end();
   } catch (error) {
     next(error);

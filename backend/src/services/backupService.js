@@ -1,7 +1,7 @@
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const cron = require('node-cron');
-import { ZipArchive } from 'archiver';
+const archiver = require('archiver');
 import { Resend } from 'resend';
 import fs from 'fs';
 import path from 'path';
@@ -63,7 +63,7 @@ export const performFullBackup = async () => {
         console.log(`📦 Creating ZIP archive: ${zipFile}`);
         
         const output = fs.createWriteStream(zipFile);
-        const archive = new ZipArchive({ zlib: { level: 9 } });
+        const archive = archiver('zip', { zlib: { level: 9 } });
 
         await new Promise((resolve, reject) => {
             output.on('finish', resolve);

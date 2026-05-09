@@ -26,7 +26,12 @@ export const getDashboard = async (req, res, next) => {
     // Parallel fetch only needed tables
     const [invoicesRes, apptsRes, doctorsRes] = await Promise.all([
       dbService.query('SELECT * FROM invoices WHERE date >= $1', [startDateStr]),
-      dbService.query('SELECT * FROM appointments WHERE date >= $1 AND status != $2', [startDateStr, 'Cancelled']),
+      dbService.query(`
+        SELECT a.*, p.name as patient_name 
+        FROM appointments a
+        JOIN patients p ON a.patient_id = p.id
+        WHERE a.date >= $1 AND a.status != $2
+      `, [startDateStr, 'Cancelled']),
       dbService.query('SELECT * FROM doctors')
     ]);
 

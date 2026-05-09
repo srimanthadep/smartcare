@@ -54,6 +54,9 @@ export const register = async (req, res, next) => {
       return res.status(400).json({ message: 'Username already taken' });
     }
 
+    const requestedRole = (role || 'staff').toLowerCase();
+    const finalRole = (requestedRole === 'admin') ? 'staff' : requestedRole;
+
     const id = await dbService.generateId('U', 'users');
     const user = {
       id,
@@ -61,7 +64,7 @@ export const register = async (req, res, next) => {
       username: username.toLowerCase(),
       email: email.toLowerCase(),
       password: bcrypt.hashSync(password, 10),
-      role,
+      role: finalRole,
       avatar: ""
     };
 

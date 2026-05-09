@@ -14,20 +14,6 @@ import {
 } from "@/types";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
-const AUTH_STORAGE_KEY = "smartdental_auth_token";
-
-export function getAuthToken() {
-  return sessionStorage.getItem(AUTH_STORAGE_KEY);
-}
-
-export function setAuthToken(token: string) {
-  sessionStorage.setItem(AUTH_STORAGE_KEY, token);
-}
-
-export function clearAuthToken() {
-  sessionStorage.removeItem(AUTH_STORAGE_KEY);
-}
-
 type RequestOptions = RequestInit & {
   skipAuth?: boolean;
 };
@@ -36,16 +22,10 @@ async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<
   const headers = new Headers(options.headers || {});
   headers.set("Content-Type", "application/json");
 
-  if (!options.skipAuth) {
-    const token = getAuthToken();
-    if (token) {
-      headers.set("Authorization", `Bearer ${token}`);
-    }
-  }
-
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers,
+    credentials: "include", // Ensure cookies are sent and received
   });
 
   if (response.status === 204) {
@@ -261,6 +241,30 @@ export const api = {
 
   deleteTemplate(id: string) {
     return apiFetch<void>(`/api/prescription-templates/${id}`, {
+      method: "DELETE",
+    });
+  },
+
+  getTreatmentPlans(patientId: string) {
+    return apiFetch<any[]>(`/api/treatment-plans${buildQuery({ patientId })}`);
+  },
+
+  createTreatmentPlan(payload: any) {
+    return apiFetch<any>("/api/treatment-plans", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  updateTreatmentPlan(id: string, payload: any) {
+    return apiFetch<any>(`/api/treatment-plans/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  deleteTreatmentPlan(id: string) {
+    return apiFetch<void>(`/api/treatment-plans/${id}`, {
       method: "DELETE",
     });
   },

@@ -1,4 +1,5 @@
 import express from 'express';
+import { createServer } from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -8,8 +9,11 @@ import routes from './src/routes/index.js';
 import { errorHandler } from './src/middleware/error.js';
 import { initBackupService } from './src/services/backupService.js';
 import { dbService } from './src/services/db.service.js';
+import { initSocket } from './src/services/socket.service.js';
 
 const app = express();
+const server = createServer(app);
+initSocket(server);
 
 // Security Middlewares
 app.use(helmet());
@@ -65,7 +69,7 @@ app.use(errorHandler);
 
 initBackupService();
 
-app.listen(config.PORT, () => {
+server.listen(config.PORT, () => {
   console.log(`🚀 Siara Dental SaaS Backend running in ${config.NODE_ENV} mode`);
   console.log(`🔗 API Endpoint: http://localhost:${config.PORT}/api`);
 });

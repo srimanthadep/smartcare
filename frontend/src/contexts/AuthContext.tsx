@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { api, clearAuthToken, getAuthToken, setAuthToken } from "@/lib/api";
+import { api } from "@/lib/api";
 import { User, UserRole } from "@/types";
 
 interface AuthContextType {
@@ -36,27 +36,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     handleAuthSuccess(response);
   }, []);
 
-  const handleAuthSuccess = (response: { token: string; user: User }) => {
-    setAuthToken(response.token);
+  const handleAuthSuccess = (response: { user: User }) => {
     setUser(response.user);
     sessionStorage.setItem(USER_STORAGE_KEY, JSON.stringify(response.user));
   };
 
   const logout = useCallback(() => {
-    clearAuthToken();
     setUser(null);
     sessionStorage.removeItem(USER_STORAGE_KEY);
+    // Ideally call a backend logout to clear the cookie
   }, []);
 
   useEffect(() => {
-    const token = getAuthToken();
-    if (!token) return;
-
     api.me().then(({ user: updatedUser }) => {
       setUser(updatedUser);
       sessionStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
     }).catch(() => {
-      clearAuthToken();
       setUser(null);
       sessionStorage.removeItem(USER_STORAGE_KEY);
     });

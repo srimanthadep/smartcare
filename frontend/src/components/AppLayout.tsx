@@ -6,8 +6,10 @@ import { AppHeader } from '@/components/AppHeader';
 import { AIAssistantPanel } from '@/components/AIAssistantPanel';
 import { Button } from '@/components/ui/button';
 import { Bot } from 'lucide-react';
+import { useRealTimeUpdates } from '@/hooks/useRealTimeUpdates';
 
 const AppLayout: React.FC = () => {
+  useRealTimeUpdates();
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">

@@ -31,3 +31,4 @@ frontend/.env
 backend/backups/
 *.sqlite-shm
 *.sqlite-wal
+dev-dist/

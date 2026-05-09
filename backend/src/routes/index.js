@@ -4,6 +4,7 @@ import patientRoutes from './patient.routes.js';
 import medicineRoutes from './medicine.routes.js';
 import aiRoutes from './ai.routes.js';
 import prescriptionTemplateRoutes from './prescription-template.routes.js';
+import treatmentPlanRoutes from './treatment-plan.routes.js';
 import backupRoutes from './backup.js';
 import * as dashboardController from '../controllers/dashboard.controller.js';
 import * as appointmentController from '../controllers/appointment.controller.js';
@@ -15,12 +16,26 @@ import { auth, authorize } from '../middleware/auth.js';
 import { dbService } from '../services/db.service.js';
 import { emailService } from '../services/email.service.js';
 
+import rateLimit from 'express-rate-limit';
+
 const router = Router();
+
+const authRateLimit = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 10,
+  message: { message: 'Too many login attempts, please try again after a minute' }
+});
+
+const aiRateLimit = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 20,
+  message: { message: 'Too many AI requests, please try again after a minute' }
+});
 
 // Public routes
 router.get('/', (req, res) => res.json({ status: 'ok', message: 'API is operational' }));
 router.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
-router.use('/auth', authRoutes);
+router.use('/auth', authRateLimit, authRoutes);
 
 // Protected routes
 router.use(auth);
@@ -31,8 +46,8 @@ router.get('/dashboard', dashboardController.getDashboard);
 // Email re-send endpoints
 router.post('/patients/:id/send-welcome', async (req, res, next) => {
   try {
-    const db = await dbService.read();
-    const patient = db.patients.find(p => p.id === req.params.id);
+    const resPat = await dbService.query('SELECT * FROM patients WHERE id = $1', [req.params.id]);
+    const patient = dbService.mapRows('patients', resPat.rows)[0];
     if (!patient || !patient.email) return res.status(400).json({ message: 'Patient or email not found' });
     console.log(`Manual trigger: Sending welcome email to ${patient.email}`);
     await emailService.sendWelcomeEmail(patient);
@@ -42,11 +57,14 @@ router.post('/patients/:id/send-welcome', async (req, res, next) => {
 
 router.post('/prescriptions/:id/send-email', async (req, res, next) => {
   try {
-    const db = await dbService.read();
-    const px = db.prescriptions.find(p => p.id === req.params.id);
+    const resPx = await dbService.query('SELECT * FROM prescriptions WHERE id = $1', [req.params.id]);
+    const px = dbService.mapRows('prescriptions', resPx.rows)[0];
     if (!px) return res.status(404).json({ message: 'Prescription not found' });
-    const patient = db.patients.find(p => p.id === px.patientId);
+    
+    const resPat = await dbService.query('SELECT * FROM patients WHERE id = $1', [px.patientId]);
+    const patient = dbService.mapRows('patients', resPat.rows)[0];
     if (!patient || !patient.email) return res.status(400).json({ message: 'Patient or email not found' });
+    
     console.log(`Manual trigger: Sending prescription email to ${patient.email}`);
     await emailService.sendPrescriptionEmail(patient, px);
     res.json({ message: 'Prescription email sent' });
@@ -55,11 +73,14 @@ router.post('/prescriptions/:id/send-email', async (req, res, next) => {
 
 router.post('/invoices/:id/send-email', async (req, res, next) => {
   try {
-    const db = await dbService.read();
-    const invoice = db.invoices.find(i => i.id === req.params.id);
+    const resInv = await dbService.query('SELECT * FROM invoices WHERE id = $1', [req.params.id]);
+    const invoice = dbService.mapRows('invoices', resInv.rows)[0];
     if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
-    const patient = db.patients.find(p => p.id === invoice.patientId);
+    
+    const resPat = await dbService.query('SELECT * FROM patients WHERE id = $1', [invoice.patientId]);
+    const patient = dbService.mapRows('patients', resPat.rows)[0];
     if (!patient || !patient.email) return res.status(400).json({ message: 'Patient or email not found' });
+    
     console.log(`Manual trigger: Sending invoice email to ${patient.email}`);
     await emailService.sendInvoiceEmail(patient, invoice);
     res.json({ message: 'Invoice email sent' });
@@ -68,9 +89,10 @@ router.post('/invoices/:id/send-email', async (req, res, next) => {
 
 router.use('/patients', patientRoutes);
 router.use('/medicines', medicineRoutes);
-router.use('/ai', aiRoutes);
+router.use('/ai', aiRateLimit, aiRoutes);
 router.use('/prescription-templates', prescriptionTemplateRoutes);
-router.use('/backup', backupRoutes);
+router.use('/treatment-plans', treatmentPlanRoutes);
+router.use('/backup', authorize('admin'), backupRoutes);
 
 // Appointments
 router.get('/appointments', appointmentController.getAppointments);

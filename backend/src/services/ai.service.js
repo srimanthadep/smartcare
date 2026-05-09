@@ -99,29 +99,35 @@ Please generate a safe, appropriate dental prescription draft.`;
     }
 
     try {
-      // Import dbService dynamically to avoid circular dependency if any
       const { dbService } = await import('./db.service.js');
-      console.log('Fetching clinic context for AI...');
-      const contextData = await dbService.read();
-      console.log('Context fetched successfully.');
+      console.log('Fetching optimized clinic context for AI...');
+      
+      const today = new Date().toISOString().slice(0, 10);
+      
+      const [patientCount, apptCount, invoiceCount, recentAppts, recentPatients] = await Promise.all([
+        dbService.query('SELECT COUNT(*) FROM patients'),
+        dbService.query('SELECT COUNT(*) FROM appointments WHERE date = $1', [today]),
+        dbService.query('SELECT COUNT(*) FROM invoices WHERE status != $1', ['Paid']),
+        dbService.query('SELECT id, patient_id, doctor_name, date, time, type FROM appointments ORDER BY created_at DESC LIMIT 5'),
+        dbService.query('SELECT id, name, status FROM patients ORDER BY created_at DESC LIMIT 5')
+      ]);
+
+      const summary = {
+        totalPatients: parseInt(patientCount.rows[0].count),
+        todayAppointments: parseInt(apptCount.rows[0].count),
+        pendingInvoices: parseInt(invoiceCount.rows[0].count),
+        recentPatients: recentPatients.rows.map(r => ({ id: r.id, name: r.name, status: r.status })),
+        recentAppointments: recentAppts.rows.map(r => ({ id: r.id, patientId: r.patient_id, doctor: r.doctor_name, date: r.date, time: r.time, type: r.type }))
+      };
 
       const systemPrompt = `You are "Siara AI", an advanced clinical assistant for Siara Dental Clinic. 
-You have access to the following clinic data:
-- Patients: ${contextData.patients.length} records
-- Appointments: ${contextData.appointments.length} records
-- Invoices: ${contextData.invoices.length} records
-- Prescriptions: ${contextData.prescriptions.length} records
+You have access to the following clinic summary:
+- Total Patients: ${summary.totalPatients}
+- Appointments Today: ${summary.todayAppointments}
+- Pending Invoices: ${summary.pendingInvoices}
 
-DATA CONTEXT:
-${JSON.stringify({
-  summary: {
-    totalPatients: contextData.patients.length,
-    todayAppointments: contextData.appointments.filter(a => a.date === new Date().toISOString().slice(0, 10)).length,
-    pendingInvoices: contextData.invoices.filter(i => i.status !== 'Paid').length
-  },
-  recentPatients: contextData.patients.slice(0, 5).map(p => ({ id: p.id, name: p.name, lastVisit: p.lastVisit })),
-  recentAppointments: contextData.appointments.slice(0, 5).map(a => ({ id: a.id, patient: a.patientName, date: a.date, time: a.time, type: a.type }))
-})}
+RECENT ACTIVITY:
+${JSON.stringify(summary, null, 2)}
 
 YOUR ROLE:
 1. Answer questions about clinic operations, patient statistics, and schedule.

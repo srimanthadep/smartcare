@@ -1,6 +1,7 @@
 import { dbService } from '../services/db.service.js';
 import { activityService } from '../services/activity.service.js';
 import { emailService } from '../services/email.service.js';
+import { emitEvent, SOCKET_EVENTS } from '../services/socket.service.js';
 
 export const getPatients = async (req, res, next) => {
   try {
@@ -30,7 +31,11 @@ export const getPatients = async (req, res, next) => {
       query += ` AND registered_on <= $${params.length}`;
     }
 
-    query += ' ORDER BY registered_on DESC, id DESC';
+    const limit = parseInt(req.query.limit) || 100;
+    const page = parseInt(req.query.page) || 1;
+    const offset = (page - 1) * limit;
+
+    query += ` ORDER BY registered_on DESC, id DESC LIMIT ${limit} OFFSET ${offset}`;
 
     const result = await dbService.query(query, params);
     res.json(dbService.mapRows('patients', result.rows));
@@ -112,6 +117,8 @@ export const createPatient = async (req, res, next) => {
       emailService.sendInvoiceEmail(patient, invoice).catch(err => console.error('Invoice email failed:', err));
     }
     
+    emitEvent(SOCKET_EVENTS.INVOICE_UPDATED, invoice);
+    emitEvent(SOCKET_EVENTS.PATIENT_UPDATED, patient);
     res.status(201).json(patient);
   } catch (error) {
     next(error);
@@ -132,12 +139,21 @@ export const updatePatient = async (req, res, next) => {
       consultationFee: 'consultation_fee'
     };
 
+    const ALLOWED_COLUMNS = [
+      'name', 'age', 'gender', 'phone', 'email', 'blood_group', 'status', 
+      'address', 'allergies', 'conditions', 'medications', 'notes', 
+      'insurance_provider', 'policy_number', 'coverage_notes', 'consultation_fee',
+      'dental_history'
+    ];
+
     const updates = [];
     const params = [id];
     let i = 2;
 
     for (const [key, value] of Object.entries(fields)) {
       const dbKey = mapping[key] || key;
+      if (!ALLOWED_COLUMNS.includes(dbKey)) continue; // Security: Skip non-allowed columns
+      
       updates.push(`${dbKey} = $${i}`);
       params.push(key === 'medications' || key === 'dental_history' ? JSON.stringify(value) : value);
       i++;
@@ -150,7 +166,9 @@ export const updatePatient = async (req, res, next) => {
 
     if (result.rows.length === 0) return res.status(404).json({ message: 'Patient not found' });
 
-    res.json(dbService.mapRows('patients', result.rows)[0]);
+    const patient = dbService.mapRows('patients', result.rows)[0];
+    emitEvent(SOCKET_EVENTS.PATIENT_UPDATED, patient);
+    res.json(patient);
   } catch (error) {
     next(error);
   }
@@ -170,6 +188,7 @@ export const deletePatient = async (req, res, next) => {
     
     await activityService.log(req.user.sub, req.user.username, 'Delete Patient', `Deleted patient ${patientName} (${id})`, req.ip);
 
+    emitEvent(SOCKET_EVENTS.PATIENT_UPDATED, { id, deleted: true });
     res.json({ message: 'Patient deleted successfully' });
   } catch (error) {
     next(error);

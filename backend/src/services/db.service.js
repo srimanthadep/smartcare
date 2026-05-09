@@ -51,7 +51,7 @@ class DbService {
       return rows.map(r => ({
         ...r,
         bloodGroup: r.blood_group,
-        registeredOn: r.registered_on ? r.registered_on.toISOString().split('T')[0] : null,
+        registeredOn: r.registered_on ? new Date(r.registered_on).toLocaleDateString('en-CA') : null,
         consultationFee: r.consultation_fee
       }));
     }
@@ -67,15 +67,16 @@ class DbService {
       return rows.map(r => ({
         ...r,
         patientId: r.patient_id,
+        patientName: r.patient_name,
         doctorName: r.doctor_name,
-        date: r.date ? r.date.toISOString().split('T')[0] : null
+        date: r.date ? new Date(r.date).toLocaleDateString('en-CA') : null
       }));
     }
     if (table === 'invoices') {
       return rows.map(r => ({
         ...r,
         patientId: r.patient_id,
-        date: r.date ? r.date.toISOString().split('T')[0] : null
+        date: r.date ? new Date(r.date).toLocaleDateString('en-CA') : null
       }));
     }
     if (table === 'prescriptions') {
@@ -83,7 +84,7 @@ class DbService {
         ...r,
         patientId: r.patient_id,
         doctorName: r.doctor_name,
-        date: r.date ? r.date.toISOString().split('T')[0] : null
+        date: r.date ? new Date(r.date).toLocaleDateString('en-CA') : null
       }));
     }
     if (table === 'queue') {
@@ -93,6 +94,20 @@ class DbService {
         patientName: r.patient_name,
         doctorName: r.doctor_name,
         arrivedAt: r.arrived_at
+      }));
+    }
+    if (table === 'dental_charts') {
+      return rows.map(r => ({
+        ...r,
+        patientId: r.patient_id,
+        lastUpdated: r.last_updated
+      }));
+    }
+    if (table === 'activity_logs') {
+      return rows.map(r => ({
+        ...r,
+        userId: r.user_id,
+        userName: r.user_name
       }));
     }
     return rows;
@@ -112,8 +127,13 @@ class DbService {
       case 'P': tableName = 'patients'; break;
       case 'U': tableName = 'users'; break;
       case 'D': tableName = 'doctors'; break;
+      case 'A': tableName = 'appointments'; break;
       case 'INV': tableName = 'invoices'; break;
       case 'PR': tableName = 'prescriptions'; break;
+      case 'RX': tableName = 'prescriptions'; break; // Compatibility fallback
+      case 'TPL': tableName = 'prescription_templates'; break;
+      case 'DIAG': tableName = 'diagnoses'; break;
+      case 'TP': tableName = 'treatment_plans'; break;
       case 'Q': tableName = 'queue'; break;
       default: return `${prefix}${Date.now()}`;
     }

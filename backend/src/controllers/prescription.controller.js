@@ -1,6 +1,7 @@
 import { dbService } from '../services/db.service.js';
 import { activityService } from '../services/activity.service.js';
 import { emailService } from '../services/email.service.js';
+import { emitEvent, SOCKET_EVENTS } from '../services/socket.service.js';
 
 export const getPrescriptions = async (req, res, next) => {
   try {
@@ -23,7 +24,7 @@ export const getPrescriptions = async (req, res, next) => {
 
 export const createPrescription = async (req, res, next) => {
   try {
-    const id = await dbService.generateId('RX', 'prescriptions');
+    const id = await dbService.generateId('PR', 'prescriptions');
     const { patientId, patientName, doctorName, date, medicines, notes } = req.body;
     const pxDate = date || new Date().toISOString().slice(0, 10);
 
@@ -46,6 +47,7 @@ export const createPrescription = async (req, res, next) => {
       emailService.sendPrescriptionEmail(patient, prescription).catch(err => console.error('Email error:', err));
     }
     
+    emitEvent(SOCKET_EVENTS.PRESCRIPTION_UPDATED, prescription);
     res.status(201).json(prescription);
   } catch (error) {
     next(error);
@@ -66,8 +68,12 @@ export const updatePrescription = async (req, res, next) => {
       doctorName: 'doctor_name'
     };
 
+    const ALLOWED_COLUMNS = ['patient_id', 'doctor_name', 'date', 'medicines', 'notes'];
+
     for (const [key, value] of Object.entries(fields)) {
       const dbKey = mapping[key] || key;
+      if (!ALLOWED_COLUMNS.includes(dbKey)) continue;
+
       updates.push(`${dbKey} = $${i}`);
       params.push(key === 'medicines' ? JSON.stringify(value) : value);
       i++;
@@ -79,7 +85,9 @@ export const updatePrescription = async (req, res, next) => {
     if (result.rows.length === 0) return res.status(404).json({ message: 'Prescription not found' });
     
     await activityService.log(req.user.sub, req.user.username, 'Update Prescription', `Updated prescription ${id}`, req.ip);
-    res.json(dbService.mapRows('prescriptions', result.rows)[0]);
+    const px = dbService.mapRows('prescriptions', result.rows)[0];
+    emitEvent(SOCKET_EVENTS.PRESCRIPTION_UPDATED, px);
+    res.json(px);
   } catch (error) {
     next(error);
   }
@@ -92,6 +100,7 @@ export const deletePrescription = async (req, res, next) => {
     if (result.rows.length === 0) return res.status(404).json({ message: 'Prescription not found' });
     
     await activityService.log(req.user.sub, req.user.username, 'Delete Prescription', `Deleted prescription ${id}`, req.ip);
+    emitEvent(SOCKET_EVENTS.PRESCRIPTION_UPDATED, { id, deleted: true });
     res.json({ message: 'Prescription deleted' });
   } catch (error) {
     next(error);

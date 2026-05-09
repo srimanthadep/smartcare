@@ -90,8 +90,13 @@ const PatientProfile: React.FC = () => {
 
   const { data: invoices, error: invoiceError, refetch: refetchInvoices } = useQuery({
     queryKey: ["invoices", id],
-    queryFn: api.getInvoices,
-    select: (data) => data.filter(inv => inv.patientId === id),
+    queryFn: () => api.getInvoices({ patientId: id }),
+    enabled: !!id,
+  });
+
+  const { data: treatmentPlans, isLoading: isLoadingPlans } = useQuery({
+    queryKey: ["treatment-plans", id],
+    queryFn: () => api.getTreatmentPlans(id),
     enabled: !!id,
   });
 
@@ -640,32 +645,46 @@ interface TreatmentPlansSectionProps {
 }
 
 const TreatmentPlansSection: React.FC<TreatmentPlansSectionProps> = ({ patientId, patientName }) => {
-  const [plans, setPlans] = useState<TreatmentPlan[]>([]);
+  const queryClient = useQueryClient();
+  const { data: plans = [], isLoading } = useQuery({
+    queryKey: ["treatment-plans", patientId],
+    queryFn: () => api.getTreatmentPlans(patientId),
+  });
+
   const [showDialog, setShowDialog] = useState(false);
   const [newPlan, setNewPlan] = useState({ notes: '', dentistName: 'Dr. Saikiran', phases: [] as TreatmentPhase[] });
   const [newPhase, setNewPhase] = useState({ name: '', description: '', cost: 1000 });
+
+  const createPlanMutation = useMutation({
+    mutationFn: (payload: any) => api.createTreatmentPlan(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["treatment-plans", patientId] });
+      setShowDialog(false);
+      setNewPlan({ notes: '', dentistName: 'Dr. Saikiran', phases: [] });
+      toast.success('Treatment plan created');
+    },
+  });
+
+  const updatePlanMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string, payload: any }) => api.updateTreatmentPlan(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["treatment-plans", patientId] });
+    },
+  });
 
   const addPlan = () => {
     if (newPlan.phases.length === 0) {
       toast.error('Add at least one phase to the plan');
       return;
     }
-    const plan: TreatmentPlan = {
-      id: `TP_${Date.now()}`,
+    createPlanMutation.mutate({
       patientId,
-      patientName,
       dentistName: newPlan.dentistName,
-      createdDate: new Date().toISOString().slice(0, 10),
-      totalCost: newPlan.phases.reduce((sum, p) => sum + p.estimatedCost, 0),
-      status: 'Active',
       notes: newPlan.notes,
       phases: newPlan.phases,
-    };
-    setPlans([...plans, plan]);
-    setNewPlan({ notes: '', dentistName: 'Dr. Saikiran', phases: [] });
-    setNewPhase({ name: '', description: '', cost: 1000 });
-    setShowDialog(false);
-    toast.success('Treatment plan created');
+      totalCost: newPlan.phases.reduce((sum, p) => sum + p.estimatedCost, 0),
+      status: 'Active',
+    });
   };
 
   const addPhase = () => {
@@ -686,26 +705,27 @@ const TreatmentPlansSection: React.FC<TreatmentPlansSectionProps> = ({ patientId
     toast.success('Phase added');
   };
 
-  const updatePhaseStatus = (planId: string, phaseId: string, status: TreatmentPhase['status']) => {
-    setPlans(plans.map(plan =>
-      plan.id === planId
-        ? {
-            ...plan,
-            phases: plan.phases.map(ph =>
-              ph.id === phaseId
-                ? { ...ph, status, completedDate: status === 'Completed' ? new Date().toISOString().slice(0, 10) : undefined }
-                : ph
-            ),
-          }
-        : plan
-    ));
+  const updatePhaseStatus = (plan: TreatmentPlan, phaseId: string, status: TreatmentPhase['status']) => {
+    const updatedPhases = plan.phases.map(ph =>
+      ph.id === phaseId
+        ? { ...ph, status, completedDate: status === 'Completed' ? new Date().toISOString().slice(0, 10) : undefined }
+        : ph
+    );
+    
+    updatePlanMutation.mutate({
+      id: plan.id,
+      payload: { phases: updatedPhases }
+    });
     toast.success(`Phase marked as ${status}`);
   };
 
   const getProgress = (plan: TreatmentPlan) => {
+    if (!plan.phases?.length) return 0;
     const completed = plan.phases.filter(p => p.status === 'Completed').length;
     return Math.round((completed / plan.phases.length) * 100);
   };
+
+  if (isLoading) return <Skeleton className="h-48 w-full" />;
 
   return (
     <div className="space-y-4">
@@ -777,7 +797,9 @@ const TreatmentPlansSection: React.FC<TreatmentPlansSectionProps> = ({ patientId
               </div>
 
               <div className="flex gap-2 pt-4">
-                <Button onClick={addPlan} className="flex-1">Create Plan</Button>
+                <Button onClick={addPlan} className="flex-1" disabled={createPlanMutation.isPending}>
+                  {createPlanMutation.isPending ? 'Creating...' : 'Create Plan'}
+                </Button>
                 <Button variant="outline" onClick={() => setShowDialog(false)}>Cancel</Button>
               </div>
             </div>
@@ -828,7 +850,7 @@ const TreatmentPlansSection: React.FC<TreatmentPlansSectionProps> = ({ patientId
                       </div>
                       <Select 
                         value={phase.status} 
-                        onValueChange={(value) => updatePhaseStatus(plan.id, phase.id, value as TreatmentPhase['status'])}
+                        onValueChange={(value) => updatePhaseStatus(plan, phase.id, value as TreatmentPhase['status'])}
                       >
                         <SelectTrigger className="w-28 h-8">
                           <SelectValue />
