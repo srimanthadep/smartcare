@@ -11,6 +11,8 @@ const envSchema = z.object({
   CORS_ORIGINS: z.string().default('http://localhost:8080,http://127.0.0.1:8080').transform((s) => s.split(',').map(i => i.trim())),
   MISTRAL_API_KEY: z.string().optional(),
   RESEND_API_KEY: z.string().optional(),
+  RESEND_FROM_EMAIL: z.string().optional(),
+  RESEND_TO_EMAIL: z.string().optional(),
   DATABASE_URL: z.string().url("Invalid database URL"),
 });
 

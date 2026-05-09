@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser';
 import { config } from './src/config/env.js';
 import routes from './src/routes/index.js';
 import { errorHandler } from './src/middleware/error.js';
+import { initBackupService } from './src/services/backupService.js';
 
 const app = express();
 
@@ -15,7 +16,8 @@ app.use(cors({
   origin: config.CORS_ORIGINS,
   credentials: true,
   methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Content-Disposition']
 }));
 
 // Standard Middlewares
@@ -39,6 +41,8 @@ app.use((req, res) => {
 
 // Global Error Handler
 app.use(errorHandler);
+
+initBackupService();
 
 app.listen(config.PORT, () => {
   console.log(`🚀 Siara Dental SaaS Backend running in ${config.NODE_ENV} mode`);

@@ -18,6 +18,7 @@ import {
   YAxis,
 } from "recharts";
 import { CalendarDays, CalendarPlus, FileText, Scan, IndianRupee, UserPlus, Users, CalendarClock, TrendingUp } from "lucide-react";
+import { MdBackup } from "react-icons/md";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -66,10 +67,61 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [period, setPeriod] = React.useState("monthly");
+  const [backupLoading, setBackupLoading] = React.useState(false);
 
   React.useEffect(() => {
     document.title = "Dashboard | Siara Dental";
   }, []);
+
+  const handleBackup = async () => {
+    if (!window.confirm('Start a full database backup? This may take a moment.')) {
+        return;
+    }
+
+    setBackupLoading(true);
+    const toastId = (await import('sonner')).toast.loading("Creating Backup...");
+
+    try {
+        const token = sessionStorage.getItem("smartdental_auth_token");
+        const headers = new Headers();
+        if (token) headers.set("Authorization", `Bearer ${token}`);
+
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:3001"}/api/backup/download`, {
+            method: 'POST',
+            headers
+        });
+
+        if (!res.ok) {
+            if (res.status === 429) throw new Error('A backup is already in progress. Please wait.');
+            throw new Error('Backup failed. Please try again.');
+        }
+
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+
+        const link = document.createElement('a');
+        link.href = url;
+
+        const disposition = res.headers.get('content-disposition');
+        const match = disposition?.match(/filename[^;=\n]*=['"]?([^'"\n;]*)/);
+        const filename = match?.[1] || 'siara_dental_backup.zip';
+
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        window.URL.revokeObjectURL(url);
+        (await import('sonner')).toast.success('Backup downloaded successfully!', { id: toastId });
+
+    } catch (err: any) {
+        const message = err.message || 'Backup failed. Please try again.';
+        (await import('sonner')).toast.error(message, { id: toastId });
+        console.error('Backup error:', err);
+    } finally {
+        setBackupLoading(false);
+    }
+  };
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["dashboard", period],
@@ -120,6 +172,15 @@ const Dashboard: React.FC = () => {
         </Button>
         <Button size="sm" variant="outline" onClick={() => navigate("/prescriptions")}>
           <FileText className="mr-1 h-4 w-4" /> Create Prescription
+        </Button>
+        <Button 
+          size="sm" 
+          onClick={handleBackup} 
+          disabled={backupLoading}
+          className="bg-amber-500 hover:bg-amber-600 text-white"
+        >
+          <MdBackup className="mr-1 h-4 w-4" /> 
+          {backupLoading ? 'Creating Backup...' : 'Download Backup'}
         </Button>
         <div className="ml-auto">
           <Tabs value={period} onValueChange={setPeriod} className="w-full">

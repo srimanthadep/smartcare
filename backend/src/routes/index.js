@@ -4,6 +4,7 @@ import patientRoutes from './patient.routes.js';
 import medicineRoutes from './medicine.routes.js';
 import aiRoutes from './ai.routes.js';
 import prescriptionTemplateRoutes from './prescription-template.routes.js';
+import backupRoutes from './backup.js';
 import * as dashboardController from '../controllers/dashboard.controller.js';
 import * as appointmentController from '../controllers/appointment.controller.js';
 import * as invoiceController from '../controllers/invoice.controller.js';
@@ -68,6 +69,7 @@ router.use('/patients', patientRoutes);
 router.use('/medicines', medicineRoutes);
 router.use('/ai', aiRoutes);
 router.use('/prescription-templates', prescriptionTemplateRoutes);
+router.use('/backup', backupRoutes);
 
 // Appointments
 router.get('/appointments', appointmentController.getAppointments);

@@ -2,8 +2,9 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
-import { Activity, AlertTriangle, ArrowLeft, Droplets, FileText, Pill, Smile, Receipt, Trash2, Eye, Edit3, Mail, FileDown } from "lucide-react";
+import { Activity, AlertTriangle, ArrowLeft, Droplets, FileText, Pill, Smile, Receipt, Trash2, Eye, Edit3, Mail, FileDown, Download } from "lucide-react";
 import { pdfService } from "@/lib/pdfService";
+import { exportService } from "@/lib/exportService";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import EditableField from "@/components/EditableField";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -31,6 +33,12 @@ const PatientProfile: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ["patient", id],
+    queryFn: () => api.getPatient(id),
+    enabled: !!id,
+  });
+
   useEffect(() => {
     if (data?.patient.name) {
       document.title = `${data.patient.name} | Siara Dental`;
@@ -38,12 +46,6 @@ const PatientProfile: React.FC = () => {
       document.title = "Patient Profile | Siara Dental";
     }
   }, [data]);
-
-  const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["patient", id],
-    queryFn: () => api.getPatient(id),
-    enabled: !!id,
-  });
 
   const updatePatient = useMutation({
     mutationFn: (payload: Record<string, string>) => api.updatePatient(id, payload),
@@ -54,6 +56,18 @@ const PatientProfile: React.FC = () => {
     },
     onError: (mutationError) => {
       toast.error(mutationError instanceof Error ? mutationError.message : "Unable to update patient");
+    },
+  });
+
+  const deletePatient = useMutation({
+    mutationFn: (patientId: string) => api.deletePatient(patientId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["patients"] });
+      toast.success("Patient deleted successfully");
+      navigate("/patients");
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : "Failed to delete patient");
     },
   });
 
@@ -196,6 +210,31 @@ const PatientProfile: React.FC = () => {
           <Button variant="outline" size="sm" onClick={() => navigate(`/patients?editId=${id}`)}>
             Edit Profile
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Download className="mr-2 h-4 w-4" /> Export Record
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => {
+                toast.promise(
+                  Promise.resolve(exportService.exportPatientToPDF(patient, dentalChartData?.teeth || [], invoices || [], prescriptions || [], diagnoses || [])),
+                  { loading: 'Generating PDF...', success: 'PDF Exported Successfully!', error: 'Failed to export PDF' }
+                );
+              }}>
+                Export as PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                toast.promise(
+                  Promise.resolve(exportService.exportPatientToExcel(patient, dentalChartData?.teeth || [], invoices || [], prescriptions || [], diagnoses || [])),
+                  { loading: 'Generating Excel...', success: 'Excel Exported Successfully!', error: 'Failed to export Excel' }
+                );
+              }}>
+                Export as Excel
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button 
             variant="destructive" 
             size="sm" 

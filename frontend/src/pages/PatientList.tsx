@@ -16,8 +16,11 @@ import {
   ClipboardList,
   User,
   Filter,
-  X
+  X,
+  FileDown,
+  Download
 } from "lucide-react";
+import { exportService } from "@/lib/exportService";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,13 +31,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import StatusBadge from "@/components/StatusBadge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
@@ -58,6 +61,68 @@ const PatientList: React.FC = () => {
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
   const [patientToDelete, setPatientToDelete] = useState<string | null>(null);
+
+  const handleExport = async (patientId: string, format: 'pdf' | 'excel') => {
+    const toastId = toast.loading(`Gathering records & generating ${format.toUpperCase()}...`);
+    try {
+      const fullData = await api.getPatient(patientId);
+      const chart = await api.getDentalChart(patientId).catch(() => ({ teeth: [] }));
+      const invoices = await api.getInvoices().catch(() => []);
+      const px = await api.getPrescriptions(patientId).catch(() => []);
+      
+      const patientInvoices = invoices.filter((i: any) => i.patientId === patientId);
+
+      if (format === 'pdf') {
+        exportService.exportPatientToPDF(fullData.patient, chart.teeth || [], patientInvoices, px, fullData.diagnoses || []);
+      } else {
+        exportService.exportPatientToExcel(fullData.patient, chart.teeth || [], patientInvoices, px, fullData.diagnoses || []);
+      }
+      toast.success(`${format.toUpperCase()} Exported Successfully!`, { id: toastId });
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error(`Failed to export ${format.toUpperCase()}`, { id: toastId });
+    }
+  };
+
+  const handleBulkExport = async (format: 'pdf' | 'excel') => {
+    const toastId = toast.loading(`Gathering records & generating Bulk ${format.toUpperCase()} export...`);
+    try {
+      const fullPatientsReqs = data.map(p => api.getPatient(p.id).catch(() => ({ patient: p, diagnoses: [] })));
+      const chartReqs = data.map(p => api.getDentalChart(p.id).catch(() => ({ teeth: [] })));
+      const invoicesReq = api.getInvoices().catch(() => []);
+      const pxReq = api.getPrescriptions().catch(() => []);
+
+      const [fullPatients, charts, allInvoices, allPx] = await Promise.all([
+        Promise.all(fullPatientsReqs),
+        Promise.all(chartReqs),
+        invoicesReq,
+        pxReq
+      ]);
+
+      const bulkData = fullPatients.map((fp: any, index: number) => {
+        const chart = charts[index] as any;
+        const invoices = (allInvoices as any[]).filter(i => i.patientId === fp.patient.id);
+        const px = (allPx as any[]).filter(p => p.patientId === fp.patient.id);
+        return {
+          patient: fp.patient,
+          diagnoses: fp.diagnoses || [],
+          dentalChart: chart.teeth || [],
+          invoices: invoices,
+          prescriptions: px
+        };
+      });
+
+      if (format === 'pdf') {
+        await exportService.exportAllPatientsToPDF(bulkData);
+      } else {
+        exportService.exportAllPatientsToExcel(bulkData);
+      }
+      toast.success(`Bulk ${format.toUpperCase()} Exported Successfully!`, { id: toastId });
+    } catch (error) {
+      console.error("Bulk export error:", error);
+      toast.error(`Failed to generate bulk ${format.toUpperCase()}`, { id: toastId });
+    }
+  };
   
   const pageSize = 8;
   const navigate = useNavigate();
@@ -187,6 +252,21 @@ const PatientList: React.FC = () => {
           <Button variant="outline" onClick={() => setShowFilters(!showFilters)} className={showFilters ? "bg-accent" : ""}>
             <Filter className="mr-2 h-4 w-4" /> Filters
           </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="shadow-sm">
+                <Download className="mr-2 h-4 w-4" /> Export All
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleBulkExport('pdf')}>
+                <FileDown className="mr-2 h-4 w-4" /> Export as PDF (Roster)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleBulkExport('excel')}>
+                <Download className="mr-2 h-4 w-4" /> Export as Excel (Data)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button onClick={() => navigate("/patients/new")} className="shadow-sm">
             <UserPlus className="mr-2 h-4 w-4" /> Add New Patient
           </Button>
@@ -355,6 +435,13 @@ const PatientList: React.FC = () => {
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => navigate(`/billing`)}>
                               <FilePlus className="mr-2 h-4 w-4" /> Pay Bill
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleExport(patient.id, 'pdf')}>
+                              <FileDown className="mr-2 h-4 w-4" /> Export as PDF
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleExport(patient.id, 'excel')}>
+                              <Download className="mr-2 h-4 w-4" /> Export as Excel
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem 
