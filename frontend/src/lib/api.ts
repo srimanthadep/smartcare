@@ -132,8 +132,9 @@ export const api = {
     });
   },
 
-  getInvoices() {
-    return apiFetch<Invoice[]>("/api/invoices");
+  getInvoices(params: { patientId?: string } = {}) {
+    const { patientId } = params;
+    return apiFetch<Invoice[]>(`/api/invoices${buildQuery({ patientId })}`);
   },
 
   createInvoice(payload: Partial<Invoice>) {
@@ -213,6 +214,10 @@ export const api = {
   sendPrescriptionEmail(id: string) {
     return apiFetch<{ message: string }>(`/api/prescriptions/${id}/send-email`, { method: "POST" });
   },
+  
+  sendPrescriptionWhatsapp(id: string) {
+    return apiFetch<{ message: string }>(`/api/prescriptions/${id}/send-whatsapp`, { method: "POST" });
+  },
 
   chatWithAI(message: string, history: { role: string; content: string }[]) {
     return apiFetch<{ data: string }>("/api/ai/chat", {
@@ -271,5 +276,32 @@ export const api = {
 
   sendInvoiceEmail(id: string) {
     return apiFetch<{ message: string }>(`/api/invoices/${id}/send-email`, { method: "POST" });
+  },
+
+  sendInvoiceWhatsapp(id: string) {
+    return apiFetch<{ message: string }>(`/api/invoices/${id}/send-whatsapp`, { method: "POST" });
+  },
+
+  getWhatsAppStatus() {
+    return apiFetch<{ status: string; qr: string | null }>("/api/whatsapp/status");
+  },
+
+  connectWhatsApp() {
+    return apiFetch<{ message: string }>("/api/whatsapp/connect", { method: "POST" });
+  },
+
+  disconnectWhatsApp() {
+    return apiFetch<{ message: string }>("/api/whatsapp/disconnect", { method: "POST" });
+  },
+
+  getEmailStatus() {
+    return apiFetch<{ enabled: boolean }>("/api/email/status");
+  },
+
+  toggleEmailStatus(enabled: boolean) {
+    return apiFetch<{ enabled: boolean }>("/api/email/toggle", { 
+      method: "POST", 
+      body: JSON.stringify({ enabled }) 
+    });
   },
 };

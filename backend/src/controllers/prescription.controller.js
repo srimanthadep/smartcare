@@ -1,6 +1,7 @@
 import { dbService } from '../services/db.service.js';
 import { activityService } from '../services/activity.service.js';
 import { emailService } from '../services/email.service.js';
+import { whatsappService } from '../services/whatsapp.service.js';
 import { emitEvent, SOCKET_EVENTS } from '../services/socket.service.js';
 
 export const getPrescriptions = async (req, res, next) => {
@@ -103,6 +104,25 @@ export const deletePrescription = async (req, res, next) => {
     await activityService.log(req.user.sub, req.user.username, 'Delete Prescription', `Deleted prescription ${id}`, req.ip);
     emitEvent(SOCKET_EVENTS.PRESCRIPTION_UPDATED, { id, deleted: true });
     res.json({ message: 'Prescription deleted' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const sendWhatsApp = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const pxRes = await dbService.query('SELECT * FROM prescriptions WHERE id = $1', [id]);
+    if (pxRes.rows.length === 0) return res.status(404).json({ message: 'Prescription not found' });
+    const prescription = dbService.mapRows('prescriptions', pxRes.rows)[0];
+
+    const patientRes = await dbService.query('SELECT * FROM patients WHERE id = $1', [prescription.patientId]);
+    const patient = dbService.mapRows('patients', patientRes.rows)[0];
+
+    if (!patient) return res.status(404).json({ message: 'Patient not found' });
+
+    await whatsappService.sendPrescription(patient, prescription);
+    res.json({ message: 'WhatsApp message sent successfully' });
   } catch (error) {
     next(error);
   }

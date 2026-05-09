@@ -36,14 +36,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     handleAuthSuccess(response);
   }, []);
 
-  const handleAuthSuccess = (response: { user: User }) => {
+  const handleAuthSuccess = (response: { user: User; token: string }) => {
     setUser(response.user);
     sessionStorage.setItem(USER_STORAGE_KEY, JSON.stringify(response.user));
+    if (response.token) {
+      sessionStorage.setItem("smartcare_token", response.token);
+    }
   };
 
   const logout = useCallback(() => {
     setUser(null);
     sessionStorage.removeItem(USER_STORAGE_KEY);
+    sessionStorage.removeItem("smartcare_token");
     // Ideally call a backend logout to clear the cookie
   }, []);
 

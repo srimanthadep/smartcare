@@ -6,6 +6,8 @@ import aiRoutes from './ai.routes.js';
 import prescriptionTemplateRoutes from './prescription-template.routes.js';
 import treatmentPlanRoutes from './treatment-plan.routes.js';
 import backupRoutes from './backup.js';
+import whatsappRoutes from './whatsapp.routes.js';
+import emailRoutes from './email.routes.js';
 import * as dashboardController from '../controllers/dashboard.controller.js';
 import * as appointmentController from '../controllers/appointment.controller.js';
 import * as invoiceController from '../controllers/invoice.controller.js';
@@ -36,6 +38,8 @@ const aiRateLimit = rateLimit({
 router.get('/', (req, res) => res.json({ status: 'ok', message: 'API is operational' }));
 router.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 router.use('/auth', authRateLimit, authRoutes);
+router.use('/whatsapp', whatsappRoutes);
+router.use('/email', emailRoutes);
 
 // Protected routes
 router.use(auth);
@@ -111,6 +115,23 @@ router.get('/prescriptions', prescriptionController.getPrescriptions);
 router.post('/prescriptions', prescriptionController.createPrescription);
 router.patch('/prescriptions/:id', prescriptionController.updatePrescription);
 router.delete('/prescriptions/:id', prescriptionController.deletePrescription);
+router.post('/prescriptions/:id/send-whatsapp', prescriptionController.sendWhatsApp);
+router.post('/invoices/:id/send-whatsapp', async (req, res, next) => {
+  try {
+    const resInv = await dbService.query('SELECT * FROM invoices WHERE id = $1', [req.params.id]);
+    const invoice = dbService.mapRows('invoices', resInv.rows)[0];
+    if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
+    
+    const resPat = await dbService.query('SELECT * FROM patients WHERE id = $1', [invoice.patientId]);
+    const patient = dbService.mapRows('patients', resPat.rows)[0];
+    if (!patient) return res.status(404).json({ message: 'Patient not found' });
+
+    import('../services/whatsapp.service.js').then(({ whatsappService }) => {
+      whatsappService.sendInvoice(patient, invoice);
+    });
+    res.json({ message: 'Invoice WhatsApp sent' });
+  } catch (error) { next(error); }
+});
 
 // Dental Charts
 router.get('/dental-chart/:patientId', dentalController.getDentalChart);

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
-import { Activity, AlertTriangle, ArrowLeft, Droplets, FileText, Pill, Smile, Receipt, Trash2, Eye, Edit3, Mail, FileDown, Download } from "lucide-react";
+import { Activity, AlertTriangle, ArrowLeft, Droplets, FileText, Pill, Smile, Receipt, Trash2, Eye, Edit3, Mail, FileDown, Download, MessageCircle, ClipboardList, PlusCircle } from "lucide-react";
 import { pdfService } from "@/lib/pdfService";
 import { exportService } from "@/lib/exportService";
 import { toast } from "sonner";
@@ -23,7 +23,6 @@ import StatusBadge from "@/components/StatusBadge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DentalChart from "@/components/DentalChart";
 import { ToothRecord } from "@/types";
-import { ClipboardList, PlusCircle } from "lucide-react";
 import InvoiceModal from "@/components/InvoiceModal";
 import InvoiceEditModal from "@/components/InvoiceEditModal";
 import { Invoice } from "@/types";
@@ -424,6 +423,19 @@ const PatientProfile: React.FC = () => {
                             size="sm" 
                             variant="outline"
                             onClick={() => {
+                              toast.promise(api.sendInvoiceWhatsapp(inv.id), {
+                                loading: 'Sending invoice via WhatsApp...',
+                                success: 'WhatsApp sent successfully!',
+                                error: 'Failed to send WhatsApp'
+                              });
+                            }}
+                          >
+                            <MessageCircle className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => {
                               toast.promise(api.sendInvoiceEmail(inv.id), {
                                 loading: 'Sending invoice email...',
                                 success: 'Email sent successfully!',
@@ -488,6 +500,20 @@ const PatientProfile: React.FC = () => {
                             onClick={() => pdfService.generatePrescriptionPDF(patient, px)}
                           >
                             <FileDown className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            className="h-8 w-8"
+                            onClick={() => {
+                              toast.promise(api.sendPrescriptionWhatsapp(px.id), {
+                                loading: 'Sending prescription via WhatsApp...',
+                                success: 'WhatsApp sent successfully!',
+                                error: 'Failed to send WhatsApp'
+                              });
+                            }}
+                          >
+                            <MessageCircle className="h-4 w-4" />
                           </Button>
                           <Button 
                             size="icon" 

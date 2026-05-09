@@ -1,5 +1,6 @@
 import { dbService } from '../services/db.service.js';
 import { emailService } from '../services/email.service.js';
+import { whatsappService } from '../services/whatsapp.service.js';
 import { emitEvent, SOCKET_EVENTS } from '../services/socket.service.js';
 
 export const getInvoices = async (req, res, next) => {
@@ -42,6 +43,11 @@ export const createInvoice = async (req, res, next) => {
 
     if (patient && patient.email) {
       emailService.sendInvoiceEmail(patient, invoice).catch(err => console.error('Invoice email failed:', err));
+    }
+
+    // Send invoice WhatsApp
+    if (patient) {
+      whatsappService.sendInvoice(patient, invoice).catch(err => console.error('WhatsApp failed:', err));
     }
 
     emitEvent(SOCKET_EVENTS.INVOICE_UPDATED, invoice);
@@ -88,6 +94,10 @@ export const updateInvoice = async (req, res, next) => {
       const patient = dbService.mapRows('patients', patientRes.rows)[0];
       if (patient && patient.email) {
         emailService.sendInvoiceEmail(patient, invoice).catch(err => console.error('Email error:', err));
+      }
+      // Send invoice/payment WhatsApp
+      if (patient) {
+        whatsappService.sendInvoice(patient, invoice).catch(err => console.error('WhatsApp failed:', err));
       }
     }
 

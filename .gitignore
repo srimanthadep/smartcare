@@ -29,6 +29,7 @@ frontend/.env
 
 # Backups
 backend/backups/
+backend/data/whatsapp_auth/
 *.sqlite-shm
 *.sqlite-wal
 dev-dist/

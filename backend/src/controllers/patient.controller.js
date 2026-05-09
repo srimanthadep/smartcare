@@ -1,6 +1,7 @@
 import { dbService } from '../services/db.service.js';
 import { activityService } from '../services/activity.service.js';
 import { emailService } from '../services/email.service.js';
+import { whatsappService } from '../services/whatsapp.service.js';
 import { emitEvent, SOCKET_EVENTS } from '../services/socket.service.js';
 
 export const getPatients = async (req, res, next) => {
@@ -100,6 +101,9 @@ export const createPatient = async (req, res, next) => {
       emailService.sendWelcomeEmail(patient).catch(err => console.error('Email failed:', err));
     }
 
+    // Send welcome WhatsApp
+    whatsappService.sendWelcome(patient).catch(err => console.error('WhatsApp failed:', err));
+
     // Auto-create Consultation Fee Invoice
     const fee = consultationFee || 300;
     const invId = await dbService.generateId('INV', 'invoices');
@@ -116,6 +120,9 @@ export const createPatient = async (req, res, next) => {
     if (patient.email) {
       emailService.sendInvoiceEmail(patient, invoice).catch(err => console.error('Invoice email failed:', err));
     }
+
+    // Send invoice WhatsApp
+    whatsappService.sendInvoice(patient, invoice).catch(err => console.error('WhatsApp failed:', err));
     
     emitEvent(SOCKET_EVENTS.INVOICE_UPDATED, invoice);
     emitEvent(SOCKET_EVENTS.PATIENT_UPDATED, patient);

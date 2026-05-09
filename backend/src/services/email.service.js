@@ -19,6 +19,15 @@ if (!process.env.RESEND_API_KEY) {
   console.log('✅ Resend API client initialized');
 }
 
+let emailEnabled = true;
+
+export const getEmailStatus = () => ({ enabled: emailEnabled });
+export const setEmailStatus = (enabled) => {
+  emailEnabled = enabled;
+  console.log(`📧 Email service ${enabled ? 'enabled' : 'disabled'}`);
+  return getEmailStatus();
+};
+
 const baseStyle = `
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.6;
@@ -59,6 +68,9 @@ export const emailService = {
   // --- Core Methods ---
 
   async sendWelcomeEmail(patient) {
+    if (!emailEnabled) {
+      throw new Error('Email service is disabled');
+    }
     if (!patient.email) return;
 
     const logoPath = path.join(__dirname, '../../../frontend/src/assets/logo.png');
@@ -199,6 +211,9 @@ body { background:#f5f7fb; font-family:'Poppins', sans-serif; padding:40px 15px;
   },
 
   async sendPrescriptionEmail(patient, prescription) {
+    if (!emailEnabled) {
+      throw new Error('Email service is disabled');
+    }
     if (!patient.email) return;
 
     const logoPath = path.join(__dirname, '../../../frontend/src/assets/logo.png');
@@ -318,6 +333,9 @@ body { background:#f5f7fb; font-family:'Poppins', sans-serif; padding:40px 15px;
   },
 
   async sendInvoiceEmail(patient, invoice) {
+    if (!emailEnabled) {
+      throw new Error('Email service is disabled');
+    }
     if (!patient.email) return;
 
     const logoPath = path.join(__dirname, '../../../frontend/src/assets/logo.png');

@@ -8,28 +8,112 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Plug, ShieldCheck } from 'lucide-react';
+import { api } from '@/lib/api';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Loader2, Mail, MessageCircle, Plug, ShieldCheck } from 'lucide-react';
 
 const Settings: React.FC = () => {
   const [integrations, setIntegrations] = useState({
-    whatsapp: false,
     sms: true,
-    email: true,
     payments: false,
     sso: false,
   });
-  type IntegrationKey = keyof typeof integrations;
-  const integrationRows: Array<{ key: IntegrationKey; label: string; desc: string }> = [
-    { key: 'whatsapp', label: 'WhatsApp provider', desc: 'Templates, opt-in, delivery tracking' },
-    { key: 'sms', label: 'SMS gateway', desc: 'Transactional SMS for reminders' },
-    { key: 'email', label: 'Email service', desc: 'Reports and invoice emails' },
-    { key: 'payments', label: 'Payments', desc: 'UPI/card payment links for invoices' },
-    { key: 'sso', label: 'SSO', desc: 'Single sign-on for enterprise clinics' },
-  ];
+
+  const [emailStatus, setEmailStatus] = useState({ enabled: true });
+
+  const [waStatus, setWaStatus] = useState<{ status: string; qr: string | null }>({ status: 'disconnected', qr: null });
+  const [isWaModalOpen, setIsWaModalOpen] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
 
   useEffect(() => {
     document.title = 'Settings | Siara Dental';
+    fetchWaStatus();
+    fetchEmailStatus();
   }, []);
+
+  const fetchEmailStatus = async () => {
+    try {
+      const res = await api.getEmailStatus();
+      setEmailStatus(res);
+    } catch (err) {
+      console.error('Failed to fetch Email status', err);
+    }
+  };
+
+  const fetchWaStatus = async () => {
+    try {
+      const res = await api.getWhatsAppStatus();
+      setWaStatus(res);
+    } catch (err) {
+      console.error('Failed to fetch WA status', err);
+    }
+  };
+
+  const handleWaToggle = async (checked: boolean) => {
+    if (checked) {
+      setIsConnecting(true);
+      try {
+        await api.connectWhatsApp();
+        setIsWaModalOpen(true);
+        startQrStream();
+      } catch (err) {
+        toast.error('Failed to initiate connection');
+        setIsConnecting(false);
+      }
+    } else {
+      try {
+        await api.disconnectWhatsApp();
+        setWaStatus({ status: 'disconnected', qr: null });
+        toast.success('WhatsApp disconnected');
+      } catch (err) {
+        toast.error('Failed to disconnect');
+      }
+    }
+  };
+
+  const startQrStream = () => {
+    const token = sessionStorage.getItem('smartcare_token');
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
+    const es = new EventSource(`${apiBaseUrl}/api/whatsapp/qr-stream?token=${token}`);
+
+    es.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      setWaStatus(data);
+
+      if (data.status === 'connected') {
+        es.close();
+        setIsWaModalOpen(false);
+        setIsConnecting(false);
+        toast.success('WhatsApp connected successfully!');
+      }
+    };
+
+    es.onerror = () => {
+      es.close();
+      if (waStatus.status !== 'connected') {
+        setIsConnecting(false);
+        // We don't automatically close the modal here to give user a chance to retry or see the error
+      }
+    };
+
+    return es;
+  };
+
+  const handleEmailToggle = async (checked: boolean) => {
+    try {
+      const res = await api.toggleEmailStatus(checked);
+      setEmailStatus(res);
+      toast.success(`Email service ${checked ? 'enabled' : 'disabled'}`);
+    } catch (err) {
+      toast.error('Failed to toggle Email service');
+    }
+  };
+
+  const integrationRows: Array<{ key: string; label: string; desc: string }> = [
+    { key: 'sms', label: 'SMS gateway', desc: 'Transactional SMS for reminders' },
+    { key: 'payments', label: 'Payments', desc: 'UPI/card payment links for invoices' },
+    { key: 'sso', label: 'SSO', desc: 'Single sign-on for enterprise clinics' },
+  ];
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
@@ -53,6 +137,49 @@ const Settings: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
+              {/* Specialized WhatsApp Row */}
+              <div className="flex items-start justify-between gap-4 rounded-lg border border-primary/20 bg-primary/5 p-4">
+                <div className="flex gap-3">
+                  <div className="mt-1 h-8 w-8 rounded-full bg-green-500/10 flex items-center justify-center text-green-600">
+                    <MessageCircle className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-primary">WhatsApp Automation</p>
+                      <Badge variant={waStatus.status === 'connected' ? 'success' : 'secondary'} className="text-[10px] h-4">
+                        {waStatus.status.replace('_', ' ')}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">Automatic patient welcome and invoice delivery via WhatsApp</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  {isConnecting && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
+                  <Switch
+                    checked={waStatus.status === 'connected' || waStatus.status === 'awaiting_qr'}
+                    onCheckedChange={handleWaToggle}
+                    disabled={isConnecting}
+                  />
+                </div>
+              </div>
+
+              {/* Email Service Row */}
+              <div className="flex items-start justify-between gap-4 rounded-lg border border-blue-500/20 bg-blue-500/5 p-4">
+                <div className="flex gap-3">
+                  <div className="mt-1 h-8 w-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-600">
+                    <Mail className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-blue-700">Email Service (Resend)</p>
+                    <p className="text-sm text-muted-foreground mt-1">Automatic email delivery for reports and invoices via Resend API</p>
+                  </div>
+                </div>
+                <Switch
+                  checked={emailStatus.enabled}
+                  onCheckedChange={handleEmailToggle}
+                />
+              </div>
+
               {integrationRows.map((i) => (
                 <div key={i.key} className="flex items-start justify-between gap-4 rounded-lg border border-border/50 bg-secondary/15 p-4">
                   <div>
@@ -60,7 +187,7 @@ const Settings: React.FC = () => {
                     <p className="text-sm text-muted-foreground mt-1">{i.desc}</p>
                   </div>
                   <Switch
-                    checked={integrations[i.key]}
+                    checked={(integrations as any)[i.key]}
                     onCheckedChange={(v) => setIntegrations((prev) => ({ ...prev, [i.key]: v }))}
                   />
                 </div>
@@ -136,6 +263,47 @@ const Settings: React.FC = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={isWaModalOpen} onOpenChange={(open) => {
+        if (!open) {
+          handleWaToggle(false);
+          setIsWaModalOpen(false);
+          setIsConnecting(false);
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Scan QR Code</DialogTitle>
+            <DialogDescription>
+              Open WhatsApp on your phone → Linked Devices → Link a Device
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center p-6 space-y-4">
+            {waStatus.qr ? (
+              <div className="p-2 bg-white rounded-xl shadow-inner border-2 border-primary/10">
+                <img src={waStatus.qr} alt="WhatsApp QR Code" className="w-64 h-64" />
+              </div>
+            ) : (
+              <div className="w-64 h-64 flex flex-col items-center justify-center bg-secondary/20 rounded-xl border-2 border-dashed border-border">
+                <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                <p className="text-xs text-muted-foreground">Generating QR code...</p>
+              </div>
+            )}
+            <div className="text-center">
+              <p className="text-sm font-medium">{waStatus.status === 'awaiting_qr' ? 'Waiting for scan...' : 'Connecting...'}</p>
+              <p className="text-[10px] text-muted-foreground mt-1">This will automatically close once connected.</p>
+            </div>
+          </div>
+          <div className="flex justify-center">
+            <Button variant="ghost" onClick={() => {
+              handleWaToggle(false);
+              setIsWaModalOpen(false);
+            }}>
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 };

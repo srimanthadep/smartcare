@@ -44,9 +44,12 @@ const Prescriptions: React.FC = () => {
 
   const createPrescription = useMutation({
     mutationFn: api.createPrescription,
-    onSuccess: () => {
+    onSuccess: (res: any) => {
       queryClient.invalidateQueries({ queryKey: ["prescriptions"] });
       toast.success("Prescription saved");
+      if (res && res.id) {
+        navigate(`/prescriptions?editId=${res.id}`, { replace: true });
+      }
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : "Unable to save prescription"),
   });
@@ -199,7 +202,20 @@ const Prescriptions: React.FC = () => {
           >
             <Printer className="mr-1 h-4 w-4" /> Print PDF
           </Button>
-          <Button variant="outline" onClick={() => toast.message("Share flow would generate a PDF link.")}>
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              if (!editId) {
+                toast.error("Please save the prescription before sending via WhatsApp");
+                return;
+              }
+              toast.promise(api.sendPrescriptionWhatsapp(editId), {
+                loading: 'Sending prescription via WhatsApp...',
+                success: 'Prescription sent successfully!',
+                error: 'Failed to send WhatsApp message'
+              });
+            }}
+          >
             <MessageCircle className="mr-1 h-4 w-4" /> WhatsApp
           </Button>
           <Button
