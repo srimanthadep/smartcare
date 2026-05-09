@@ -29,7 +29,7 @@ class DbService {
     const tables = [
       'users', 'patients', 'doctors', 'doctor_availability', 'appointments',
       'invoices', 'prescriptions', 'medicines', 'prescription_templates',
-      'activity_logs', 'dental_charts', 'queue'
+      'activity_logs', 'dental_charts', 'queue', 'treatment_plans', 'diagnoses', 'reports'
     ];
 
     // Run queries in parallel for better performance
