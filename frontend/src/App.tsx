@@ -24,11 +24,11 @@ import Notifications from "@/pages/Notifications";
 import Settings from "@/pages/Settings";
 import RecallSystem from "@/pages/RecallSystem";
 import ActivityLogs from "@/pages/ActivityLogs";
-import PlaceholderPage from "@/pages/PlaceholderPage";
 import NotFound from "@/pages/NotFound";
 import PublicLayout from "@/components/PublicLayout";
 import PublicBooking from "@/pages/PublicBooking";
 import DoctorPublicProfile from "@/pages/DoctorPublicProfile";
+import InstallPromptBanner from "@/components/InstallPromptBanner";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -75,6 +75,7 @@ const App = () => (
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
+            <InstallPromptBanner />
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>

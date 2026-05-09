@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { History, Search, RefreshCcw } from "lucide-react";
@@ -12,6 +12,10 @@ import { format } from "date-fns";
 
 const ActivityLogs = () => {
   const [query, setQuery] = React.useState("");
+
+  useEffect(() => {
+    document.title = "Activity Logs | Siara Dental";
+  }, []);
 
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["activity-logs"],

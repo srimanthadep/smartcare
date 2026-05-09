@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -15,6 +15,10 @@ import { toast } from "sonner";
 const PatientRegistration: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  
+  useEffect(() => {
+    document.title = "Register Patient | Siara Dental";
+  }, []);
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     name: "",
@@ -133,7 +137,7 @@ const PatientRegistration: React.FC = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-primary font-bold">Consultation Fee (Rs)</Label>
+                  <Label className="text-primary font-bold">Consultation Fee (₹)</Label>
                   <Input 
                     type="number" 
                     value={form.consultationFee} 

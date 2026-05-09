@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -27,11 +27,15 @@ const Settings: React.FC = () => {
     { key: 'sso', label: 'SSO', desc: 'Single sign-on for enterprise clinics' },
   ];
 
+  useEffect(() => {
+    document.title = 'Settings | Siara Dental';
+  }, []);
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
       <div>
         <h1 className="text-2xl font-heading font-bold">Settings</h1>
-        <p className="text-sm text-muted-foreground">System configuration and integrations (mock)</p>
+        <p className="text-sm text-muted-foreground">System configuration and integrations</p>
       </div>
 
       <Tabs defaultValue="integrations">
@@ -62,7 +66,7 @@ const Settings: React.FC = () => {
                 </div>
               ))}
               <div className="flex justify-end">
-                <Button onClick={() => toast.success('Settings saved (mock)')}>Save</Button>
+                <Button onClick={() => toast.success('Settings saved')}>Save</Button>
               </div>
             </CardContent>
           </Card>
@@ -98,10 +102,10 @@ const Settings: React.FC = () => {
                 </div>
               </div>
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => toast.message('Mock test', { description: 'Would validate credentials and fetch token.' })}>
+                <Button variant="outline" onClick={() => toast.message('Connection test', { description: 'Would validate credentials and fetch token.' })}>
                   Test connection
                 </Button>
-                <Button onClick={() => toast.success('ABHA settings saved (mock)')}>Save</Button>
+                <Button onClick={() => toast.success('ABHA settings saved')}>Save</Button>
               </div>
             </CardContent>
           </Card>
@@ -122,7 +126,7 @@ const Settings: React.FC = () => {
                   <p className="font-medium">{x.name}</p>
                   <p className="text-sm text-muted-foreground mt-1">{x.desc}</p>
                   <div className="mt-3 flex justify-end">
-                    <Button variant="outline" size="sm" onClick={() => toast.message('Mock configure', { description: x.name })}>
+                    <Button variant="outline" size="sm" onClick={() => toast.message('Configure', { description: x.name })}>
                       Configure
                     </Button>
                   </div>

@@ -160,7 +160,7 @@ export const pdfService = {
     const tableData = invoice.items.map((item, i) => [
       i + 1,
       item.description + (item.toothNumber ? ` (Tooth #${item.toothNumber})` : ""),
-      `Rs ${item.amount.toLocaleString()}`
+      `₹${item.amount.toLocaleString()}`
     ]);
 
     autoTable(doc, {
@@ -183,7 +183,7 @@ export const pdfService = {
     doc.text("Total Amount:", pageWidth - 80, finalY + 15);
     doc.setTextColor(0, 112, 243);
     doc.setFontSize(16);
-    doc.text(`Rs ${invoice.total.toLocaleString()}`, pageWidth - 15, finalY + 15, { align: "right" });
+    doc.text(`₹${invoice.total.toLocaleString()}`, pageWidth - 15, finalY + 15, { align: "right" });
 
     // Payment Status Box
     if (invoice.status === "Paid") {

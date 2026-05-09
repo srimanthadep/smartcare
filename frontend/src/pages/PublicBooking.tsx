@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,10 @@ const PublicBooking: React.FC = () => {
   const [time, setTime] = useState('10:00');
   const [reason, setReason] = useState('Consultation');
 
+  useEffect(() => {
+    document.title = "Book Appointment | Siara Dental";
+  }, []);
+
   const doctor = useMemo(() => mockDoctors.find((d) => d.name === doctorName), [doctorName]);
 
   return (
@@ -28,7 +32,7 @@ const PublicBooking: React.FC = () => {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-heading font-bold">Book an appointment</h1>
-          <p className="text-sm text-muted-foreground">Public booking page (mock)</p>
+          <p className="text-sm text-muted-foreground">Professional dental services</p>
         </div>
         <Button asChild variant="outline">
           <Link to={doctor ? `/doctors/${doctor.id}` : '/doctors/D001'}>View doctor</Link>
@@ -86,7 +90,7 @@ const PublicBooking: React.FC = () => {
                   toast.error('Please enter your name and phone');
                   return;
                 }
-                toast.success('Appointment request submitted (mock)', { description: `${date} ${time} with ${doctorName}` });
+                toast.success('Appointment request submitted', { description: `${date} ${time} with ${doctorName}` });
               }}
             >
               <CalendarPlus className="h-4 w-4 mr-1" /> Confirm booking

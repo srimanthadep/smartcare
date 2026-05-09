@@ -88,6 +88,10 @@ const Prescriptions: React.FC = () => {
   const patient = useMemo(() => patients.find((item) => item.id === patientId), [patientId, patients]);
 
   useEffect(() => {
+    document.title = "Prescriptions | Siara Dental";
+  }, []);
+
+  useEffect(() => {
     if (editId && savedPrescriptions.length > 0) {
       const px = savedPrescriptions.find(p => p.id === editId);
       if (px) {

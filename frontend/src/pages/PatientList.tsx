@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useDebounce } from "@/hooks/useDebounce";
 import { 
   Mail, 
   Phone, 
@@ -61,16 +62,21 @@ const PatientList: React.FC = () => {
   const pageSize = 8;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const debouncedSearch = useDebounce(search, 400);
+
+  useEffect(() => {
+    document.title = "Patients | Siara Dental";
+  }, []);
 
   useEffect(() => {
     setPage(1);
-  }, [search, statusFilter, genderFilter, from, to]);
+  }, [debouncedSearch, statusFilter, genderFilter, from, to]);
 
   const { data = [], isLoading, isError, error } = useQuery({
-    queryKey: ["patients", search, statusFilter, genderFilter, from, to],
+    queryKey: ["patients", debouncedSearch, statusFilter, genderFilter, from, to],
     queryFn: () =>
       api.getPatients({
-        search,
+        search: debouncedSearch,
         status: statusFilter,
         gender: genderFilter,
         from,
@@ -347,7 +353,7 @@ const PatientList: React.FC = () => {
                             <DropdownMenuItem onClick={() => navigate(`/billing?patientId=${patient.id}`)}>
                               <Receipt className="mr-2 h-4 w-4" /> Create Invoice
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => navigate(`/billing?patientId=${patient.id}`)}>
+                            <DropdownMenuItem onClick={() => navigate(`/billing`)}>
                               <FilePlus className="mr-2 h-4 w-4" /> Pay Bill
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />

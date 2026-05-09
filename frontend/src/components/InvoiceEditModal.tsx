@@ -194,7 +194,7 @@ const InvoiceEditModal: React.FC<InvoiceEditModalProps> = ({
                     />
                   </div>
                   <div className="space-y-1.5 sm:col-span-4">
-                    <Label className="text-[10px] uppercase font-bold text-muted-foreground">Amount (Rs)</Label>
+                    <Label className="text-[10px] uppercase font-bold text-muted-foreground">Amount (₹)</Label>
                     <Input 
                       type="number" 
                       value={item.amount} 
@@ -222,7 +222,7 @@ const InvoiceEditModal: React.FC<InvoiceEditModalProps> = ({
           <div className="flex items-center justify-between border-t border-border/50 pt-4">
             <div>
               <p className="text-xs text-muted-foreground uppercase font-bold">Total Amount</p>
-              <p className="text-2xl font-heading font-bold text-primary">Rs {total.toLocaleString()}</p>
+              <p className="text-2xl font-heading font-bold text-primary">₹{total.toLocaleString()}</p>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>

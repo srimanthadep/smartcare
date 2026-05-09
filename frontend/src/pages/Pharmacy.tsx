@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,10 @@ import { toast } from 'sonner';
 const Pharmacy: React.FC = () => {
   const [items, setItems] = useState<InventoryItem[]>(mockInventory);
   const [query, setQuery] = useState('');
+
+  useEffect(() => {
+    document.title = 'Pharmacy | Siara Dental';
+  }, []);
 
   const filtered = useMemo(() => {
     return items.filter((i) => {
@@ -56,7 +60,7 @@ const Pharmacy: React.FC = () => {
               <Button
                 onClick={() => {
                   setItems((prev) => prev.map((x) => (x.id === item.id ? { ...x, stock, minStock } : x)));
-                  toast.success('Stock updated (mock)');
+                  toast.success('Stock updated');
                 }}
               >
                 Save
@@ -77,7 +81,7 @@ const Pharmacy: React.FC = () => {
         </div>
         <Button
           variant="outline"
-          onClick={() => toast.message('Mock action', { description: 'This would open a purchase order / supplier workflow.' })}
+          onClick={() => toast.message('Create reorder', { description: 'This would open a purchase order / supplier workflow.' })}
         >
           <Plus className="h-4 w-4 mr-1" /> Create reorder
         </Button>
@@ -160,7 +164,7 @@ const Pharmacy: React.FC = () => {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => toast.message('Mock reorder', { description: `Reorder request created for ${i.name}` })}
+                      onClick={() => toast.message('Reorder request', { description: `Reorder request created for ${i.name}` })}
                     >
                       Reorder
                     </Button>

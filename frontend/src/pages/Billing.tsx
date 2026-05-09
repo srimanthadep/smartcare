@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { IndianRupee, Plus, Receipt } from "lucide-react";
+import { IndianRupee, Plus, Receipt, FileDown } from "lucide-react";
 import { Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
@@ -18,7 +18,18 @@ import InvoiceModal from "@/components/InvoiceModal";
 import InvoiceEditModal from "@/components/InvoiceEditModal";
 import { Invoice, Patient } from "@/types";
 import { pdfService } from "@/lib/pdfService";
-import { FileDown } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+
 
 const Billing: React.FC = () => {
   const queryClient = useQueryClient();
@@ -32,6 +43,11 @@ const Billing: React.FC = () => {
   const [isNewInvoiceOpen, setIsNewInvoiceOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [invoiceToDelete, setInvoiceToDelete] = useState<string | null>(null);
+
+  useEffect(() => {
+    document.title = "Billing | Siara Dental";
+  }, []);
 
   const patientsQuery = useQuery({
     queryKey: ["patients", "billing-options"],
@@ -108,9 +124,9 @@ const Billing: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <StatsCard title="Total Billed" value={`Rs ${totals.revenue.toLocaleString()}`} change="All invoices" changeType="neutral" icon={IndianRupee} />
-        <StatsCard title="Paid" value={`Rs ${totals.paid.toLocaleString()}`} change="Settled invoices" changeType="positive" icon={Receipt} />
-        <StatsCard title="Pending / Overdue" value={`Rs ${totals.pending.toLocaleString()}`} change="Action required" changeType={totals.pending > 0 ? "negative" : "neutral"} icon={Receipt} />
+        <StatsCard title="Total Billed" value={`₹${totals.revenue.toLocaleString()}`} change="All invoices" changeType="neutral" icon={IndianRupee} />
+        <StatsCard title="Paid" value={`₹${totals.paid.toLocaleString()}`} change="Settled invoices" changeType="positive" icon={Receipt} />
+        <StatsCard title="Pending / Overdue" value={`₹${totals.pending.toLocaleString()}`} change="Action required" changeType={totals.pending > 0 ? "negative" : "neutral"} icon={Receipt} />
       </div>
 
       <Card className="border-border/50">
@@ -122,8 +138,8 @@ const Billing: React.FC = () => {
             <LineChart data={revenueTrend}>
               <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
               <XAxis dataKey="month" className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
-              <YAxis className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} tickFormatter={(value) => `Rs ${Math.round(value / 1000)}k`} />
-              <Tooltip formatter={(value: number) => [`Rs ${value.toLocaleString()}`, "Revenue"]} contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))" }} />
+              <YAxis className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} tickFormatter={(value) => `₹${Math.round(value / 1000)}k`} />
+              <Tooltip formatter={(value: number) => [`₹${value.toLocaleString()}`, "Revenue"]} contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))" }} />
               <Line type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={{ r: 3, fill: "hsl(var(--primary))" }} />
             </LineChart>
           </ResponsiveContainer>
@@ -145,7 +161,7 @@ const Billing: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <p className="text-lg font-heading font-bold">Rs {invoice.total.toLocaleString()}</p>
+                  <p className="text-lg font-heading font-bold">₹{invoice.total.toLocaleString()}</p>
                   <StatusBadge status={invoice.status} />
                 </div>
               </div>
@@ -154,7 +170,7 @@ const Billing: React.FC = () => {
                   {invoice.items.map((item, index) => (
                     <div key={index} className="flex justify-between text-sm">
                       <span className="text-muted-foreground">{item.description} {item.toothNumber ? `(Tooth #${item.toothNumber})` : ""}</span>
-                      <span>Rs {item.amount.toLocaleString()}</span>
+                      <span>₹{item.amount.toLocaleString()}</span>
                     </div>
                   ))}
                 </div>
@@ -182,7 +198,7 @@ const Billing: React.FC = () => {
                       Mark paid
                     </Button>
                   )}
-                  <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/5" onClick={() => deleteInvoice.mutate(invoice.id)}>
+                  <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/5" onClick={() => setInvoiceToDelete(invoice.id)}>
                     Remove
                   </Button>
                 </div>
@@ -225,6 +241,31 @@ const Billing: React.FC = () => {
           patientName={selectedPatient?.name}
         />
       )}
+
+      <AlertDialog open={!!invoiceToDelete} onOpenChange={(open) => !open && setInvoiceToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Invoice?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The invoice will be permanently deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (invoiceToDelete) {
+                  deleteInvoice.mutate(invoiceToDelete);
+                  setInvoiceToDelete(null);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteInvoice.isPending ? "Removing..." : "Remove Invoice"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 };

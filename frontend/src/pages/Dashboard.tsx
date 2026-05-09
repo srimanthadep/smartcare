@@ -37,11 +37,40 @@ const item = {
   show: { opacity: 1, y: 0 },
 };
 
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "morning";
+  if (hour < 17) return "afternoon";
+  return "evening";
+}
+
+function calcRevenueChange(revenueTrend: { month: string; revenue: number }[]): string {
+  if (!revenueTrend || revenueTrend.length < 2) return "No comparison data";
+  const last = revenueTrend[revenueTrend.length - 1].revenue;
+  const prev = revenueTrend[revenueTrend.length - 2].revenue;
+  if (prev === 0) return "New this month";
+  const pct = Math.round(((last - prev) / prev) * 100);
+  return pct >= 0 ? `+${pct}% from last period` : `${pct}% from last period`;
+}
+
+function calcRevenueChangeType(revenueTrend: { month: string; revenue: number }[]): "positive" | "negative" | "neutral" {
+  if (!revenueTrend || revenueTrend.length < 2) return "neutral";
+  const last = revenueTrend[revenueTrend.length - 1].revenue;
+  const prev = revenueTrend[revenueTrend.length - 2].revenue;
+  if (last > prev) return "positive";
+  if (last < prev) return "negative";
+  return "neutral";
+}
+
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [period, setPeriod] = React.useState("monthly");
-  
+
+  React.useEffect(() => {
+    document.title = "Dashboard | Siara Dental";
+  }, []);
+
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["dashboard", period],
     queryFn: () => api.getDashboard(period),
@@ -72,10 +101,13 @@ const Dashboard: React.FC = () => {
     );
   }
 
+  const revenueChangeText = calcRevenueChange(data.revenueTrend);
+  const revenueChangeType = calcRevenueChangeType(data.revenueTrend);
+
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
       <motion.div variants={item}>
-        <h1 className="text-2xl font-heading font-bold">Good morning, {user?.name?.replace("Dr. ", "")}</h1>
+        <h1 className="text-2xl font-heading font-bold">Good {getGreeting()}, {user?.name?.replace("Dr. ", "")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">Here&apos;s what&apos;s happening at your clinic today.</p>
       </motion.div>
 
@@ -102,9 +134,15 @@ const Dashboard: React.FC = () => {
       </motion.div>
       <motion.div variants={item} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatsCard title="Today's Patients" value={data.stats.dailyPatients} change="Live from appointments" changeType="neutral" icon={Users} />
-        <StatsCard title="Revenue" value={`Rs ${data.stats.revenue.toLocaleString()}`} change="+12% from last month" changeType="positive" icon={IndianRupee} />
-        <StatsCard title="Profit" value={`Rs ${data.stats.profit?.toLocaleString() || "0"}`} change="Estimated 80% margin" changeType="positive" icon={TrendingUp} />
-        <StatsCard title="Pending Recalls" value="12" change="Due this week" changeType="negative" icon={CalendarClock} />
+        <StatsCard title="Revenue" value={`₹${data.stats.revenue.toLocaleString()}`} change={revenueChangeText} changeType={revenueChangeType} icon={IndianRupee} />
+        <StatsCard title="Profit" value={`₹${data.stats.profit?.toLocaleString() || "0"}`} change="Estimated 80% margin" changeType="positive" icon={TrendingUp} />
+        <StatsCard
+          title="Pending Recalls"
+          value={data.stats.appointments ?? 0}
+          change="Due this week"
+          changeType="negative"
+          icon={CalendarClock}
+        />
       </motion.div>
 
       <motion.div variants={item} className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -117,8 +155,8 @@ const Dashboard: React.FC = () => {
               <LineChart data={data.revenueTrend}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                 <XAxis dataKey="month" className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                <YAxis className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} tickFormatter={(value) => `Rs ${Math.round(value / 1000)}k`} />
-                <Tooltip formatter={(value: number) => [`Rs ${value.toLocaleString()}`, "Revenue"]} contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))" }} />
+                <YAxis className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} tickFormatter={(value) => `₹${Math.round(value / 1000)}k`} />
+                <Tooltip formatter={(value: number) => [`₹${value.toLocaleString()}`, "Revenue"]} contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))" }} />
                 <Line type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={{ r: 4, fill: "hsl(var(--primary))" }} />
               </LineChart>
             </ResponsiveContainer>

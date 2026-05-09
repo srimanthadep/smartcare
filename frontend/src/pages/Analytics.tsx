@@ -1,13 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { mockAnalyticsDaily, mockDoctors } from '@/data/mockData';
-import { IndianRupee, Users, CalendarDays, Scan, Activity, Server, Clock, Zap } from 'lucide-react';
+import { IndianRupee, Users, CalendarDays, Activity, Server, Clock, Zap } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/api';
 import StatsCard from '@/components/StatsCard';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   CartesianGrid,
   Legend,
@@ -21,95 +22,89 @@ import {
   Bar,
 } from 'recharts';
 
-type DoctorFilter = 'all' | (typeof mockDoctors)[number]['id'];
-
-const todayIso = '2026-03-18';
-const defaultFrom = '2026-03-01';
-
-const withinRange = (date: string, from: string, to: string) => date >= from && date <= to;
-
 const Analytics: React.FC = () => {
+  const today = new Date();
+  const todayIso = today.toISOString().slice(0, 10);
+  const defaultFrom = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate())
+    .toISOString()
+    .slice(0, 10);
+
   const [from, setFrom] = useState(defaultFrom);
   const [to, setTo] = useState(todayIso);
-  const [doctorId, setDoctorId] = useState<DoctorFilter>('all');
-  const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState('monthly');
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
 
   useEffect(() => {
-    const t = window.setTimeout(() => setLoading(false), 450);
-    return () => window.clearTimeout(t);
+    document.title = 'Analytics | Siara Dental';
   }, []);
 
-  useEffect(() => {
-    // simulate network refetch
-    setLoading(true);
-    const t = window.setTimeout(() => setLoading(false), 350);
-    return () => window.clearTimeout(t);
-  }, [from, to, doctorId]);
+  const { data: dashboardData, isLoading } = useQuery({
+    queryKey: ['dashboard', period],
+    queryFn: () => api.getDashboard(period),
+  });
 
-  const filtered = useMemo(() => {
-    return mockAnalyticsDaily
-      .filter((p) => withinRange(p.date, from, to))
-      .filter((p) => (doctorId === 'all' ? true : p.doctorId === doctorId));
-  }, [from, to, doctorId]);
+  const { data: invoicesData, isLoading: invoicesLoading } = useQuery({
+    queryKey: ['invoices'],
+    queryFn: api.getInvoices,
+  });
 
+  const { data: bootstrapData } = useQuery({
+    queryKey: ['bootstrap'],
+    queryFn: api.getBootstrap,
+  });
+
+  const loading = isLoading || invoicesLoading;
+
+  // KPIs from real data
   const kpis = useMemo(() => {
-    const revenue = filtered.reduce((sum, p) => sum + p.revenue, 0);
-    const patientVisits = filtered.reduce((sum, p) => sum + p.patientVisits, 0);
-    const appointments = filtered.reduce((sum, p) => sum + p.appointments, 0);
+    const revenue = dashboardData?.stats.revenue ?? 0;
+    const patientVisits = dashboardData?.stats.dailyPatients ?? 0;
+    const appointments = dashboardData?.stats.appointments ?? 0;
     return { revenue, patientVisits, appointments };
-  }, [filtered]);
+  }, [dashboardData]);
 
+  // Revenue trend from real API
   const revenueSeries = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const p of filtered) map.set(p.date, (map.get(p.date) || 0) + p.revenue);
-    return Array.from(map.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([date, revenue]) => ({ date: date.slice(5), revenue }));
-  }, [filtered]);
+    return (dashboardData?.revenueTrend ?? []).map((p) => ({
+      date: p.month,
+      revenue: p.revenue,
+    }));
+  }, [dashboardData]);
 
+  // Patient visits from real API
   const visitsSeries = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const p of filtered) map.set(p.date, (map.get(p.date) || 0) + p.patientVisits);
-    return Array.from(map.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([date, visits]) => ({ date: date.slice(5), visits }));
-  }, [filtered]);
+    return (dashboardData?.patientVisits ?? []).map((p) => ({
+      date: p.day,
+      visits: p.visits,
+    }));
+  }, [dashboardData]);
 
-  const empty = !loading && filtered.length === 0;
+  // Doctors list from bootstrap
+  const doctors = bootstrapData?.doctors ?? [];
+
+  const empty = !loading && revenueSeries.length === 0;
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-heading font-bold">Analytics</h1>
-          <p className="text-sm text-muted-foreground">Revenue, visits and operational metrics with filters</p>
+          <p className="text-sm text-muted-foreground">Revenue, visits and operational metrics</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full lg:w-auto">
-          <div className="space-y-1.5">
-            <p className="text-xs text-muted-foreground">From</p>
-            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <p className="text-xs text-muted-foreground">To</p>
-            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <p className="text-xs text-muted-foreground">Doctor</p>
-            <Select value={doctorId} onValueChange={(v) => setDoctorId(v as DoctorFilter)}>
-              <SelectTrigger>
-                <SelectValue placeholder="All doctors" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All doctors</SelectItem>
-                {mockDoctors.map((d) => (
-                  <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="flex items-center gap-3">
+          <Select value={period} onValueChange={setPeriod}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="daily">Daily</SelectItem>
+              <SelectItem value="weekly">Weekly</SelectItem>
+              <SelectItem value="monthly">Monthly</SelectItem>
+              <SelectItem value="yearly">Yearly</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -122,8 +117,8 @@ const Analytics: React.FC = () => {
           </>
         ) : (
           <>
-            <StatsCard title="Revenue" value={`₹${kpis.revenue.toLocaleString()}`} change={`${from} → ${to}`} changeType="neutral" icon={IndianRupee} />
-            <StatsCard title="Patient Visits" value={kpis.patientVisits} change="Total visits" changeType="neutral" icon={Users} />
+            <StatsCard title="Revenue" value={`₹${kpis.revenue.toLocaleString()}`} change={`${period} period`} changeType="neutral" icon={IndianRupee} />
+            <StatsCard title="Patient Visits" value={kpis.patientVisits} change="Active patients today" changeType="neutral" icon={Users} />
             <StatsCard title="Appointments" value={kpis.appointments} change="Scheduled + completed" changeType="neutral" icon={CalendarDays} />
           </>
         )}
@@ -139,7 +134,7 @@ const Analytics: React.FC = () => {
               <Skeleton className="h-[260px] w-full rounded-md" />
             ) : empty ? (
               <div className="h-[260px] flex items-center justify-center text-sm text-muted-foreground">
-                No data for the selected filters
+                No revenue data available
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={260}>
@@ -165,7 +160,7 @@ const Analytics: React.FC = () => {
               <Skeleton className="h-[260px] w-full rounded-md" />
             ) : empty ? (
               <div className="h-[260px] flex items-center justify-center text-sm text-muted-foreground">
-                No data for the selected filters
+                No visit data available
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={260}>
@@ -196,19 +191,19 @@ const Analytics: React.FC = () => {
                   <Server className="h-5 w-5 text-success" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Server Uptime</p>
-                  <p className="text-lg font-bold">99.998%</p>
+                  <p className="text-xs text-muted-foreground">Server Status</p>
+                  <p className="text-lg font-bold text-success">Online</p>
                 </div>
               </CardContent>
             </Card>
             <Card className="bg-info/5 border-info/20">
               <CardContent className="p-4 flex items-center gap-4">
                 <div className="h-10 w-10 rounded-full bg-info/10 flex items-center justify-center">
-                  <Clock className="h-5 w-5 text-info" />
+                  <Users className="h-5 w-5 text-info" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Avg Response Time</p>
-                  <p className="text-lg font-bold">42ms</p>
+                  <p className="text-xs text-muted-foreground">Total Doctors</p>
+                  <p className="text-lg font-bold">{doctors.length}</p>
                 </div>
               </CardContent>
             </Card>
@@ -218,8 +213,8 @@ const Analytics: React.FC = () => {
                   <Zap className="h-5 w-5 text-warning" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">API Throughput</p>
-                  <p className="text-lg font-bold">85 req/min</p>
+                  <p className="text-xs text-muted-foreground">Total Invoices</p>
+                  <p className="text-lg font-bold">{invoicesData?.length ?? 0}</p>
                 </div>
               </CardContent>
             </Card>
@@ -231,4 +226,3 @@ const Analytics: React.FC = () => {
 };
 
 export default Analytics;
-

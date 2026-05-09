@@ -12,20 +12,47 @@ import { Badge } from "@/components/ui/badge";
 interface Message {
   role: "user" | "assistant";
   content: string;
-  timestamp: Date;
+  timestamp: string; // stored as ISO string for localStorage serialization
+}
+
+const CHAT_STORAGE_KEY = "siara_ai_chat_history";
+
+const defaultMessages: Message[] = [
+  {
+    role: "assistant",
+    content: "Hello Dr. Saikiran! I am Siara AI, your clinical assistant. I have access to all patient records, appointments, and billing data. How can I help you today?",
+    timestamp: new Date().toISOString(),
+  },
+];
+
+function loadMessages(): Message[] {
+  try {
+    const stored = localStorage.getItem(CHAT_STORAGE_KEY);
+    if (stored) return JSON.parse(stored) as Message[];
+  } catch {
+    // ignore
+  }
+  return defaultMessages;
 }
 
 const AI: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      content: "Hello Dr. Saikiran! I am Siara AI, your clinical assistant. I have access to all patient records, appointments, and billing data. How can I help you today?",
-      timestamp: new Date(),
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>(loadMessages);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    document.title = "AI Assistant | Siara Dental";
+  }, []);
+
+  // Persist messages to localStorage on every change
+  useEffect(() => {
+    try {
+      localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+    } catch {
+      // ignore storage errors
+    }
+  }, [messages]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -39,7 +66,7 @@ const AI: React.FC = () => {
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
-    const userMsg: Message = { role: "user", content: input, timestamp: new Date() };
+    const userMsg: Message = { role: "user", content: input, timestamp: new Date().toISOString() };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setIsLoading(true);
@@ -51,7 +78,7 @@ const AI: React.FC = () => {
       const assistantMsg: Message = {
         role: "assistant",
         content: response.data,
-        timestamp: new Date(),
+        timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, assistantMsg]);
     } catch (error) {
@@ -158,7 +185,7 @@ const AI: React.FC = () => {
                           ))}
                         </div>
                         <p className="text-[10px] text-muted-foreground font-medium px-1">
-                          {m.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </p>
                       </div>
                     </div>

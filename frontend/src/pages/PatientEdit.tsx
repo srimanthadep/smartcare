@@ -45,6 +45,14 @@ const PatientEdit: React.FC = () => {
   });
 
   useEffect(() => {
+    if (data?.patient.name) {
+      document.title = `Edit ${data.patient.name} | Siara Dental`;
+    } else {
+      document.title = "Edit Patient | Siara Dental";
+    }
+  }, [data]);
+
+  useEffect(() => {
     if (data?.patient) {
       const p = data.patient;
       setForm({

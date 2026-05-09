@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -29,6 +29,10 @@ const Appointments: React.FC = () => {
   const selectedIso = format(selectedDay, "yyyy-MM-dd");
   const todayIso = format(new Date(), "yyyy-MM-dd");
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    document.title = "Appointments | Siara Dental";
+  }, []);
 
   const bootstrapQuery = useQuery({
     queryKey: ["bootstrap"],
@@ -367,7 +371,7 @@ const Appointments: React.FC = () => {
                         {item.notes && <p className="mt-2 text-sm text-muted-foreground">{item.notes}</p>}
                         <div className="mt-3 flex items-center justify-between">
                           <p className="text-xs text-muted-foreground">{item.patientId}</p>
-                          <Button size="sm" variant="outline" onClick={() => toast.message(`Queue action for ${item.patientName}`)}>
+                          <Button size="sm" variant="outline" onClick={() => navigate(`/patients/${item.patientId}`)}>
                             <Users className="mr-1 h-4 w-4" /> View
                           </Button>
                         </div>

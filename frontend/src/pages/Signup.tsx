@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,6 +20,10 @@ const Signup: React.FC = () => {
   const { signup } = useAuth();
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  
+  useEffect(() => {
+    document.title = "Create Account | Siara Dental";
+  }, []);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">

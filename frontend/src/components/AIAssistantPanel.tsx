@@ -30,7 +30,7 @@ export const AIAssistantPanel: React.FC<{ children?: React.ReactNode }> = ({ chi
     return [
       { title: "Operational", text: `${stats.dailyPatients} patients are on today's schedule. Balance chair time around peak hours.`, tag: "Live" },
       { title: "Clinical", text: `${stats.pendingLabs} cases are waiting on X-rays. Prioritize urgent callbacks.`, tag: "Care" },
-      { title: "Revenue", text: `Current billed revenue is Rs ${stats.revenue.toLocaleString()}. Review pending invoices for faster collection.`, tag: "Finance" },
+      { title: "Revenue", text: `Current billed revenue is ₹${stats.revenue.toLocaleString()}. Review pending invoices for faster collection.`, tag: "Finance" },
     ];
   }, [data]);
 
@@ -38,7 +38,7 @@ export const AIAssistantPanel: React.FC<{ children?: React.ReactNode }> = ({ chi
     const value = text.trim();
     if (!value) return;
     const answer = data
-      ? `Siara Dental AI summary: ${data.stats.dailyPatients} patients today, ${data.stats.appointments} active appointments, Rs ${data.stats.revenue.toLocaleString()} billed, and ${data.stats.pendingLabs} pending X-rays.`
+      ? `Siara Dental AI summary: ${data.stats.dailyPatients} patients today, ${data.stats.appointments} active appointments, ₹${data.stats.revenue.toLocaleString()} billed, and ${data.stats.pendingLabs} pending X-rays.`
       : "Siara Dental AI is waiting for live dashboard data.";
     setMessages((current) => [
       ...current,

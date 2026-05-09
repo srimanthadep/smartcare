@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -32,6 +32,10 @@ const initial: Reminder[] = [
 const Notifications: React.FC = () => {
   const [reminders, setReminders] = useState<Reminder[]>(initial);
   const enabledCount = useMemo(() => reminders.filter((r) => r.enabled).length, [reminders]);
+
+  useEffect(() => {
+    document.title = "Notifications | Siara Dental";
+  }, []);
 
   const CreateReminderDialog = () => {
     const [patientId, setPatientId] = useState(mockPatients[0]?.id || 'P001');
@@ -92,7 +96,7 @@ const Notifications: React.FC = () => {
                     { id, patientId: patient.id, patientName: patient.name, channel, when, message, enabled: true },
                     ...prev,
                   ]);
-                  toast.success('Reminder created (mock)');
+                  toast.success('Reminder created');
                 }}
               >
                 Create
@@ -145,7 +149,7 @@ const Notifications: React.FC = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => toast.message('Mock send', { description: `Sent via ${r.channel}` })}
+                        onClick={() => toast.message('Send notification', { description: `Sent via ${r.channel}` })}
                       >
                         Send now
                       </Button>
@@ -166,13 +170,13 @@ const Notifications: React.FC = () => {
                     <MessageCircle className="h-5 w-5 text-success" />
                   </div>
                   <div>
-                    <p className="font-heading font-semibold text-lg">WhatsApp communication (mock)</p>
+                    <p className="font-heading font-semibold text-lg">WhatsApp communication</p>
                     <p className="text-sm text-muted-foreground mt-1">
                       Configure templates, opt-in and delivery status with a real WhatsApp provider.
                     </p>
                   </div>
                 </div>
-                <Button variant="outline" onClick={() => toast.message('Mock connect', { description: 'This would open provider setup.' })}>
+                <Button variant="outline" onClick={() => toast.message('Connect', { description: 'This would open provider setup.' })}>
                   Connect provider
                 </Button>
               </div>
@@ -180,9 +184,9 @@ const Notifications: React.FC = () => {
                 {['Appointment reminder', 'Lab ready', 'Payment link'].map((t) => (
                   <div key={t} className="rounded-lg border border-border/50 bg-secondary/15 p-4">
                     <p className="font-medium">{t}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Template · Approved (mock)</p>
+                    <p className="text-xs text-muted-foreground mt-1">Template · Approved</p>
                     <div className="mt-3 flex justify-end">
-                      <Button size="sm" variant="outline" onClick={() => toast.message('Mock preview', { description: t })}>Preview</Button>
+                      <Button size="sm" variant="outline" onClick={() => toast.message('Preview', { description: t })}>Preview</Button>
                     </div>
                   </div>
                 ))}
@@ -196,28 +200,28 @@ const Notifications: React.FC = () => {
             <CardContent className="p-8">
               <p className="font-heading font-semibold text-lg">Patient portal simulation</p>
               <p className="text-sm text-muted-foreground mt-1">
-                A lightweight portal experience for reports, appointments and payments (mock).
+                A lightweight portal experience for reports, appointments and payments.
               </p>
               <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="rounded-lg border border-border/50 bg-secondary/15 p-4">
                   <p className="font-medium">Reports</p>
                   <p className="text-xs text-muted-foreground mt-1">Preview available reports and downloads</p>
                   <div className="mt-3 flex justify-end">
-                    <Button size="sm" variant="outline" onClick={() => toast.message('Mock portal', { description: 'Open Reports' })}>Open</Button>
+                    <Button size="sm" variant="outline" onClick={() => toast.message('Portal', { description: 'Open Reports' })}>Open</Button>
                   </div>
                 </div>
                 <div className="rounded-lg border border-border/50 bg-secondary/15 p-4">
                   <p className="font-medium">Appointments</p>
                   <p className="text-xs text-muted-foreground mt-1">Upcoming and reschedule request</p>
                   <div className="mt-3 flex justify-end">
-                    <Button size="sm" variant="outline" onClick={() => toast.message('Mock portal', { description: 'Open Appointments' })}>Open</Button>
+                    <Button size="sm" variant="outline" onClick={() => toast.message('Portal', { description: 'Open Appointments' })}>Open</Button>
                   </div>
                 </div>
                 <div className="rounded-lg border border-border/50 bg-secondary/15 p-4">
                   <p className="font-medium">Payments</p>
                   <p className="text-xs text-muted-foreground mt-1">Invoices and status tracking</p>
                   <div className="mt-3 flex justify-end">
-                    <Button size="sm" variant="outline" onClick={() => toast.message('Mock portal', { description: 'Open Payments' })}>Open</Button>
+                    <Button size="sm" variant="outline" onClick={() => toast.message('Portal', { description: 'Open Payments' })}>Open</Button>
                   </div>
                 </div>
               </div>

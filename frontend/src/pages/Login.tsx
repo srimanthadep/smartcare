@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ShieldCheck, Smile, UserCheck } from "lucide-react";
@@ -24,6 +24,10 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  
+  useEffect(() => {
+    document.title = "Sign In | Siara Dental";
+  }, []);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();

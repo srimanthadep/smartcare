@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
@@ -30,6 +30,14 @@ const PatientProfile: React.FC = () => {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  
+  useEffect(() => {
+    if (data?.patient.name) {
+      document.title = `${data.patient.name} | Siara Dental`;
+    } else {
+      document.title = "Patient Profile | Siara Dental";
+    }
+  }, [data]);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["patient", id],
@@ -355,7 +363,7 @@ const PatientProfile: React.FC = () => {
                       </div>
                       <div className="flex items-center gap-4">
                         <div className="text-right">
-                          <p className="font-bold">Rs {inv.total.toLocaleString()}</p>
+                          <p className="font-bold">₹{inv.total.toLocaleString()}</p>
                           <StatusBadge status={inv.status} />
                         </div>
                         <div className="flex gap-2">
@@ -714,7 +722,7 @@ const TreatmentPlansSection: React.FC<TreatmentPlansSectionProps> = ({ patientId
                       <div key={phase.id} className="flex items-center justify-between rounded-md bg-secondary/20 px-3 py-2 text-sm">
                         <div>
                           <p className="font-medium">{i + 1}. {phase.name}</p>
-                          <p className="text-xs text-muted-foreground">Rs {phase.estimatedCost}</p>
+                          <p className="text-xs text-muted-foreground">₹{phase.estimatedCost}</p>
                         </div>
                         <Button
                           size="sm"
@@ -765,7 +773,7 @@ const TreatmentPlansSection: React.FC<TreatmentPlansSectionProps> = ({ patientId
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-medium">Total Cost</p>
-                  <p className="text-xs text-muted-foreground">Rs {plan.totalCost.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">₹{plan.totalCost.toLocaleString()}</p>
                 </div>
               </div>
               <Progress value={getProgress(plan)} className="h-2" />
@@ -777,7 +785,7 @@ const TreatmentPlansSection: React.FC<TreatmentPlansSectionProps> = ({ patientId
                       <div className="flex-1">
                         <p className="font-medium text-sm">{i + 1}. {phase.name}</p>
                         {phase.description && <p className="text-xs text-muted-foreground mt-1">{phase.description}</p>}
-                        <p className="text-xs text-muted-foreground mt-1">Rs {phase.estimatedCost}</p>
+                        <p className="text-xs text-muted-foreground mt-1">₹{phase.estimatedCost}</p>
                       </div>
                       <Select 
                         value={phase.status} 

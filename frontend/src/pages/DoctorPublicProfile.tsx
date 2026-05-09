@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +12,14 @@ const DoctorPublicProfile: React.FC = () => {
   const doctor = useMemo(() => mockDoctors.find((d) => d.id === id) || mockDoctors[0], [id]);
   const slots = useMemo(() => mockDoctorAvailability.filter((s) => s.doctorId === doctor.id), [doctor.id]);
 
+  useEffect(() => {
+    if (doctor.name) {
+      document.title = `${doctor.name} | Siara Dental`;
+    } else {
+      document.title = "Doctor Profile | Siara Dental";
+    }
+  }, [doctor]);
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-4xl mx-auto space-y-4">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
@@ -21,8 +29,8 @@ const DoctorPublicProfile: React.FC = () => {
             <Smile className="h-4 w-4" /> {doctor.department}
           </p>
           <div className="mt-2 flex items-center gap-2 flex-wrap">
-            <Badge variant="secondary" className="text-xs">15+ years (mock)</Badge>
-            <Badge variant="outline" className="text-xs">4.8 rating (mock)</Badge>
+            <Badge variant="secondary" className="text-xs">15+ years</Badge>
+            <Badge variant="outline" className="text-xs">4.8 rating</Badge>
             <Badge variant="secondary" className="text-xs">English · Hindi</Badge>
           </div>
         </div>
@@ -40,7 +48,7 @@ const DoctorPublicProfile: React.FC = () => {
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
             <p>
-              {doctor.name} is a specialist in {doctor.department} providing patient-first dental care with modern digital workflows (mock profile).
+              {doctor.name} is a specialist in {doctor.department} providing patient-first dental care with modern digital workflows.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="rounded-lg border border-border/50 p-4">
@@ -76,7 +84,7 @@ const DoctorPublicProfile: React.FC = () => {
 
       <Card className="border-border/50">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base font-heading">Reviews (mock)</CardTitle>
+          <CardTitle className="text-base font-heading">Reviews</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {[

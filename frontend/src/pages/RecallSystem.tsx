@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,8 @@ import StatusBadge from '@/components/StatusBadge';
 import StatsCard from '@/components/StatsCard';
 import { toast } from 'sonner';
 
+const STORAGE_KEY = 'siara_recalls';
+
 const initialRecalls: RecallEntry[] = [
   { id: 'RC001', patientId: 'P001', patientName: 'Aarav Sharma', lastVisit: '2026-03-15', recallDate: '2026-09-15', status: 'Due', type: 'Routine Checkup' },
   { id: 'RC002', patientId: 'P002', patientName: 'Priya Patel', lastVisit: '2026-03-17', recallDate: '2026-04-17', status: 'Due', type: 'Orthodontic Review', notes: 'Monthly adjustment needed' },
@@ -20,6 +22,24 @@ const initialRecalls: RecallEntry[] = [
   { id: 'RC006', patientId: 'P006', patientName: 'Meera Reddy', lastVisit: '2026-03-16', recallDate: '2026-06-16', status: 'Due', type: 'Routine Checkup' },
 ];
 
+function loadRecalls(): RecallEntry[] {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) return JSON.parse(stored) as RecallEntry[];
+  } catch {
+    // ignore parse errors
+  }
+  return initialRecalls;
+}
+
+function saveRecalls(recalls: RecallEntry[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(recalls));
+  } catch {
+    // ignore storage errors
+  }
+}
+
 const statusColors: Record<string, string> = {
   Due: 'bg-warning/10 text-warning border-warning/20',
   Overdue: 'bg-destructive/10 text-destructive border-destructive/20',
@@ -28,9 +48,18 @@ const statusColors: Record<string, string> = {
 };
 
 const RecallSystem: React.FC = () => {
-  const [recalls, setRecalls] = useState<RecallEntry[]>(initialRecalls);
+  const [recalls, setRecalls] = useState<RecallEntry[]>(loadRecalls);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  useEffect(() => {
+    document.title = 'Recalls | Siara Dental';
+  }, []);
+
+  // Persist to localStorage whenever recalls change
+  useEffect(() => {
+    saveRecalls(recalls);
+  }, [recalls]);
 
   const filtered = useMemo(() => {
     return recalls
@@ -77,7 +106,7 @@ const RecallSystem: React.FC = () => {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search patients..." className="sm:max-w-xs" />
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {['all', 'Overdue', 'Due', 'Scheduled', 'Completed'].map((s) => (
             <Button
               key={s}
@@ -127,10 +156,10 @@ const RecallSystem: React.FC = () => {
                       <div className="flex items-center justify-end gap-1">
                         {r.status !== 'Completed' && (
                           <>
-                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => sendReminder(r.patientName, 'SMS')}>
+                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => sendReminder(r.patientName, 'SMS')} title="Send SMS reminder">
                               <Phone className="h-3.5 w-3.5" />
                             </Button>
-                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => sendReminder(r.patientName, 'WhatsApp')}>
+                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => sendReminder(r.patientName, 'WhatsApp')} title="Send WhatsApp reminder">
                               <MessageSquare className="h-3.5 w-3.5" />
                             </Button>
                           </>

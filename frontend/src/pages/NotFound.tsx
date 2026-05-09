@@ -5,6 +5,7 @@ const NotFound = () => {
   const location = useLocation();
 
   useEffect(() => {
+    document.title = "404 Not Found | Siara Dental";
     console.error("404 Error: User attempted to access non-existent route:", location.pathname);
   }, [location.pathname]);
 

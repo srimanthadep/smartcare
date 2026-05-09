@@ -73,7 +73,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ invoice, open, onOpenChange
                   <tr>
                     <td>${item.description}</td>
                     <td>${item.toothNumber || '-'}</td>
-                    <td style="text-align: right;">Rs ${item.amount.toLocaleString()}</td>
+                    <td style="text-align: right;">₹${item.amount.toLocaleString()}</td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -81,15 +81,15 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ invoice, open, onOpenChange
             <div class="total-section">
               <div class="total-row">
                 <span>Subtotal</span>
-                <span>Rs ${invoice.total.toLocaleString()}</span>
+                <span>₹${invoice.total.toLocaleString()}</span>
               </div>
               <div class="total-row">
                 <span>Tax (0%)</span>
-                <span>Rs 0</span>
+                <span>₹0</span>
               </div>
               <div class="total-row grand-total">
                 <span>Total Amount</span>
-                <span>Rs ${invoice.total.toLocaleString()}</span>
+                <span>₹${invoice.total.toLocaleString()}</span>
               </div>
             </div>
             <div class="footer">
@@ -182,7 +182,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ invoice, open, onOpenChange
                 <tr key={index}>
                   <td className="py-4 pl-2 text-sm font-medium">{item.description}</td>
                   <td className="py-4 text-center text-sm text-muted-foreground">{item.toothNumber || "-"}</td>
-                  <td className="py-4 pr-2 text-right text-sm font-bold">Rs {item.amount.toLocaleString()}</td>
+                  <td className="py-4 pr-2 text-right text-sm font-bold">₹{item.amount.toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>
@@ -192,15 +192,15 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ invoice, open, onOpenChange
             <div className="w-full max-w-[240px] space-y-2 border-t-2 border-primary pt-4">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Subtotal</span>
-                <span className="font-medium">Rs {invoice.total.toLocaleString()}</span>
+                <span className="font-medium">₹{invoice.total.toLocaleString()}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Tax (0%)</span>
-                <span className="font-medium">Rs 0</span>
+                <span className="font-medium">₹0</span>
               </div>
               <div className="flex justify-between border-t border-border pt-2 text-lg font-bold">
                 <span>Total Amount</span>
-                <span className="text-primary">Rs {invoice.total.toLocaleString()}</span>
+                <span className="text-primary">₹{invoice.total.toLocaleString()}</span>
               </div>
             </div>
           </div>
