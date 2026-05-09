@@ -83,6 +83,8 @@ const Prescriptions: React.FC = () => {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [templateId, setTemplateId] = useState("none");
   const [notes, setNotes] = useState("");
+  const [chiefComplaint, setChiefComplaint] = useState("");
+  const [diagnosis, setDiagnosis] = useState("");
   const [medicines, setMedicines] = useState([{ name: "", dosage: "", frequency: "", duration: "" }]);
 
   const patient = useMemo(() => patients.find((item) => item.id === patientId), [patientId, patients]);
@@ -90,6 +92,12 @@ const Prescriptions: React.FC = () => {
   useEffect(() => {
     document.title = "Prescriptions | Siara Dental";
   }, []);
+
+  useEffect(() => {
+    if (patient && !editId) {
+      setChiefComplaint(patient.chiefComplaint || "");
+    }
+  }, [patient, editId]);
 
   useEffect(() => {
     if (editId && savedPrescriptions.length > 0) {
@@ -100,6 +108,8 @@ const Prescriptions: React.FC = () => {
         setDate(px.date);
         setMedicines(px.medicines);
         setNotes(px.notes);
+        setChiefComplaint(px.chiefComplaint || "");
+        setDiagnosis(px.diagnosis || "");
       }
     }
   }, [editId, savedPrescriptions]);
@@ -121,6 +131,8 @@ const Prescriptions: React.FC = () => {
       date,
       medicines,
       notes,
+      chiefComplaint,
+      diagnosis
     };
 
     if (editId) {
@@ -180,6 +192,8 @@ const Prescriptions: React.FC = () => {
                 date,
                 medicines,
                 notes,
+                chiefComplaint,
+                diagnosis,
               });
             }}
           >
@@ -247,11 +261,31 @@ const Prescriptions: React.FC = () => {
               </div>
             </div>
 
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-destructive font-bold">1. Chief Complaint</Label>
+                <Textarea 
+                  value={chiefComplaint} 
+                  onChange={(e) => setChiefComplaint(e.target.value)} 
+                  placeholder="e.g. Severe toothache, Bleeding gums"
+                  className="border-destructive/20"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="font-bold">2. Diagnosis</Label>
+                <Textarea 
+                  value={diagnosis} 
+                  onChange={(e) => setDiagnosis(e.target.value)} 
+                  placeholder="e.g. Acute Pulpitis, Periodontitis"
+                />
+              </div>
+            </div>
+
             <Separator />
 
             <div className="space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <p className="font-heading font-semibold">Medicines</p>
+                <p className="font-heading font-semibold text-primary">3. Medicines</p>
                 <div className="flex flex-wrap items-center gap-2">
                   <Button 
                     size="sm" 
@@ -362,15 +396,34 @@ const Prescriptions: React.FC = () => {
               <div className="mt-4 overflow-hidden rounded-lg border border-border/50">
                 <div className="flex items-center gap-2 bg-secondary/40 px-4 py-2">
                   <FileText className="h-4 w-4 text-primary" />
-                  <p className="text-sm font-medium">Rx</p>
+                  <p className="text-sm font-medium">Prescription (Rx)</p>
                 </div>
-                <div className="space-y-3 p-4">
-                  {medicines.map((medicine, index) => (
-                    <div key={index}>
-                      <p className="font-medium">{medicine.name || "-"}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{medicine.dosage || "-"} · {medicine.frequency || "-"} · {medicine.duration || "-"}</p>
+                <div className="p-4 space-y-4">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">1. Chief Complaint</p>
+                    <p className="mt-1 text-sm font-medium text-destructive">{chiefComplaint || "-"}</p>
+                  </div>
+                  
+                  <Separator className="opacity-50" />
+                  
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">2. Diagnosis</p>
+                    <p className="mt-1 text-sm">{diagnosis || "-"}</p>
+                  </div>
+
+                  <Separator className="opacity-50" />
+
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">3. Medicines</p>
+                    <div className="mt-2 space-y-3">
+                      {medicines.map((medicine, index) => (
+                        <div key={index}>
+                          <p className="font-medium text-sm">{medicine.name || "-"}</p>
+                          <p className="mt-0.5 text-xs text-muted-foreground">{medicine.dosage || "-"} · {medicine.frequency || "-"} · {medicine.duration || "-"}</p>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  </div>
                 </div>
               </div>
 

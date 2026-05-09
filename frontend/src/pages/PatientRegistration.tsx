@@ -38,6 +38,7 @@ const PatientRegistration: React.FC = () => {
     oralHygiene: "Good",
     dentalHistory: "",
     tobaccoUse: "No",
+    chiefComplaint: "",
   });
 
   const createPatient = useMutation({
@@ -61,7 +62,8 @@ const PatientRegistration: React.FC = () => {
           history: form.dentalHistory,
           tobacco: form.tobaccoUse,
         },
-        consultationFee: Number(form.consultationFee)
+        consultationFee: Number(form.consultationFee),
+        chiefComplaint: form.chiefComplaint
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["patients"] });
@@ -90,12 +92,12 @@ const PatientRegistration: React.FC = () => {
         </Button>
         <div>
           <h1 className="text-2xl font-heading font-bold">Register Patient</h1>
-          <p className="text-sm text-muted-foreground">Step {step} of 4</p>
+          <p className="text-sm text-muted-foreground">Step {step} of 3</p>
         </div>
       </div>
 
       <div className="flex gap-2">
-        {[1, 2, 3, 4].map((value) => (
+        {[1, 2, 3].map((value) => (
           <div key={value} className={`h-1.5 flex-1 rounded-full transition-colors ${value <= step ? "bg-primary" : "bg-muted"}`} />
         ))}
       </div>
@@ -103,7 +105,7 @@ const PatientRegistration: React.FC = () => {
       <form onSubmit={handleSubmit}>
         {step === 1 && (
           <Card className="border-border/50">
-            <CardHeader><CardTitle className="font-heading text-lg">Demographics</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="font-heading text-lg">Demographics & Contact</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
@@ -137,30 +139,6 @@ const PatientRegistration: React.FC = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-primary font-bold">Consultation Fee (₹)</Label>
-                  <Input 
-                    type="number" 
-                    value={form.consultationFee} 
-                    onChange={(event) => updateField("consultationFee", event.target.value)} 
-                    placeholder="300" 
-                    required 
-                    className="border-primary/30"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <Button type="button" onClick={() => setStep(2)}>Next</Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {step === 2 && (
-          <Card className="border-border/50">
-            <CardHeader><CardTitle className="font-heading text-lg">Contact Information</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
                   <Label>Phone</Label>
                   <Input value={form.phone} onChange={(event) => updateField("phone", event.target.value)} placeholder="+91 XXXXX XXXXX" required />
                 </div>
@@ -171,17 +149,36 @@ const PatientRegistration: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <Label>Address</Label>
-                <Textarea value={form.address} onChange={(event) => updateField("address", event.target.value)} placeholder="Full address" />
+                <Textarea value={form.address} onChange={(event) => updateField("address", event.target.value)} placeholder="Full address" rows={2} />
               </div>
-              <div className="flex justify-between">
-                <Button type="button" variant="outline" onClick={() => setStep(1)}>Previous</Button>
-                <Button type="button" onClick={() => setStep(3)}>Next</Button>
+              <div className="space-y-2">
+                <Label className="text-destructive font-bold">Chief Complaint</Label>
+                <Textarea 
+                  value={form.chiefComplaint} 
+                  onChange={(event) => updateField("chiefComplaint", event.target.value)} 
+                  placeholder="Why is the patient visiting the clinic? (e.g., Severe toothache, Bleeding gums)" 
+                  className="border-destructive/30"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-primary font-bold">Consultation Fee (₹)</Label>
+                <Input 
+                  type="number" 
+                  value={form.consultationFee} 
+                  onChange={(event) => updateField("consultationFee", event.target.value)} 
+                  placeholder="300" 
+                  required 
+                  className="border-primary/30"
+                />
+              </div>
+              <div className="flex justify-end">
+                <Button type="button" onClick={() => setStep(2)}>Next</Button>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {step === 3 && (
+        {step === 2 && (
           <Card className="border-border/50">
             <CardHeader><CardTitle className="font-heading text-lg">Medical Information</CardTitle></CardHeader>
             <CardContent className="space-y-4">
@@ -198,14 +195,14 @@ const PatientRegistration: React.FC = () => {
                 <Textarea value={form.notes} onChange={(event) => updateField("notes", event.target.value)} placeholder="Additional notes" />
               </div>
               <div className="flex justify-between">
-                <Button type="button" variant="outline" onClick={() => setStep(2)}>Previous</Button>
-                <Button type="button" onClick={() => setStep(4)}>Next</Button>
+                <Button type="button" variant="outline" onClick={() => setStep(1)}>Previous</Button>
+                <Button type="button" onClick={() => setStep(3)}>Next</Button>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {step === 4 && (
+        {step === 3 && (
           <Card className="border-border/50">
             <CardHeader><CardTitle className="font-heading text-lg">Dental History & Habits</CardTitle></CardHeader>
             <CardContent className="space-y-4">
@@ -246,7 +243,7 @@ const PatientRegistration: React.FC = () => {
                 </div>
               </div>
               <div className="flex justify-between">
-                <Button type="button" variant="outline" onClick={() => setStep(3)}>Previous</Button>
+                <Button type="button" variant="outline" onClick={() => setStep(2)}>Previous</Button>
                 <Button type="submit" disabled={createPatient.isPending}>
                   <Save className="mr-1 h-4 w-4" /> {createPatient.isPending ? "Saving..." : "Register Patient"}
                 </Button>

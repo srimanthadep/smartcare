@@ -71,7 +71,7 @@ export const getPatient = async (req, res, next) => {
 export const createPatient = async (req, res, next) => {
   try {
     const id = await dbService.generateId('P', 'patients');
-    const { name, age, gender, phone, email, bloodGroup, status, address, allergies, conditions, medications, notes, insuranceProvider, policyNumber, coverageNotes, consultationFee } = req.body;
+    const { name, age, gender, phone, email, bloodGroup, status, address, allergies, conditions, medications, notes, insuranceProvider, policyNumber, coverageNotes, consultationFee, chiefComplaint } = req.body;
     
     const registeredOn = req.body.registeredOn || new Date().toISOString().slice(0, 10);
 
@@ -79,15 +79,15 @@ export const createPatient = async (req, res, next) => {
       INSERT INTO patients (
         id, name, age, gender, phone, email, blood_group, status, registered_on, 
         address, allergies, conditions, medications, notes, 
-        insurance_provider, policy_number, coverage_notes, consultation_fee
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+        insurance_provider, policy_number, coverage_notes, consultation_fee, chief_complaint
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
       RETURNING *
     `;
 
     const params = [
       id, name, age, gender, phone, email, bloodGroup, status || 'Active', registeredOn,
       address, allergies || [], conditions || [], JSON.stringify(medications || []), notes,
-      insuranceProvider, policyNumber, coverageNotes, consultationFee || 300
+      insuranceProvider, policyNumber, coverageNotes, consultationFee || 300, chiefComplaint
     ];
 
     const result = await dbService.query(query, params);
@@ -136,14 +136,15 @@ export const updatePatient = async (req, res, next) => {
       insuranceProvider: 'insurance_provider',
       policyNumber: 'policy_number',
       coverageNotes: 'coverage_notes',
-      consultationFee: 'consultation_fee'
+      consultationFee: 'consultation_fee',
+      chiefComplaint: 'chief_complaint'
     };
 
     const ALLOWED_COLUMNS = [
       'name', 'age', 'gender', 'phone', 'email', 'blood_group', 'status', 
       'address', 'allergies', 'conditions', 'medications', 'notes', 
       'insurance_provider', 'policy_number', 'coverage_notes', 'consultation_fee',
-      'dental_history'
+      'dental_history', 'chief_complaint'
     ];
 
     const updates = [];

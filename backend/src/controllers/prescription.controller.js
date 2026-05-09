@@ -25,15 +25,15 @@ export const getPrescriptions = async (req, res, next) => {
 export const createPrescription = async (req, res, next) => {
   try {
     const id = await dbService.generateId('PR', 'prescriptions');
-    const { patientId, patientName, doctorName, date, medicines, notes } = req.body;
+    const { patientId, patientName, doctorName, date, medicines, notes, chiefComplaint, diagnosis } = req.body;
     const pxDate = date || new Date().toISOString().slice(0, 10);
 
     const query = `
-      INSERT INTO prescriptions (id, patient_id, doctor_name, date, medicines, notes)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO prescriptions (id, patient_id, doctor_name, date, medicines, notes, chief_complaint, diagnosis)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *
     `;
-    const params = [id, patientId, doctorName, pxDate, JSON.stringify(medicines), notes];
+    const params = [id, patientId, doctorName, pxDate, JSON.stringify(medicines), notes, chiefComplaint, diagnosis];
     const result = await dbService.query(query, params);
     const prescription = dbService.mapRows('prescriptions', result.rows)[0];
 
@@ -65,10 +65,11 @@ export const updatePrescription = async (req, res, next) => {
 
     const mapping = {
       patientId: 'patient_id',
-      doctorName: 'doctor_name'
+      doctorName: 'doctor_name',
+      chiefComplaint: 'chief_complaint'
     };
 
-    const ALLOWED_COLUMNS = ['patient_id', 'doctor_name', 'date', 'medicines', 'notes'];
+    const ALLOWED_COLUMNS = ['patient_id', 'doctor_name', 'date', 'medicines', 'notes', 'chief_complaint', 'diagnosis'];
 
     for (const [key, value] of Object.entries(fields)) {
       const dbKey = mapping[key] || key;

@@ -54,10 +54,35 @@ export const pdfService = {
     doc.text(`ID: ${patient.id}`, pageWidth - 60, 82);
     doc.text(`Date: ${prescription.date}`, pageWidth - 60, 88);
 
+    // Chief Complaint & Diagnosis
+    let currentY = 105;
+    
+    if (prescription.chiefComplaint) {
+      doc.setFontSize(10);
+      doc.setTextColor(150, 0, 0); // Reddish for importance
+      doc.text("1. CHIEF COMPLAINT", 15, currentY);
+      doc.setTextColor(0);
+      doc.setFontSize(11);
+      const splitCC = doc.splitTextToSize(prescription.chiefComplaint, pageWidth - 30);
+      doc.text(splitCC, 15, currentY + 7);
+      currentY += (splitCC.length * 5) + 12;
+    }
+
+    if (prescription.diagnosis) {
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text("2. DIAGNOSIS", 15, currentY);
+      doc.setTextColor(0);
+      doc.setFontSize(11);
+      const splitDiag = doc.splitTextToSize(prescription.diagnosis, pageWidth - 30);
+      doc.text(splitDiag, 15, currentY + 7);
+      currentY += (splitDiag.length * 5) + 12;
+    }
+
     // Rx Section
     doc.setFontSize(16);
     doc.setTextColor(0, 112, 243);
-    doc.text("Rx", 15, 105);
+    doc.text("3. Rx (Medicines)", 15, currentY);
 
     // Medicines Table
     const tableData = prescription.medicines.map((m, i) => [
@@ -69,7 +94,7 @@ export const pdfService = {
     ]);
 
     autoTable(doc, {
-      startY: 110,
+      startY: currentY + 5,
       head: [["#", "Medicine Name", "Dosage", "Frequency", "Duration"]],
       body: tableData,
       theme: "striped",

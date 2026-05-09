@@ -41,6 +41,7 @@ export interface Patient {
     history: string;
     tobacco: string;
   };
+  chiefComplaint?: string;
 }
 
 export interface Appointment {
@@ -66,6 +67,8 @@ export interface Prescription {
   date: string;
   medicines: Medication[];
   notes: string;
+  chiefComplaint?: string;
+  diagnosis?: string;
 }
 
 export interface InvoiceLineItem {

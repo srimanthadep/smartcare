@@ -52,7 +52,8 @@ class DbService {
         ...r,
         bloodGroup: r.blood_group,
         registeredOn: r.registered_on ? new Date(r.registered_on).toLocaleDateString('en-CA') : null,
-        consultationFee: r.consultation_fee
+        consultationFee: r.consultation_fee,
+        chiefComplaint: r.chief_complaint
       }));
     }
     if (table === 'doctor_availability') {
@@ -84,7 +85,9 @@ class DbService {
         ...r,
         patientId: r.patient_id,
         doctorName: r.doctor_name,
-        date: r.date ? new Date(r.date).toLocaleDateString('en-CA') : null
+        date: r.date ? new Date(r.date).toLocaleDateString('en-CA') : null,
+        chiefComplaint: r.chief_complaint,
+        diagnosis: r.diagnosis
       }));
     }
     if (table === 'queue') {

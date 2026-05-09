@@ -36,6 +36,7 @@ const PatientEdit: React.FC = () => {
     oralHygiene: "Good",
     dentalHistory: "",
     tobaccoUse: "No",
+    chiefComplaint: "",
   });
 
   const { data, isLoading, isError } = useQuery({
@@ -71,6 +72,7 @@ const PatientEdit: React.FC = () => {
         oralHygiene: p.dentalHistory?.hygiene || "Good",
         dentalHistory: p.dentalHistory?.history || "",
         tobaccoUse: p.dentalHistory?.tobacco || "No",
+        chiefComplaint: p.chiefComplaint || "",
       });
     }
   }, [data]);
@@ -219,6 +221,11 @@ const PatientEdit: React.FC = () => {
                 <div className="space-y-2">
                   <Label htmlFor="address" className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5" /> Residential Address</Label>
                   <Textarea id="address" value={form.address} onChange={(e) => updateField("address", e.target.value)} rows={3} />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="chiefComplaint" className="flex items-center gap-2 text-destructive font-bold"><ShieldAlert className="h-3.5 w-3.5" /> Chief Complaint</Label>
+                  <Textarea id="chiefComplaint" value={form.chiefComplaint} onChange={(e) => updateField("chiefComplaint", e.target.value)} rows={2} className="border-destructive/30" />
                 </div>
               </CardContent>
             </Card>
