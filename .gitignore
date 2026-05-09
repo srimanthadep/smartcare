@@ -26,3 +26,8 @@ frontend/.env
 *.njsproj
 *.sln
 *.sw?
+
+# Backups
+backend/backups/
+*.sqlite-shm
+*.sqlite-wal
