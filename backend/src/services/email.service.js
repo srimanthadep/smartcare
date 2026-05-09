@@ -62,7 +62,6 @@ export const emailService = {
     if (!patient.email) return;
 
     const logoPath = path.join(__dirname, '../../../frontend/src/assets/logo.png');
-    const logoBase64 = fs.readFileSync(logoPath).toString('base64');
 
     const html = `
 <!DOCTYPE html>
@@ -179,8 +178,9 @@ body { background:#f5f7fb; font-family:'Poppins', sans-serif; padding:40px 15px;
         attachments: [
           {
             filename: 'logo.png',
-            content: logoBase64,
-            cid: 'logo'
+            content: fs.readFileSync(logoPath),
+            cid: 'logo',
+            disposition: 'inline'
           }
         ]
       });
@@ -202,7 +202,6 @@ body { background:#f5f7fb; font-family:'Poppins', sans-serif; padding:40px 15px;
     if (!patient.email) return;
 
     const logoPath = path.join(__dirname, '../../../frontend/src/assets/logo.png');
-    const logoBase64 = fs.readFileSync(logoPath).toString('base64');
     const pdfBuffer = await pdfService.generatePrescriptionPDF(patient, prescription);
 
     const medicinesHtml = prescription.medicines.map(m => `
@@ -294,12 +293,13 @@ body { background:#f5f7fb; font-family:'Poppins', sans-serif; padding:40px 15px;
         attachments: [
           {
             filename: 'logo.png',
-            content: logoBase64,
-            cid: 'logo'
+            content: fs.readFileSync(logoPath),
+            cid: 'logo',
+            disposition: 'inline'
           },
           {
             filename: `Prescription_${prescription.id}.pdf`,
-            content: pdfBuffer.toString('base64'),
+            content: pdfBuffer,
           },
         ],
       });
@@ -321,7 +321,6 @@ body { background:#f5f7fb; font-family:'Poppins', sans-serif; padding:40px 15px;
     if (!patient.email) return;
 
     const logoPath = path.join(__dirname, '../../../frontend/src/assets/logo.png');
-    const logoBase64 = fs.readFileSync(logoPath).toString('base64');
     const pdfBuffer = await pdfService.generateInvoicePDF(patient, invoice);
 
     const itemsHtml = invoice.items.map(item => `
@@ -423,12 +422,13 @@ body { background:#f5f7fb; font-family:'Poppins', sans-serif; padding:40px 15px;
         attachments: [
           {
             filename: 'logo.png',
-            content: logoBase64,
-            cid: 'logo'
+            content: fs.readFileSync(logoPath),
+            cid: 'logo',
+            disposition: 'inline'
           },
           {
             filename: `Invoice_${invoice.id}.pdf`,
-            content: pdfBuffer.toString('base64'),
+            content: pdfBuffer,
           },
         ],
       });

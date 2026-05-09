@@ -34,6 +34,19 @@ app.use((req, res, next) => {
 // API Routes
 app.use('/api', routes);
 
+// Health Check & Ping Routes
+app.get('/', (req, res) => {
+  res.status(200).json({ 
+    status: 'online', 
+    message: 'Siara Dental API is running',
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
+
 // 404 Handler
 app.use((req, res) => {
   res.status(404).json({ message: `Route ${req.method} ${req.url} not found` });
