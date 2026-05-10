@@ -1,4 +1,5 @@
-import makeWASocket, { useMultiFileAuthState, DisconnectReason } from '@whiskeysockets/baileys';
+import makeWASocket, { DisconnectReason } from '@whiskeysockets/baileys';
+import { usePostgresAuthState } from './whatsapp.auth.js';
 import QRCode from 'qrcode';
 import path from 'path';
 import fs from 'fs';
@@ -29,20 +30,11 @@ export const initWhatsApp = async () => {
   qrCode = null;
 
   try {
-    if (!fs.existsSync(path.dirname(AUTH_PATH))) {
-      fs.mkdirSync(path.dirname(AUTH_PATH), { recursive: true });
-    }
+    // Ensure table exists
+    await dbService.query('CREATE TABLE IF NOT EXISTS whatsapp_sessions (id TEXT PRIMARY KEY, data TEXT)');
 
-    // Verify imports
-    if (typeof useMultiFileAuthState !== 'function') {
-      throw new Error(`useMultiFileAuthState is not a function (got ${typeof useMultiFileAuthState})`);
-    }
-    if (typeof makeWASocket !== 'function') {
-      throw new Error(`makeWASocket is not a function (got ${typeof makeWASocket})`);
-    }
-
-    const { state, saveCreds } = await useMultiFileAuthState(AUTH_PATH);
-    console.log('📦 Auth state loaded');
+    const { state, saveCreds } = await usePostgresAuthState('default-session');
+    console.log('📦 Database auth state loaded');
 
     sock = makeWASocket({
       auth: state,
