@@ -4,7 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const LOGO_PATH = path.join(__dirname, '../../../frontend/src/assets/logo.png');
+const LOGO_PATH = path.join(__dirname, '../../assets/logo.png');
 
 export const pdfService = {
   async generatePrescriptionPDF(patient, prescription) {
