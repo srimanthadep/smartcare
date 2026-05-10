@@ -91,7 +91,9 @@ export interface Invoice {
   date: string;
   items: InvoiceLineItem[];
   total: number;
-  status: "Paid" | "Pending" | "Overdue";
+  paidAmount: number;
+  status: "Paid" | "Pending" | "Overdue" | "Partially Paid";
+  payments?: { date: string, amount: number }[];
 }
 
 export interface Doctor {

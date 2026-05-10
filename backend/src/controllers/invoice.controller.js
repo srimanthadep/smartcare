@@ -6,15 +6,20 @@ import { emitEvent, SOCKET_EVENTS } from '../services/socket.service.js';
 export const getInvoices = async (req, res, next) => {
   try {
     const { patientId } = req.query;
-    let query = 'SELECT * FROM invoices WHERE is_deleted = FALSE';
+    let query = `
+      SELECT i.*, p.name as patient_name, p.phone as patient_phone
+      FROM invoices i
+      LEFT JOIN patients p ON i.patient_id = p.id
+      WHERE i.is_deleted = FALSE
+    `;
     const params = [];
 
     if (patientId) {
       params.push(patientId);
-      query += ` AND patient_id = $${params.length}`;
+      query += ` AND i.patient_id = $${params.length}`;
     }
 
-    query += ' ORDER BY date DESC';
+    query += ' ORDER BY i.date DESC, i.id DESC';
     const result = await dbService.query(query, params);
     res.json(dbService.mapRows('invoices', result.rows));
   } catch (error) {
@@ -25,15 +30,15 @@ export const getInvoices = async (req, res, next) => {
 export const createInvoice = async (req, res, next) => {
   try {
     const id = await dbService.generateId('INV', 'invoices');
-    const { patientId, patientName, date, items, total, status } = req.body;
+    const { patientId, patientName, date, items, total, status, paidAmount } = req.body;
     const invDate = date || new Date().toISOString().slice(0, 10);
 
     const query = `
-      INSERT INTO invoices (id, patient_id, date, items, total, status)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO invoices (id, patient_id, date, items, total, status, paid_amount)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `;
-    const params = [id, patientId, invDate, JSON.stringify(items), total, status || 'Pending'];
+    const params = [id, patientId, invDate, JSON.stringify(items), total, status || 'Pending', paidAmount || 0];
     const result = await dbService.query(query, params);
     const invoice = dbService.mapRows('invoices', result.rows)[0];
 
@@ -71,16 +76,16 @@ export const updateInvoice = async (req, res, next) => {
     const params = [id];
     let i = 2;
 
-    const mapping = { patientId: 'patient_id' };
+    const mapping = { patientId: 'patient_id', paidAmount: 'paid_amount' };
 
-    const ALLOWED_COLUMNS = ['patient_id', 'date', 'items', 'total', 'status'];
+    const ALLOWED_COLUMNS = ['patient_id', 'date', 'items', 'total', 'status', 'paid_amount', 'payments'];
 
     for (const [key, value] of Object.entries(fields)) {
       const dbKey = mapping[key] || key;
       if (!ALLOWED_COLUMNS.includes(dbKey)) continue;
 
       updates.push(`${dbKey} = $${i}`);
-      params.push(key === 'items' ? JSON.stringify(value) : value);
+      params.push(['items', 'payments'].includes(key) ? JSON.stringify(value) : value);
       i++;
     }
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Save } from "lucide-react";
 import { api } from "@/lib/api";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
 const PatientRegistration: React.FC = () => {
@@ -19,6 +20,11 @@ const PatientRegistration: React.FC = () => {
   useEffect(() => {
     document.title = "Register Patient | Siara Dental";
   }, []);
+
+  const bootstrapQuery = useQuery({
+    queryKey: ["bootstrap"],
+    queryFn: api.getBootstrap,
+  });
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     name: "",
@@ -40,6 +46,7 @@ const PatientRegistration: React.FC = () => {
     tobaccoUse: "No",
     chiefComplaint: "",
   });
+  const [bookAppointment, setBookAppointment] = useState(true);
 
   const createPatient = useMutation({
     mutationFn: () =>
@@ -65,9 +72,35 @@ const PatientRegistration: React.FC = () => {
         consultationFee: Number(form.consultationFee),
         chiefComplaint: form.chiefComplaint
       }),
-    onSuccess: () => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ["patients"] });
       toast.success("Patient registered successfully");
+      
+      if (bookAppointment) {
+        const bootstrap = bootstrapQuery.data;
+        const doctorName = bootstrap?.doctors[0]?.name || "Dr. Saikiran";
+        const today = new Date().toISOString().split('T')[0];
+        const currentTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+        try {
+          await api.createAppointment({
+            patientId: data.id,
+            patientName: data.name,
+            doctorName: doctorName,
+            date: today,
+            time: currentTime,
+            type: "Consultation",
+            status: "Scheduled",
+            reason: form.chiefComplaint || "New patient consultation",
+          });
+          queryClient.invalidateQueries({ queryKey: ["appointments"] });
+          toast.success("Appointment booked automatically");
+        } catch (error) {
+          console.error("Auto-booking error:", error);
+          toast.error("Failed to book automatic appointment");
+        }
+      }
+      
       navigate("/patients");
     },
     onError: (error) => {
@@ -242,11 +275,21 @@ const PatientRegistration: React.FC = () => {
                   </Select>
                 </div>
               </div>
-              <div className="flex justify-between">
-                <Button type="button" variant="outline" onClick={() => setStep(2)}>Previous</Button>
-                <Button type="submit" disabled={createPatient.isPending}>
-                  <Save className="mr-1 h-4 w-4" /> {createPatient.isPending ? "Saving..." : "Register Patient"}
-                </Button>
+              <div className="flex items-center justify-between border-t border-border/50 pt-4">
+                <div className="flex items-center space-x-2">
+                  <Switch 
+                    id="book-appointment" 
+                    checked={bookAppointment} 
+                    onCheckedChange={setBookAppointment} 
+                  />
+                  <Label htmlFor="book-appointment" className="cursor-pointer">Book appointment after registration</Label>
+                </div>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" onClick={() => setStep(2)}>Previous</Button>
+                  <Button type="submit" disabled={createPatient.isPending}>
+                    <Save className="mr-1 h-4 w-4" /> {createPatient.isPending ? "Saving..." : "Register Patient"}
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>

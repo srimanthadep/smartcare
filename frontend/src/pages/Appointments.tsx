@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -26,13 +27,19 @@ const PROCEDURE_TYPES = ["Checkup", "Root Canal", "Extraction", "Orthodontics", 
 const Appointments: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [selectedDay, setSelectedDay] = useState<Date>(new Date());
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [isBookOpen, setIsBookOpen] = useState(false);
   const selectedIso = format(selectedDay, "yyyy-MM-dd");
   const todayIso = format(new Date(), "yyyy-MM-dd");
   const queryClient = useQueryClient();
 
   useEffect(() => {
     document.title = "Appointments | Siara Dental";
-  }, []);
+    
+    if (searchParams.get("book") === "true") {
+      setIsBookOpen(true);
+    }
+  }, [searchParams]);
 
   const bootstrapQuery = useQuery({
     queryKey: ["bootstrap"],
@@ -129,7 +136,7 @@ const Appointments: React.FC = () => {
   );
 
   const BookDialog = () => {
-    const [patientId, setPatientId] = useState("");
+    const [patientId, setPatientId] = useState(searchParams.get("patientId") || "");
     const [doctorName, setDoctorName] = useState(bootstrap?.doctors[0]?.name || "");
     const [date, setDate] = useState(selectedIso);
     const [time, setTime] = useState("10:30");
@@ -140,9 +147,18 @@ const Appointments: React.FC = () => {
     const selectedPatient = patientOptions.find((item) => item.id === patientId);
 
     return (
-      <Dialog>
+      <Dialog open={isBookOpen} onOpenChange={(open) => {
+        setIsBookOpen(open);
+        if (!open) {
+          // Clear search params when closing
+          const newParams = new URLSearchParams(searchParams);
+          newParams.delete("book");
+          newParams.delete("patientId");
+          setSearchParams(newParams);
+        }
+      }}>
         <DialogTrigger asChild>
-          <Button><CalendarPlus className="mr-1 h-4 w-4" /> Book</Button>
+          <Button onClick={() => setIsBookOpen(true)}><CalendarPlus className="mr-1 h-4 w-4" /> Book</Button>
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>

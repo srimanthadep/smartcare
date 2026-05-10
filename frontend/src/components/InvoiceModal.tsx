@@ -1,6 +1,8 @@
 import React, { useRef } from "react";
-import { Download, Mail, Printer, Receipt } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { CheckCircle, Download, Mail, Printer, Receipt, Undo2 } from "lucide-react";
 import { toast } from "sonner";
+import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Invoice } from "@/types";
@@ -13,7 +15,21 @@ interface InvoiceModalProps {
 }
 
 const InvoiceModal: React.FC<InvoiceModalProps> = ({ invoice, open, onOpenChange }) => {
+  const queryClient = useQueryClient();
   const printRef = useRef<HTMLDivElement>(null);
+
+  const updateStatus = useMutation({
+    mutationFn: (status: "Paid" | "Pending" | "Overdue") => 
+      api.updateInvoice(invoice!.id, { 
+        status, 
+        paidAmount: status === "Paid" ? invoice!.total : 0 
+      }),
+    onSuccess: (_, status) => {
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      toast.success(`Invoice marked as ${status}`);
+    },
+    onError: () => toast.error("Failed to update status"),
+  });
 
   if (!invoice) return null;
 
@@ -116,7 +132,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ invoice, open, onOpenChange
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl overflow-hidden p-0">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 scrollbar-hide">
         <DialogHeader className="border-b border-border/50 bg-secondary/15 p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -138,11 +154,31 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ invoice, open, onOpenChange
               <Button size="sm" onClick={handleSend}>
                 <Mail className="mr-1.5 h-4 w-4" /> Send to Patient
               </Button>
+              {invoice.status === "Paid" ? (
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  className="text-amber-600 border-amber-200 hover:bg-amber-50" 
+                  onClick={() => updateStatus.mutate("Pending")}
+                  disabled={updateStatus.isPending}
+                >
+                  <Undo2 className="mr-1.5 h-4 w-4" /> Undo Payment
+                </Button>
+              ) : (
+                <Button 
+                  size="sm" 
+                  className="bg-emerald-600 hover:bg-emerald-700" 
+                  onClick={() => updateStatus.mutate("Paid")}
+                  disabled={updateStatus.isPending}
+                >
+                  <CheckCircle className="mr-1.5 h-4 w-4" /> Mark as Paid
+                </Button>
+              )}
             </div>
           </div>
         </DialogHeader>
 
-        <div className="p-8" ref={printRef}>
+        <div className="p-6" ref={printRef}>
           <div className="flex justify-between">
             <div>
               <h2 className="text-2xl font-bold text-foreground">Siara Dental</h2>
@@ -195,12 +231,12 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ invoice, open, onOpenChange
                 <span className="font-medium">₹{invoice.total.toLocaleString()}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Tax (0%)</span>
-                <span className="font-medium">₹0</span>
+                <span className="text-emerald-600 font-medium">Amount Paid</span>
+                <span className="font-bold text-emerald-600">₹{(invoice.paidAmount || 0).toLocaleString()}</span>
               </div>
               <div className="flex justify-between border-t border-border pt-2 text-lg font-bold">
-                <span>Total Amount</span>
-                <span className="text-primary">₹{invoice.total.toLocaleString()}</span>
+                <span>Balance Due</span>
+                <span className="text-primary">₹{(invoice.total - (invoice.paidAmount || 0)).toLocaleString()}</span>
               </div>
             </div>
           </div>

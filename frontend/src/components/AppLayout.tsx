@@ -3,9 +3,6 @@ import { Outlet } from 'react-router-dom';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
 import { AppHeader } from '@/components/AppHeader';
-import { AIAssistantPanel } from '@/components/AIAssistantPanel';
-import { Button } from '@/components/ui/button';
-import { Bot } from 'lucide-react';
 import { useRealTimeUpdates } from '@/hooks/useRealTimeUpdates';
 
 const AppLayout: React.FC = () => {
@@ -21,17 +18,6 @@ const AppLayout: React.FC = () => {
           </main>
         </div>
       </div>
-
-      {/* Global AI panel trigger */}
-      <AIAssistantPanel>
-        <Button
-          size="icon"
-          className="fixed bottom-5 right-5 h-12 w-12 rounded-full shadow-lg"
-          aria-label="Open AI Assistant"
-        >
-          <Bot className="h-5 w-5" />
-        </Button>
-      </AIAssistantPanel>
     </SidebarProvider>
   );
 };

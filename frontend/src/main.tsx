@@ -19,6 +19,13 @@ window.addEventListener('message', (event: MessageEvent) => {
     }
 });
 
+// ─── Disable Scroll-to-Change on Number Inputs ──────────────────────────────
+document.addEventListener("wheel", () => {
+    if (document.activeElement instanceof HTMLInputElement && document.activeElement.type === "number") {
+        document.activeElement.blur();
+    }
+});
+
 // ─── Render React App ───────────────────────────────────────────────────────
 const rootElement = document.getElementById("root");
 if (rootElement) {

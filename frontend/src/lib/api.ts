@@ -250,6 +250,30 @@ export const api = {
     });
   },
 
+  getTreatmentPlanTemplates() {
+    return apiFetch<{ data: any[] }>("/api/treatment-plan-templates");
+  },
+
+  createTreatmentPlanTemplate(payload: any) {
+    return apiFetch<{ data: any }>("/api/treatment-plan-templates", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  updateTreatmentPlanTemplate(id: string, payload: any) {
+    return apiFetch<{ data: any }>(`/api/treatment-plan-templates/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  deleteTreatmentPlanTemplate(id: string) {
+    return apiFetch<void>(`/api/treatment-plan-templates/${id}`, {
+      method: "DELETE",
+    });
+  },
+
   getProcedures() {
     return apiFetch<{ data: import("@/types").Procedure[] }>("/api/procedures");
   },

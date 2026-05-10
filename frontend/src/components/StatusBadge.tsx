@@ -15,6 +15,7 @@ const statusStyles: Record<string, string> = {
   Completed: 'bg-success/10 text-success border-success/20',
   Cancelled: 'bg-muted text-muted-foreground border-border',
   Paid: 'bg-success/10 text-success border-success/20',
+  'Partially Paid': 'bg-info/10 text-info border-info/20',
   Pending: 'bg-warning/10 text-warning border-warning/20',
   Overdue: 'bg-destructive/10 text-destructive border-destructive/20',
   // Dental procedure types

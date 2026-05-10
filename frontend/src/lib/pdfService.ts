@@ -4,493 +4,369 @@ import { Invoice, Patient, Prescription } from "@/types";
 import logo from "@/assets/logo.png";
 
 // ─── Clinic Constants ────────────────────────────────────────────────────────
-const CLINIC_NAME    = "SIARA DENTAL";
+const CLINIC_NAME = "SIARA DENTAL";
 const CLINIC_TAGLINE = "CREATING MILES OF SMILES";
-const CLINIC_PHONE   = "+91 89198 78543";
-const CLINIC_EMAIL   = "care@siaradental.in";
-const CLINIC_WEB     = "www.siaradental.in";
-const CLINIC_ADDR    = "Omini Hospital Road, New Nagole Main Rd,\nOpp. Nayara Petrol bunk, Hyderabad 500035";
+const CLINIC_PHONE = "+91 89198 78543";
+const CLINIC_EMAIL = "care@siaradental.in";
+const CLINIC_WEB = "siaradental.in";
+const CLINIC_ADDR = "Omini Hospital Road, New Nagole Main Rd,\nOpposite Nayara Petrol Bunk,\nHyderabad 500035";
+const DOCTOR_NAME = "Dr. Saikiran Reddy";
+const REG_NO = "A-4428";
 
-// ─── Brand Colors ────────────────────────────────────────────────────────────
-const C = {
-  dark:       [28, 18, 13]   as [number,number,number],
-  orange:     [249, 115, 22] as [number,number,number],
-  orangeLight:[255, 247, 237] as [number,number,number],
-  orangeMid:  [254, 215, 170] as [number,number,number],
-  white:      [255, 255, 255] as [number,number,number],
-  gray100:    [248, 248, 248] as [number,number,number],
-  gray200:    [230, 230, 230] as [number,number,number],
-  gray400:    [160, 160, 160] as [number,number,number],
-  gray600:    [80, 80, 80]    as [number,number,number],
-  text:       [30, 30, 30]    as [number,number,number],
-  green:      [22, 163, 74]   as [number,number,number],
-  red:        [220, 38, 38]   as [number,number,number],
+// ─── Brand Design Tokens ─────────────────────────────────────────────────────
+const P = {
+  primary: [249, 115, 22] as [number, number, number], // Orange 500
+  primaryDark: [194, 65, 12] as [number, number, number], // Orange 700
+  primaryLight: [255, 247, 237] as [number, number, number], // Orange 50
+  dark: [31, 41, 55] as [number, number, number], // Gray 800
+  text: [55, 65, 81] as [number, number, number], // Gray 700
+  muted: [107, 114, 128] as [number, number, number], // Gray 500
+  border: [229, 231, 235] as [number, number, number], // Gray 200
+  bg: [249, 250, 251] as [number, number, number], // Gray 50
+  white: [255, 255, 255] as [number, number, number],
+  emerald: [16, 185, 129] as [number, number, number],
+  destructive: [239, 68, 68] as [number, number, number],
 };
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-const setFill   = (doc: jsPDF, c: [number,number,number]) => doc.setFillColor(c[0], c[1], c[2]);
-const setStroke = (doc: jsPDF, c: [number,number,number]) => doc.setDrawColor(c[0], c[1], c[2]);
-const setColor  = (doc: jsPDF, c: [number,number,number]) => doc.setTextColor(c[0], c[1], c[2]);
+// ─── Shared Helpers ──────────────────────────────────────────────────────────
+const setC = (doc: jsPDF, c: [number, number, number]) => doc.setTextColor(c[0], c[1], c[2]);
+const setF = (doc: jsPDF, c: [number, number, number]) => doc.setFillColor(c[0], c[1], c[2]);
+const setS = (doc: jsPDF, c: [number, number, number]) => doc.setDrawColor(c[0], c[1], c[2]);
 
-function drawHeader(doc: jsPDF, pageWidth: number, badgeLabel: string) {
-  const H = 62;
+function drawProfessionalHeader(doc: jsPDF, pageWidth: number, label: string) {
+  const H = 65;
 
-  // Dark background
-  setFill(doc, C.dark);
+  // Background Header Area
+  setF(doc, P.bg);
   doc.rect(0, 0, pageWidth, H, "F");
 
-  // Orange left accent bar
-  setFill(doc, C.orange);
-  doc.rect(0, 0, 4, H, "F");
+  // Top Primary Border
+  setF(doc, P.primary);
+  doc.rect(0, 0, pageWidth, 2, "F");
 
   // Logo
-  try { doc.addImage(logo, "PNG", 11, 9, 40, 40); } catch (_) {}
+  try {
+    doc.addImage(logo, "PNG", 10, 10, 42, 42);
+  } catch (e) {
+    console.error("Logo failed to load", e);
+  }
 
-  // Clinic Name
-  setColor(doc, C.white);
+  // Clinic Info
+  setC(doc, P.primary);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(26);
-  doc.text(CLINIC_NAME, 56, 30);
+  doc.setFontSize(28);
+  doc.text(CLINIC_NAME, 55, 28);
 
-  // Tagline
-  setColor(doc, C.orange);
+  setC(doc, P.muted);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(7.5);
-  doc.text(CLINIC_TAGLINE, 57, 37, { charSpace: 1.5 });
+  doc.setFontSize(8.5);
+  doc.text(CLINIC_TAGLINE, 56, 34, { charSpace: 1 });
 
-  // Right — contact info
-  setColor(doc, [200, 200, 200]);
+  // Address & Contact (Right Aligned)
+  setC(doc, P.text);
+  doc.setFontSize(8.5);
+  const addrLines = CLINIC_ADDR.split("\n");
+  doc.text(addrLines, pageWidth - 15, 22, { align: "right" });
+
+  setC(doc, P.primaryDark);
+  doc.setFont("helvetica", "bold");
+  doc.text(`${CLINIC_WEB} | ${CLINIC_PHONE}`, pageWidth - 15, 38, { align: "right" });
+
+  setC(doc, P.muted);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  const addr = CLINIC_ADDR.split("\n");
-  doc.text(addr[0], pageWidth - 10, 18, { align: "right" });
-  doc.text(addr[1], pageWidth - 10, 24, { align: "right" });
+  doc.text(`Reg. No: ${REG_NO}`, pageWidth - 15, 43, { align: "right" });
 
-  // Orange thin separator
-  setStroke(doc, C.orange);
+  // Document Badge - Wider and centered
+  const badgeW = 75;
+  setF(doc, P.primary);
+  doc.roundedRect(pageWidth - 15 - badgeW, 48, badgeW, 11, 1, 1, "F");
+  setC(doc, P.white);
+  doc.setFontSize(12);
+  doc.text(label, pageWidth - 15 - (badgeW / 2), 55.5, { align: "center", charSpace: 1.5 });
+
+  return H;
+}
+
+function drawProfessionalFooter(doc: jsPDF, pageWidth: number, pageHeight: number) {
+  const footerY = pageHeight - 20;
+
+  setS(doc, P.border);
   doc.setLineWidth(0.2);
-  doc.line(pageWidth - 80, 27, pageWidth - 10, 27);
+  doc.line(15, footerY, pageWidth - 15, footerY);
 
-  setColor(doc, [200, 200, 200]);
+  setC(doc, P.muted);
   doc.setFontSize(7.5);
-  doc.text(`Ph: ${CLINIC_PHONE}`, pageWidth - 10, 32, { align: "right" });
-  doc.text(CLINIC_EMAIL, pageWidth - 10, 37, { align: "right" });
-  doc.text(CLINIC_WEB,   pageWidth - 10, 42, { align: "right" });
-
-  // Floating badge overlapping header / content
-  const bw = 88;
-  const bh = 13;
-  const bx = pageWidth / 2 - bw / 2;
-  const by = H - 7;
-  setFill(doc, C.orange);
-  doc.roundedRect(bx, by, bw, bh, 4, 4, "F");
-  setColor(doc, C.white);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(13);
-  doc.text(badgeLabel, pageWidth / 2, by + 9, { align: "center", charSpace: 2 });
-
-  return H; // return header height for next element positioning
-}
-
-function drawFooter(doc: jsPDF, pageWidth: number, pageHeight: number) {
-  const fh = 18;
-  setFill(doc, C.dark);
-  doc.rect(0, pageHeight - fh, pageWidth, fh, "F");
-
-  setFill(doc, C.orange);
-  doc.rect(0, pageHeight - fh, 4, fh, "F");
-
-  setColor(doc, C.white);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.text("Thank You For Trusting", pageWidth / 2 - 12, pageHeight - 7, { align: "right" });
-
-  setColor(doc, C.orange);
-  doc.text("Siara Dental", pageWidth / 2 - 10, pageHeight - 7);
-
-  setColor(doc, C.gray400);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
-  doc.text(CLINIC_WEB, pageWidth - 10, pageHeight - 7, { align: "right" });
+  doc.text(`Siara Dental - ${CLINIC_WEB} | ${CLINIC_PHONE}`, pageWidth / 2, footerY + 8, { align: "center" });
+  doc.text("Professional Care · Personal Touch", pageWidth / 2, footerY + 12, { align: "center" });
 }
 
-function drawInfoGrid(
-  doc: jsPDF,
-  fields: { label: string; value: string }[],
-  startY: number,
-  pageWidth: number,
-  cols = 2,
-  rowGap = 18
-) {
-  const margin = 12;
-  const colW = (pageWidth - margin * 2) / cols;
+function drawSectionHeader(doc: jsPDF, label: string, y: number, pageWidth: number) {
+  setF(doc, P.primaryLight);
+  doc.rect(15, y, pageWidth - 30, 8, "F");
 
-  fields.forEach((f, i) => {
-    const col = i % cols;
-    const row = Math.floor(i / cols);
-    const x = margin + col * colW;
-    const y = startY + row * rowGap;
+  setF(doc, P.primary);
+  doc.rect(15, y, 3, 8, "F");
 
-    // Label
-    setColor(doc, C.gray400);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
-    doc.text(f.label.toUpperCase(), x, y);
-
-    // Value
-    setColor(doc, C.text);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.text(f.value || "—", x, y + 6);
-
-    // Underline
-    setStroke(doc, C.gray200);
-    doc.setLineWidth(0.4);
-    doc.line(x, y + 8.5, x + colW - 6, y + 8.5);
-  });
-
-  const rows = Math.ceil(fields.length / cols);
-  return startY + rows * rowGap + 4;
-}
-
-function sectionHeader(doc: jsPDF, label: string, y: number, pageWidth: number) {
-  setFill(doc, C.dark);
-  doc.roundedRect(12, y, pageWidth - 24, 9, 2, 2, "F");
-  setFill(doc, C.orange);
-  doc.roundedRect(12, y, 3, 9, 1, 1, "F");
-  setColor(doc, C.white);
+  setC(doc, P.primaryDark);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
-  doc.text(label, 19, y + 6.2);
-  return y + 9;
+  doc.text(label.toUpperCase(), 22, y + 5.5);
+
+  return y + 12;
 }
 
-// ─── Prescription PDF ─────────────────────────────────────────────────────────
+// ─── Main Service ────────────────────────────────────────────────────────────
 export const pdfService = {
   async generatePrescriptionPDF(patient: Patient, prescription: Prescription) {
     const doc = new jsPDF({ unit: "mm", format: "a4" });
     const W = doc.internal.pageSize.getWidth();
     const H = doc.internal.pageSize.getHeight();
 
-    const headerH = drawHeader(doc, W, "PRESCRIPTION");
-    let y = headerH + 14;
+    const startY = drawProfessionalHeader(doc, W, "PRESCRIPTION");
+    let y = startY + 15;
 
-    // ── Patient Info Grid ─────────────────────────────────────────────────────
-    const dateStr = (d?: string) =>
-      d ? new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "As required";
+    // ── Patient Snapshot ──────────────────────────────────────────────────────
+    const patientFields = [
+      ["Patient Name:", patient.name.toUpperCase()],
+      ["Patient ID:", patient.id],
+      ["Age / Gender:", `${patient.age}Y / ${patient.gender}`],
+      ["Date:", new Date(prescription.date).toLocaleDateString('en-GB')],
+    ];
 
-    y = drawInfoGrid(doc, [
-      { label: "Patient Name",    value: patient.name },
-      { label: "Date",            value: dateStr(prescription.date) },
-      { label: "Age / Gender",    value: `${patient.age}Y / ${patient.gender}` },
-      { label: "Prescription ID", value: prescription.id },
-      { label: "Patient ID",      value: patient.id },
-      { label: "Next Visit",      value: dateStr(prescription.nextVisitDate) },
-    ], y, W, 2, 18);
+    autoTable(doc, {
+      startY: y,
+      body: patientFields,
+      theme: "plain",
+      styles: { fontSize: 9, cellPadding: 1, textColor: P.text },
+      columnStyles: {
+        0: { fontStyle: "bold", cellWidth: 30, textColor: P.muted },
+        1: { cellWidth: 60 }
+      },
+      margin: { left: 15 },
+    });
 
-    y += 6;
+    y = (doc as any).lastAutoTable.finalY + 10;
 
-    // ── Chief Complaint ───────────────────────────────────────────────────────
+    // ── Clinical Details ──────────────────────────────────────────────────────
+    // Chief Complaint
     if (prescription.chiefComplaint) {
-      y = sectionHeader(doc, "Chief Complaint", y, W);
-      y += 5;
-      setColor(doc, C.gray600);
+      y = drawSectionHeader(doc, "Chief Complaint", y, W);
+      setC(doc, P.text);
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(9.5);
-      const lines = doc.splitTextToSize(prescription.chiefComplaint, W - 30);
-      doc.text(lines, 16, y);
-      y += lines.length * 5.5 + 6;
+      doc.setFontSize(10);
+      const lines = doc.splitTextToSize(prescription.chiefComplaint, W - 35);
+      doc.text(lines, 20, y);
+      y += (lines.length * 5) + 10;
     }
 
-    // ── Diagnosis ─────────────────────────────────────────────────────────────
+    // Diagnosis
     if (prescription.diagnosis) {
-      y = sectionHeader(doc, "Diagnosis", y, W);
-      y += 5;
-      setColor(doc, C.gray600);
+      y = drawSectionHeader(doc, "Diagnosis", y, W);
+      setC(doc, P.text);
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(9.5);
-      const lines = doc.splitTextToSize(prescription.diagnosis, W - 30);
-      doc.text(lines, 16, y);
-      y += lines.length * 5.5 + 6;
+      doc.setFontSize(10);
+      const lines = doc.splitTextToSize(prescription.diagnosis, W - 35);
+      doc.text(lines, 20, y);
+      y += (lines.length * 5) + 10;
     }
 
-    // ── Treatment Plan ────────────────────────────────────────────────────────
+    // Treatment Plan (Summary)
     if (prescription.treatmentPlan && prescription.treatmentPlan.length > 0) {
-      y = sectionHeader(doc, "Treatment Plan", y, W);
-      y += 2;
-      
-      const tpRows = prescription.treatmentPlan.map((p) => [
-        p.name,
-        p.description || "—",
-        `Rs.${p.estimatedCost?.toLocaleString("en-IN") || "0"}`
-      ]);
+      y = drawSectionHeader(doc, "Suggested Treatment Plan", y, W);
+      const tpBody = prescription.treatmentPlan.map(p => [p.name, p.description || "—"]);
 
       autoTable(doc, {
         startY: y,
-        head: [["Phase / Procedure", "Description", "Est. Cost"]],
-        body: tpRows,
+        head: [["Procedure", "Description"]],
+        body: tpBody,
         theme: "plain",
-        headStyles: {
-          fillColor: C.orangeLight,
-          textColor: C.orange,
-          fontSize: 8,
-          fontStyle: "bold",
-          cellPadding: { top: 4, bottom: 4, left: 4, right: 4 },
-        },
-        bodyStyles: {
-          fontSize: 8.5,
-          cellPadding: { top: 4, bottom: 4, left: 4, right: 4 },
-          textColor: C.text,
-        },
-        alternateRowStyles: { fillColor: C.gray100 },
-        columnStyles: {
-          0: { fontStyle: "bold", cellWidth: 50 },
-          2: { halign: "right", fontStyle: "bold", cellWidth: 30 },
-        },
-        margin: { left: 12, right: 12 },
-        tableLineColor: C.gray200,
-        tableLineWidth: 0.3,
+        headStyles: { fillColor: P.primaryLight, textColor: P.primaryDark, fontSize: 8, fontStyle: "bold" },
+        bodyStyles: { fontSize: 9, textColor: P.text },
+        margin: { left: 15, right: 15 },
+        columnStyles: { 0: { fontStyle: "bold", cellWidth: 50 } }
       });
-      y = (doc as any).lastAutoTable.finalY + 8;
+      y = (doc as any).lastAutoTable.finalY + 12;
     }
 
     // ── Medications ───────────────────────────────────────────────────────────
-    y = sectionHeader(doc, "Medications", y, W);
-    y += 2;
-
-    const medRows = prescription.medicines.map((m) => [
+    y = drawSectionHeader(doc, "Medications (Rx)", y, W);
+    const medBody = prescription.medicines.map(m => [
       m.name,
       m.dosage,
       m.duration || "—",
-      m.instructions || m.frequency || "—",
+      m.instructions || m.frequency || "—"
     ]);
 
     autoTable(doc, {
       startY: y,
-      head: [["Medicine", "Dosage", "Duration", "Instructions / Frequency"]],
-      body: medRows.length ? medRows : [["No medications prescribed", "", "", ""]],
+      head: [["Medicine Name", "Dosage", "Duration", "Instructions"]],
+      body: medBody.length ? medBody : [["No medicines prescribed", "", "", ""]],
       theme: "plain",
-      headStyles: {
-        fillColor: C.orangeLight,
-        textColor: C.orange,
-        fontSize: 8,
-        fontStyle: "bold",
-        cellPadding: { top: 4, bottom: 4, left: 4, right: 4 },
-      },
-      bodyStyles: {
-        fontSize: 8.5,
-        cellPadding: { top: 5, bottom: 5, left: 4, right: 4 },
-        textColor: C.text,
-      },
-      alternateRowStyles: { fillColor: C.gray100 },
-      columnStyles: {
-        0: { fontStyle: "bold", cellWidth: 50 },
-        1: { cellWidth: 28 },
-        2: { cellWidth: 24 },
-      },
-      margin: { left: 12, right: 12 },
-      tableLineColor: C.gray200,
-      tableLineWidth: 0.3,
+      headStyles: { fillColor: P.primaryLight, textColor: P.primaryDark, fontSize: 8, fontStyle: "bold" },
+      bodyStyles: { fontSize: 9, textColor: P.text, cellPadding: 4 },
+      alternateRowStyles: { fillColor: P.bg },
+      margin: { left: 15, right: 15 },
     });
 
-    y = (doc as any).lastAutoTable.finalY + 8;
+    y = (doc as any).lastAutoTable.finalY + 15;
 
-    // ── Notes / Advice ────────────────────────────────────────────────────────
+    // ── Advice & Notes ────────────────────────────────────────────────────────
     if (prescription.notes) {
-      y = sectionHeader(doc, "Advice & Notes", y, W);
-      y += 5;
-      setFill(doc, C.orangeLight);
-      setStroke(doc, C.orangeMid);
-      doc.setLineWidth(0.3);
-      const noteLines = doc.splitTextToSize(prescription.notes, W - 50);
-      const boxH = noteLines.length * 5.5 + 10;
-      doc.roundedRect(12, y, W - 60, boxH, 3, 3, "FD");
-      setColor(doc, C.gray600);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8.5);
-      doc.text(noteLines, 17, y + 7);
-      y += boxH + 6;
+      y = drawSectionHeader(doc, "Advice & Notes", y, W);
+      setC(doc, P.text);
+      doc.setFontSize(10);
+      const lines = doc.splitTextToSize(prescription.notes, W - 35);
+      doc.text(lines, 20, y);
+      y += (lines.length * 5) + 15;
     }
 
-    // ── Signature ─────────────────────────────────────────────────────────────
-    const sigX = W - 65;
-    const sigY = H - 40;
-    setStroke(doc, C.dark);
-    doc.setLineWidth(0.5);
-    doc.line(sigX, sigY, W - 12, sigY);
-    setColor(doc, C.dark);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.text(prescription.doctorName || "Dr. Saikiran Reddy", sigX + 26, sigY + 6, { align: "center" });
-    setColor(doc, C.gray400);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-    doc.text("BDS, MDS  |  Reg No: A-12345", sigX + 26, sigY + 11, { align: "center" });
+    // ── Next Visit & Signature ────────────────────────────────────────────────
+    if (prescription.nextVisitDate) {
+      setC(doc, P.primaryDark);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.text(`Next Review: ${new Date(prescription.nextVisitDate).toLocaleDateString('en-GB')}`, 15, H - 45);
+    }
 
-    drawFooter(doc, W, H);
-    doc.save(`Prescription_${patient.name}_${prescription.id}.pdf`);
+    setC(doc, P.dark);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text(DOCTOR_NAME, W - 15, H - 45, { align: "right" });
+    setC(doc, P.muted);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.text(`BDS, MDS (Reg. No: ${REG_NO})`, W - 15, H - 40, { align: "right" });
+    doc.text("Dental Surgeon", W - 15, H - 36, { align: "right" });
+
+    drawProfessionalFooter(doc, W, H);
+    doc.save(`Prescription_${patient.name.replace(/\s+/g, '_')}_${prescription.id}.pdf`);
   },
 
-  // ─── Invoice PDF ─────────────────────────────────────────────────────────────
-  async generateInvoicePDF(patient: Patient, invoice: Invoice) {
+  generateInvoicePDF(patient: Patient, invoice: Invoice) {
     const doc = new jsPDF({ unit: "mm", format: "a4" });
     const W = doc.internal.pageSize.getWidth();
     const H = doc.internal.pageSize.getHeight();
 
-    const headerH = drawHeader(doc, W, "INVOICE");
-    let y = headerH + 14;
+    const startY = drawProfessionalHeader(doc, W, "TAX INVOICE");
+    let y = startY + 15;
 
-    // ── Meta Info Grid ────────────────────────────────────────────────────────
-    y = drawInfoGrid(doc, [
-      { label: "Patient Name", value: patient.name },
-      { label: "Invoice No",   value: invoice.id },
-      { label: "Patient ID",   value: patient.id },
-      { label: "Invoice Date", value: invoice.date },
-      { label: "Age / Gender", value: `${patient.age}Y / ${patient.gender}` },
-      { label: "Payment",      value: invoice.status },
-    ], y, W, 2, 16);
-
-    y += 5;
-
-    // ── Billing Table ─────────────────────────────────────────────────────────
-    y = sectionHeader(doc, "Treatment & Billing Details", y, W);
-    y += 2;
-
-    const rows = invoice.items.map((item, i) => [
-      String(i + 1),
-      item.description + (item.toothNumber ? ` (Tooth #${item.toothNumber})` : ""),
-      "1",
-      `Rs.${item.amount.toLocaleString("en-IN")}`,
-      `Rs.${item.amount.toLocaleString("en-IN")}`,
-    ]);
-
-    autoTable(doc, {
-      startY: y,
-      head: [["#", "Description", "Qty", "Rate", "Amount"]],
-      body: rows.length ? rows : [["—", "No items", "", "", ""]],
-      theme: "plain",
-      headStyles: {
-        fillColor: C.orangeLight,
-        textColor: C.orange,
-        fontSize: 8,
-        fontStyle: "bold",
-        cellPadding: { top: 4, bottom: 4, left: 4, right: 4 },
-      },
-      bodyStyles: {
-        fontSize: 8.5,
-        cellPadding: { top: 5, bottom: 5, left: 4, right: 4 },
-        textColor: C.text,
-      },
-      alternateRowStyles: { fillColor: C.gray100 },
-      columnStyles: {
-        0: { cellWidth: 10, halign: "center" },
-        2: { cellWidth: 12, halign: "center" },
-        3: { cellWidth: 28, halign: "right" },
-        4: { cellWidth: 28, halign: "right", fontStyle: "bold" },
-      },
-      margin: { left: 12, right: 12 },
-      tableLineColor: C.gray200,
-      tableLineWidth: 0.3,
-    });
-
-    y = (doc as any).lastAutoTable.finalY + 4;
-
-    // ── Totals Block ──────────────────────────────────────────────────────────
-    const totalBoxW = 70;
-    const totalBoxX = W - 12 - totalBoxW;
-
-    setFill(doc, C.gray100);
-    setStroke(doc, C.gray200);
-    doc.setLineWidth(0.3);
-    doc.roundedRect(totalBoxX, y, totalBoxW, 24, 3, 3, "FD");
-
-    setColor(doc, C.gray400);
-    doc.setFont("helvetica", "normal");
+    // ── Bill Information ──────────────────────────────────────────────────────
+    // Left: Patient Info
+    setC(doc, P.muted);
     doc.setFontSize(8);
-    doc.text("Subtotal", totalBoxX + 5, y + 8);
-    doc.text(`Rs.${invoice.total.toLocaleString("en-IN")}`, W - 15, y + 8, { align: "right" });
-
-    setStroke(doc, C.gray200);
-    doc.line(totalBoxX + 5, y + 12, W - 15, y + 12);
-
-    setFill(doc, C.orange);
-    doc.roundedRect(totalBoxX, y + 13, totalBoxW, 11, 2, 2, "F");
-    setColor(doc, C.white);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.text("TOTAL", totalBoxX + 5, y + 20);
-    doc.text(`Rs.${invoice.total.toLocaleString("en-IN")}`, W - 15, y + 20, { align: "right" });
+    doc.text("BILL TO", 15, y);
+
+    setC(doc, P.dark);
+    doc.setFontSize(11);
+    doc.text(patient.name.toUpperCase(), 15, y + 6);
+
+    setC(doc, P.text);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Patient ID: ${patient.id}`, 15, y + 11);
+    doc.text(`Contact: ${patient.phone}`, 15, y + 16);
+
+    // Right: Invoice Details
+    setC(doc, P.muted);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.text("INVOICE DETAILS", W - 15, y, { align: "right" });
+
+    setC(doc, P.text);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Invoice No: ${invoice.id}`, W - 15, y + 6, { align: "right" });
+    doc.text(`Date: ${new Date(invoice.date).toLocaleDateString('en-GB')}`, W - 15, y + 11, { align: "right" });
+
+    const statusColor = invoice.status === "Paid" ? P.emerald : P.destructive;
+    setC(doc, statusColor);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Status: ${invoice.status.toUpperCase()}`, W - 15, y + 16, { align: "right" });
 
     y += 30;
 
-    // ── Payment + Notes (side by side) ────────────────────────────────────────
-    const bw = (W - 30) / 2;
-    const bh = 30;
-
-    // Payment Box
-    setFill(doc, C.gray100);
-    setStroke(doc, C.gray200);
-    doc.setLineWidth(0.3);
-    doc.roundedRect(12, y, bw, bh, 3, 3, "FD");
-    y = sectionHeader(doc, "Payment Information", y, W / 2 + 3);
-    y += 5;
-
-    const isPaid = invoice.status === "Paid";
-    const rows2: [string, string, [number,number,number]][] = [
-      ["Status", invoice.status.toUpperCase(), isPaid ? C.green : C.red],
-      ["Method", "UPI / Cash / Card", C.text],
-    ];
-    rows2.forEach(([label, val, color]) => {
-      setColor(doc, C.gray400);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(7.5);
-      doc.text(label + ":", 16, y);
-      setColor(doc, color);
-      doc.setFont("helvetica", "bold");
-      doc.text(val, 16 + 22, y);
-      y += 7;
+    // ── Itemized Table ────────────────────────────────────────────────────────
+    autoTable(doc, {
+      startY: y,
+      head: [["S.No", "Description / Procedure", "Tooth", "Amount (INR)"]],
+      body: invoice.items.map((item, i) => [
+        (i + 1).toString(),
+        item.description,
+        item.toothNumber || "—",
+        item.amount.toLocaleString("en-IN")
+      ]),
+      theme: "plain",
+      headStyles: { fillColor: P.primary, textColor: P.white, fontSize: 9, fontStyle: "bold", cellPadding: 4 },
+      bodyStyles: { fontSize: 9, textColor: P.text, cellPadding: 4 },
+      columnStyles: {
+        0: { cellWidth: 15, halign: "center" },
+        2: { cellWidth: 20, halign: "center" },
+        3: { cellWidth: 35, halign: "right", fontStyle: "bold" }
+      },
+      margin: { left: 15, right: 15 },
     });
 
-    // Notes Box — re-anchor Y to same row
-    const notesBoxY = (doc as any).lastAutoTable?.finalY
-      ? (doc as any).lastAutoTable.finalY + 34
-      : y - 19;
+    y = (doc as any).lastAutoTable.finalY + 10;
 
-    const nx = W / 2 + 3;
-    setFill(doc, C.gray100);
-    setStroke(doc, C.gray200);
-    doc.setLineWidth(0.3);
-    doc.roundedRect(nx, notesBoxY - bh + 5, bw, bh, 3, 3, "FD");
-    sectionHeader(doc, "Notes & Terms", notesBoxY - bh + 5, W);
+    // ── Financial Calculation ─────────────────────────────────────────────────
+    const calcW = 70;
+    const calcX = W - 15 - calcW;
 
-    setColor(doc, C.gray400);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-    const notes = [
-      "Follow-up within 7 days is complimentary.",
-      "Retain this invoice for insurance claims.",
-      "Queries: care@siaradental.in",
-    ];
-    notes.forEach((n, i) => {
-      doc.text(`• ${n}`, nx + 5, notesBoxY - bh + 18 + i * 6);
-    });
+    // Subtotal
+    setC(doc, P.muted);
+    doc.setFontSize(9);
+    doc.text("Subtotal", calcX, y);
+    setC(doc, P.dark);
+    doc.text(`INR ${invoice.total.toLocaleString("en-IN")}`, W - 15, y, { align: "right" });
 
-    // ── Signature ─────────────────────────────────────────────────────────────
-    const sigY = H - 36;
-    const sigX = W - 65;
-    setStroke(doc, C.dark);
-    doc.setLineWidth(0.5);
-    doc.line(sigX, sigY, W - 12, sigY);
-    setColor(doc, C.dark);
+    // Payment History
+    if (invoice.payments && invoice.payments.length > 0) {
+      invoice.payments.forEach(pay => {
+        y += 6;
+        setC(doc, P.muted);
+        doc.setFontSize(8);
+        doc.text(`Payment (${new Date(pay.date).toLocaleDateString('en-GB')})`, calcX, y);
+        setC(doc, P.text);
+        doc.text(`- INR ${pay.amount.toLocaleString("en-IN")}`, W - 15, y, { align: "right" });
+      });
+    }
+
+    y += 8;
+    setF(doc, P.primaryLight);
+    doc.rect(calcX - 5, y - 5, calcW + 5, 12, "F");
+
+    setC(doc, P.primaryDark);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.text("Authorized Signatory", sigX + 26, sigY + 6, { align: "center" });
-    setColor(doc, C.gray400);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
-    doc.text("Dr. Saikiran Reddy  |  BDS, MDS", sigX + 26, sigY + 11, { align: "center" });
+    doc.setFontSize(11);
+    doc.text("BALANCE DUE", calcX, y + 3);
 
-    drawFooter(doc, W, H);
-    doc.save(`Invoice_${patient.name}_${invoice.id}.pdf`);
+    const balance = invoice.total - (invoice.paidAmount || 0);
+    doc.text(`INR ${balance.toLocaleString("en-IN")}`, W - 15, y + 3, { align: "right" });
+
+    // ── Footer & Sign ─────────────────────────────────────────────────────────
+    drawProfessionalFooter(doc, W, H);
+
+    setC(doc, P.muted);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.text("This is a computer generated invoice and does not require a physical signature.", W / 2, H - 35, { align: "center" });
+
+    // Signature Area
+    setC(doc, P.dark);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.text("Authorized Signatory", W - 15, H - 38, { align: "right" });
+
+    setC(doc, P.text);
+    doc.setFontSize(8);
+    doc.text(DOCTOR_NAME, W - 15, H - 33, { align: "right" });
+
+    setC(doc, P.muted);
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "normal");
+    doc.text(`BDS, MDS | Reg. No: ${REG_NO}`, W - 15, H - 29, { align: "right" });
+
+    doc.save(`Invoice_${invoice.id}_${patient.name.replace(/\s+/g, '_')}.pdf`);
   },
 };

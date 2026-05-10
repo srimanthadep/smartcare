@@ -67,6 +67,9 @@ class DbService {
       return rows.map(r => ({
         ...r,
         patientId: r.patient_id,
+        patientName: r.patient_name,
+        patientPhone: r.patient_phone,
+        paidAmount: r.paid_amount,
         date: r.date ? new Date(r.date).toLocaleDateString('en-CA') : null
       }));
     }
