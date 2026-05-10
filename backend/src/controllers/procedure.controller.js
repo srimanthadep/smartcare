@@ -2,7 +2,7 @@ import { dbService } from '../services/db.service.js';
 
 export const getProcedures = async (req, res, next) => {
   try {
-    const result = await dbService.query('SELECT * FROM clinical_procedures ORDER BY name ASC');
+    const result = await dbService.query('SELECT * FROM clinical_procedures WHERE is_deleted = FALSE ORDER BY name ASC');
     res.json({ data: result.rows });
   } catch (error) {
     next(error);
@@ -34,7 +34,7 @@ export const updateProcedure = async (req, res, next) => {
     const query = `
       UPDATE clinical_procedures
       SET name = COALESCE($1, name), price = COALESCE($2, price)
-      WHERE id = $3
+      WHERE id = $3 AND is_deleted = FALSE
       RETURNING *
     `;
     const result = await dbService.query(query, [name, price, id]);
@@ -52,7 +52,7 @@ export const updateProcedure = async (req, res, next) => {
 export const deleteProcedure = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const result = await dbService.query('DELETE FROM clinical_procedures WHERE id = $1 RETURNING id', [id]);
+    const result = await dbService.query('UPDATE clinical_procedures SET is_deleted = TRUE WHERE id = $1 RETURNING id', [id]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ message: 'Procedure not found' });

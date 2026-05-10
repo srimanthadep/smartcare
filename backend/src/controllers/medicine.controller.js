@@ -13,7 +13,7 @@ export const searchMedicines = async (req, res, next) => {
     const savedQuery = `
       SELECT id, name as brand_name, dose as strength, frequency, duration
       FROM saved_medicines
-      WHERE name ILIKE $1
+      WHERE name ILIKE $1 AND is_deleted = FALSE
       ORDER BY updated_at DESC
       LIMIT 5
     `;

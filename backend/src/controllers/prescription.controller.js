@@ -6,13 +6,12 @@ import { emitEvent, SOCKET_EVENTS } from '../services/socket.service.js';
 
 export const getPrescriptions = async (req, res, next) => {
   try {
-    const { patientId } = req.query;
-    let query = 'SELECT * FROM prescriptions';
+    let query = 'SELECT * FROM prescriptions WHERE is_deleted = FALSE';
     const params = [];
 
     if (patientId) {
       params.push(patientId);
-      query += ' WHERE patient_id = $1';
+      query += ' AND patient_id = $1';
     }
     query += ' ORDER BY date DESC';
 
@@ -157,7 +156,7 @@ export const updatePrescription = async (req, res, next) => {
 export const deletePrescription = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const result = await dbService.query('DELETE FROM prescriptions WHERE id = $1 RETURNING id', [id]);
+    const result = await dbService.query('UPDATE prescriptions SET is_deleted = TRUE WHERE id = $1 RETURNING id', [id]);
     if (result.rows.length === 0) return res.status(404).json({ message: 'Prescription not found' });
     
     await activityService.log(req.user.sub, req.user.username, 'Delete Prescription', `Deleted prescription ${id}`, req.ip);

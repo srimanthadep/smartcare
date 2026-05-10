@@ -6,7 +6,7 @@ export const getTreatmentPlans = async (req, res, next) => {
     const { patientId } = req.query;
     if (!patientId) return res.status(400).json({ message: 'patientId is required' });
 
-    const result = await dbService.query('SELECT * FROM treatment_plans WHERE patient_id = $1 ORDER BY created_at DESC', [patientId]);
+    const result = await dbService.query('SELECT * FROM treatment_plans WHERE patient_id = $1 AND is_deleted = FALSE ORDER BY created_at DESC', [patientId]);
     res.json(dbService.mapRows('treatment_plans', result.rows));
   } catch (error) {
     next(error);
@@ -73,7 +73,7 @@ export const updateTreatmentPlan = async (req, res, next) => {
 export const deleteTreatmentPlan = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const result = await dbService.query('DELETE FROM treatment_plans WHERE id = $1 RETURNING id', [id]);
+    const result = await dbService.query('UPDATE treatment_plans SET is_deleted = TRUE WHERE id = $1 RETURNING id', [id]);
     if (result.rows.length === 0) return res.status(404).json({ message: 'Treatment plan not found' });
     res.status(204).end();
   } catch (error) {

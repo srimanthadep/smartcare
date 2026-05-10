@@ -8,7 +8,7 @@ export const getPatients = async (req, res, next) => {
   try {
     const { search, status, gender, from, to } = req.query;
 
-    let query = 'SELECT * FROM patients WHERE 1=1';
+    let query = 'SELECT * FROM patients WHERE is_deleted = FALSE';
     const params = [];
 
     if (search) {
@@ -188,7 +188,8 @@ export const deletePatient = async (req, res, next) => {
     const patientName = patientRes.rows[0].name;
     
     // Cascading deletes handled by foreign keys in DB (on delete cascade)
-    await dbService.query('DELETE FROM patients WHERE id = $1', [id]);
+    const result = await dbService.query('UPDATE patients SET is_deleted = TRUE WHERE id = $1 RETURNING id', [id]);
+    if (result.rows.length === 0) return res.status(404).json({ message: 'Patient not found' });
     
     await activityService.log(req.user.sub, req.user.username, 'Delete Patient', `Deleted patient ${patientName} (${id})`, req.ip);
 

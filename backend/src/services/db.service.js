@@ -27,7 +27,12 @@ class DbService {
 
     // Run queries in parallel for better performance
     const results = await Promise.all(
-      tables.map(table => this.query(`SELECT * FROM ${table}`))
+      tables.map(table => {
+        // Exclude deleted items from tables that support soft delete
+        const noSoftDelete = ['activity_logs', 'doctors', 'diagnoses', 'reports', 'medicines'];
+        const filter = noSoftDelete.includes(table) ? '' : ' WHERE is_deleted = FALSE';
+        return this.query(`SELECT * FROM ${table}${filter}`);
+      })
     );
 
     tables.forEach((table, index) => {

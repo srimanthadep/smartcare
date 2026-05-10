@@ -8,7 +8,7 @@ export const login = async (req, res, next) => {
   try {
     const { username, password, role } = req.body;
     
-    const userRes = await dbService.query('SELECT * FROM users WHERE LOWER(username) = $1 AND role = $2', [username.toLowerCase(), role]);
+    const userRes = await dbService.query('SELECT * FROM users WHERE LOWER(username) = $1 AND role = $2 AND is_deleted = FALSE', [username.toLowerCase(), role]);
     const user = userRes.rows[0];
 
     if (!user || !bcrypt.compareSync(password, user.password)) {
@@ -49,7 +49,7 @@ export const register = async (req, res, next) => {
   try {
     const { name, email, username, password, role } = req.body;
     
-    const checkRes = await dbService.query('SELECT id FROM users WHERE LOWER(username) = $1', [username.toLowerCase()]);
+    const checkRes = await dbService.query('SELECT id FROM users WHERE LOWER(username) = $1 AND is_deleted = FALSE', [username.toLowerCase()]);
     if (checkRes.rows.length > 0) {
       return res.status(400).json({ message: 'Username already taken' });
     }
@@ -96,7 +96,7 @@ export const register = async (req, res, next) => {
 
 export const getMe = async (req, res, next) => {
   try {
-    const userRes = await dbService.query('SELECT id, name, username, role, avatar FROM users WHERE id = $1', [req.user.sub]);
+    const userRes = await dbService.query('SELECT id, name, username, role, avatar FROM users WHERE id = $1 AND is_deleted = FALSE', [req.user.sub]);
     const user = userRes.rows[0];
     if (!user) return res.status(404).json({ message: 'User not found' });
     

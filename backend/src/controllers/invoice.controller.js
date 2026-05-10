@@ -6,7 +6,7 @@ import { emitEvent, SOCKET_EVENTS } from '../services/socket.service.js';
 export const getInvoices = async (req, res, next) => {
   try {
     const { patientId } = req.query;
-    let query = 'SELECT * FROM invoices WHERE 1=1';
+    let query = 'SELECT * FROM invoices WHERE is_deleted = FALSE';
     const params = [];
 
     if (patientId) {
@@ -111,7 +111,7 @@ export const updateInvoice = async (req, res, next) => {
 export const deleteInvoice = async (req, res, next) => {
   try {
     const { id } = req.params;
-    await dbService.query('DELETE FROM invoices WHERE id = $1', [id]);
+    await dbService.query('UPDATE invoices SET is_deleted = TRUE WHERE id = $1', [id]);
     emitEvent(SOCKET_EVENTS.INVOICE_UPDATED, { id, deleted: true });
     res.status(204).end();
   } catch (error) {

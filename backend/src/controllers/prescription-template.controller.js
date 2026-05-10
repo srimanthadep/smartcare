@@ -2,7 +2,7 @@ import { dbService } from '../services/db.service.js';
 
 export const getTemplates = async (req, res, next) => {
   try {
-    const result = await dbService.query('SELECT * FROM prescription_templates ORDER BY name ASC');
+    const result = await dbService.query('SELECT * FROM prescription_templates WHERE is_deleted = FALSE ORDER BY name ASC');
     res.json({ data: dbService.mapRows('prescription_templates', result.rows) });
   } catch (error) {
     next(error);
@@ -46,7 +46,7 @@ export const updateTemplate = async (req, res, next) => {
 export const deleteTemplate = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const result = await dbService.query('DELETE FROM prescription_templates WHERE id = $1', [id]);
+    const result = await dbService.query('UPDATE prescription_templates SET is_deleted = TRUE WHERE id = $1', [id]);
     
     if (result.rowCount === 0) return res.status(404).json({ message: 'Template not found' });
     
