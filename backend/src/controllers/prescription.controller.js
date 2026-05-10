@@ -54,7 +54,7 @@ export const createPrescription = async (req, res, next) => {
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *
     `;
-    const params = [id, patientId, doctorName, pxDate, JSON.stringify(medicines), notes, chiefComplaint, diagnosis, nextVisitDate, JSON.stringify(treatmentPlan || [])];
+    const params = [id, patientId, doctorName, pxDate, JSON.stringify(medicines), notes, chiefComplaint, diagnosis, nextVisitDate || null, JSON.stringify(treatmentPlan || [])];
     const result = await dbService.query(query, params);
     const prescription = dbService.mapRows('prescriptions', result.rows)[0];
 
@@ -127,8 +127,11 @@ export const updatePrescription = async (req, res, next) => {
       const dbKey = mapping[key] || key;
       if (!ALLOWED_COLUMNS.includes(dbKey)) continue;
 
+      let finalValue = (key === 'medicines' || key === 'treatmentPlan' || key === 'treatment_plan') ? JSON.stringify(value) : value;
+      if (dbKey === 'next_visit_date' && finalValue === '') finalValue = null;
+      
       updates.push(`${dbKey} = $${i}`);
-      params.push((key === 'medicines' || key === 'treatmentPlan' || key === 'treatment_plan') ? JSON.stringify(value) : value);
+      params.push(finalValue);
       i++;
     }
 
