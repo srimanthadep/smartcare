@@ -101,22 +101,24 @@ class DbService {
     console.warn('dbService.write() called - this is a no-op. Please use targeted SQL updates.');
   }
 
-  async generateId(prefix, existingIds) {
-    // existingIds is ignored, we check the DB directly
-    let tableName = '';
-    switch (prefix) {
-      case 'P': tableName = 'patients'; break;
-      case 'U': tableName = 'users'; break;
-      case 'D': tableName = 'doctors'; break;
-      case 'A': tableName = 'appointments'; break;
-      case 'INV': tableName = 'invoices'; break;
-      case 'PR': tableName = 'prescriptions'; break;
-      case 'RX': tableName = 'prescriptions'; break; // Compatibility fallback
-      case 'TPL': tableName = 'prescription_templates'; break;
-      case 'DIAG': tableName = 'diagnoses'; break;
-      case 'TP': tableName = 'treatment_plans'; break;
+  async generateId(prefix, targetTable) {
+    let tableName = targetTable;
+    
+    if (!tableName) {
+      switch (prefix) {
+        case 'P': tableName = 'patients'; break;
+        case 'U': tableName = 'users'; break;
+        case 'D': tableName = 'doctors'; break;
+        case 'A': tableName = 'appointments'; break;
+        case 'INV': tableName = 'invoices'; break;
+        case 'PR': tableName = 'prescriptions'; break;
+        case 'RX': tableName = 'prescriptions'; break;
+        case 'TPL': tableName = 'prescription_templates'; break;
+        case 'DIAG': tableName = 'diagnoses'; break;
+        case 'TP': tableName = 'treatment_plans'; break;
 
-      default: return `${prefix}${Date.now()}`;
+        default: return `${prefix}${Date.now()}`;
+      }
     }
 
     const res = await this.query(`SELECT id FROM ${tableName} WHERE id LIKE $1 ORDER BY id DESC LIMIT 1`, [`${prefix}%`]);

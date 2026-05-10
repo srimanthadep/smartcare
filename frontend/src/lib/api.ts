@@ -263,7 +263,7 @@ export const api = {
 
   updateProcedure(id: string, payload: any) {
     return apiFetch<{ data: import("@/types").Procedure }>(`/api/procedures/${id}`, {
-      method: "PUT",
+      method: "PATCH",
       body: JSON.stringify(payload),
     });
   },

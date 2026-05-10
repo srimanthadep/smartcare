@@ -8,7 +8,7 @@ router.use(auth);
 
 router.get('/', procedureController.getProcedures);
 router.post('/', procedureController.createProcedure);
-router.put('/:id', procedureController.updateProcedure);
+router.patch('/:id', procedureController.updateProcedure);
 router.delete('/:id', procedureController.deleteProcedure);
 
 export default router;
