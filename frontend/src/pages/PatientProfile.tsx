@@ -666,6 +666,7 @@ interface TreatmentPlansSectionProps {
 }
 
 const TreatmentPlansSection: React.FC<TreatmentPlansSectionProps> = ({ patientId, patientName }) => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: plans = [], isLoading } = useQuery({
     queryKey: ["treatment-plans", patientId],
