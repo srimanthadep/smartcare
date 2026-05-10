@@ -229,6 +229,24 @@ body { background:#f5f7fb; font-family:'Poppins', sans-serif; padding:40px 15px;
       </div>
     `).join('');
 
+    let treatmentPlanHtml = '';
+    if (prescription.treatmentPlan && prescription.treatmentPlan.length > 0) {
+      treatmentPlanHtml = `
+        <div class="section-title">Recommended Treatment Plan</div>
+        <div style="background:#fdf4ff; border:1px solid #f5d0fe; border-radius:18px; padding:20px; margin-bottom:25px;">
+          ${prescription.treatmentPlan.map(p => `
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid rgba(217,70,239,0.1);">
+              <div style="flex:1;">
+                <div style="font-weight:700; color:#701a75; font-size:15px;">${p.name}</div>
+                ${p.description ? `<div style="font-size:12px; color:#a21caf; margin-top:2px;">${p.description}</div>` : ''}
+              </div>
+              <div style="font-weight:700; color:#c026d3; font-size:15px;">₹${p.estimatedCost?.toLocaleString()}</div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
     const html = `
 <!DOCTYPE html>
 <html lang="en">
@@ -281,6 +299,8 @@ body { background:#f5f7fb; font-family:'Poppins', sans-serif; padding:40px 15px;
         <strong>Doctor:</strong> Dr. Saikiran (Siara Dental)
       </div>
     </div>
+
+    ${treatmentPlanHtml}
 
     <div class="section-title">Prescribed Medications</div>
     <div class="medications-list">

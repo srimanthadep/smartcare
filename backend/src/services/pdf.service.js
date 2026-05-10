@@ -19,61 +19,114 @@ export const pdfService = {
 
       // Header
       if (fs.existsSync(LOGO_PATH)) {
-        doc.image(LOGO_PATH, 50, 45, { width: 50 });
+        doc.image(LOGO_PATH, 50, 40, { width: 45 });
       }
       
-      doc.fillColor('#0070f3').fontSize(24).text('Siara Dental Clinic', 110, 50);
-      doc.fillColor('#666666').fontSize(10).text('123 Dental Street, Healthcare City', 110, 80);
-      doc.text('Phone: +91 98765 43210 | Email: contact@siaradental.com', 110, 95);
+      doc.fillColor('#1d0d08').fontSize(22).font('Helvetica-Bold').text('SIARA DENTAL', 110, 45);
+      doc.fillColor('#ff7a1a').fontSize(8).text('CREATING MILES OF SMILES', 110, 68, { characterSpacing: 1.5 });
+      doc.fillColor('#666666').fontSize(8).font('Helvetica').text('Omini Hospital Road, opp. Nayara Petrol bunk, Hyderabad', 110, 85);
+      doc.text('Ph: +91 89198 78543 | Web: www.siaradental.in', 110, 95);
 
-      doc.moveTo(50, 115).lineTo(550, 115).strokeColor('#0070f3').lineWidth(1).stroke();
+      doc.moveTo(50, 115).lineTo(550, 115).strokeColor('#ff7a1a').lineWidth(1.5).stroke();
 
       // Title
-      doc.fillColor('#000000').fontSize(20).text('PRESCRIPTION', 0, 140, { align: 'center' });
+      doc.fillColor('#1d0d08').fontSize(18).font('Helvetica-Bold').text('PRESCRIPTION', 0, 135, { align: 'center' });
 
       // Patient Info
-      doc.roundedRect(50, 170, 500, 50, 5).fill('#f5f7fa').stroke();
-      doc.fillColor('#666666').fontSize(10).text('PATIENT DETAILS', 60, 180);
-      doc.fillColor('#000000').fontSize(12).text(`Name: ${patient.name}`, 60, 195);
-      doc.text(`Age/Sex: ${patient.age}Y / ${patient.gender}`, 60, 210);
-      doc.text(`ID: ${patient.id}`, 400, 195);
-      doc.text(`Date: ${prescription.date}`, 400, 210);
+      doc.roundedRect(50, 160, 500, 55, 8).fill('#fff3ea').strokeColor('#ffb27a').lineWidth(0.5).stroke();
+      doc.fillColor('#ff7a1a').fontSize(8).font('Helvetica-Bold').text('PATIENT DETAILS', 65, 170);
+      doc.fillColor('#1d0d08').fontSize(11).font('Helvetica-Bold').text(`Name: ${patient.name}`, 65, 185);
+      doc.fontSize(9).font('Helvetica').text(`Age/Gender: ${patient.age}Y / ${patient.gender}`, 65, 200);
+      doc.fontSize(9).text(`Prescription ID: ${prescription.id}`, 380, 185);
+      doc.fontSize(9).text(`Date: ${prescription.date}`, 380, 200);
+
+      let y = 230;
+
+      // Chief Complaint & Diagnosis
+      if (prescription.chiefComplaint) {
+        doc.fillColor('#ff7a1a').fontSize(9).font('Helvetica-Bold').text('1. CHIEF COMPLAINT', 50, y);
+        doc.fillColor('#444444').fontSize(10).font('Helvetica').text(prescription.chiefComplaint, 60, y + 15);
+        y += 45;
+      }
+
+      if (prescription.diagnosis) {
+        doc.fillColor('#ff7a1a').fontSize(9).font('Helvetica-Bold').text('2. DIAGNOSIS', 50, y);
+        doc.fillColor('#444444').fontSize(10).font('Helvetica').text(prescription.diagnosis, 60, y + 15);
+        y += 45;
+      }
+
+      // Treatment Plan
+      if (prescription.treatmentPlan && prescription.treatmentPlan.length > 0) {
+        doc.fillColor('#ff7a1a').fontSize(9).font('Helvetica-Bold').text('3. TREATMENT PLAN', 50, y);
+        y += 18;
+        
+        doc.fillColor('#1d0d08').fontSize(8).font('Helvetica-Bold').text('Phase / Procedure', 60, y);
+        doc.text('Estimated Cost', 450, y, { align: 'right' });
+        
+        doc.moveTo(50, y + 10).lineTo(550, y + 10).strokeColor('#ffb27a').lineWidth(0.5).stroke();
+        y += 18;
+
+        prescription.treatmentPlan.forEach((p) => {
+          doc.fillColor('#444444').fontSize(9).font('Helvetica').text(p.name, 60, y);
+          doc.fillColor('#1d0d08').font('Helvetica-Bold').text(`Rs.${p.estimatedCost?.toLocaleString()}`, 450, y, { align: 'right' });
+          y += 15;
+          if (p.description) {
+            doc.fillColor('#888888').fontSize(8).font('Helvetica').text(p.description, 65, y);
+            y += 12;
+          }
+          y += 5;
+        });
+        y += 10;
+      }
 
       // Rx
-      doc.fillColor('#0070f3').fontSize(18).text('Rx', 50, 240);
+      doc.fillColor('#ff7a1a').fontSize(14).font('Helvetica-Bold').text('Rx', 50, y);
+      y += 20;
 
-      // Medicines
-      let y = 270;
-      doc.fillColor('#0070f3').fontSize(10).text('#', 50, y);
-      doc.text('Medicine Name', 80, y);
-      doc.text('Dosage', 250, y);
-      doc.text('Frequency', 350, y);
-      doc.text('Duration', 450, y);
+      // Medicines Table Header
+      doc.roundedRect(50, y, 500, 20, 4).fill('#fff3ea');
+      doc.fillColor('#ff7a1a').fontSize(8).font('Helvetica-Bold').text('Medicine Name', 60, y + 7);
+      doc.text('Dosage', 250, y + 7);
+      doc.text('Frequency', 350, y + 7);
+      doc.text('Duration', 450, y + 7);
       
-      doc.moveTo(50, y + 15).lineTo(550, y + 15).strokeColor('#eeeeee').stroke();
-      
-      y += 25;
-      doc.fillColor('#000000');
+      y += 28;
+      doc.fillColor('#000000').font('Helvetica');
       prescription.medicines.forEach((m, i) => {
-        doc.text(i + 1, 50, y);
-        doc.font('Helvetica-Bold').text(m.name, 80, y).font('Helvetica');
+        if (y > 700) { doc.addPage(); y = 50; }
+        doc.fontSize(9).font('Helvetica-Bold').text(m.name, 60, y).font('Helvetica');
         doc.text(m.dosage, 250, y);
         doc.text(m.frequency, 350, y);
         doc.text(m.duration, 450, y);
-        y += 20;
+        y += 18;
+        doc.moveTo(50, y - 5).lineTo(550, y - 5).strokeColor('#eeeeee').lineWidth(0.5).stroke();
       });
 
       // Notes
       if (prescription.notes) {
-        y += 20;
-        doc.font('Helvetica-Bold').fontSize(12).text('Clinical Notes / Advice:', 50, y);
-        doc.font('Helvetica').fontSize(10).fillColor('#666666').text(prescription.notes, 50, y + 15);
+        y += 15;
+        if (y > 700) { doc.addPage(); y = 50; }
+        doc.fillColor('#ff7a1a').fontSize(9).font('Helvetica-Bold').text('CLINICAL ADVICE & NOTES:', 50, y);
+        doc.fillColor('#444444').fontSize(9).font('Helvetica').text(prescription.notes, 55, y + 15);
+        y += 40;
+      }
+
+      // Next Visit
+      if (prescription.nextVisitDate) {
+        if (y > 720) { doc.addPage(); y = 50; }
+        doc.roundedRect(50, y, 500, 25, 5).fill('#fffbeb');
+        doc.fillColor('#d97706').fontSize(8).font('Helvetica-Bold').text('NEXT VISIT SCHEDULED ON:', 65, y + 8);
+        doc.fontSize(11).text(new Date(prescription.nextVisitDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }), 65, y + 18);
+        y += 40;
       }
 
       // Footer
-      doc.moveTo(50, 700).lineTo(550, 700).strokeColor('#eeeeee').stroke();
-      doc.fillColor('#999999').fontSize(10).text('Authorized Signatory', 400, 720);
-      doc.text(prescription.doctorName || 'Dr. Saikiran', 400, 735);
+      const footerY = 750;
+      doc.moveTo(50, footerY).lineTo(550, footerY).strokeColor('#ff7a1a').lineWidth(1).stroke();
+      doc.fillColor('#1d0d08').fontSize(10).font('Helvetica-Bold').text(prescription.doctorName || 'Dr. Saikiran Reddy', 400, footerY + 15);
+      doc.fillColor('#666666').fontSize(8).font('Helvetica').text('BDS, MDS | Reg No: A-12345', 400, footerY + 28);
+      doc.fillColor('#999999').fontSize(7).text('Thank you for trusting Siara Dental.', 50, footerY + 15);
+      doc.text('www.siaradental.in', 50, footerY + 25);
 
       doc.end();
     });

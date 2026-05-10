@@ -214,6 +214,46 @@ export const pdfService = {
       y += lines.length * 5.5 + 6;
     }
 
+    // ── Treatment Plan ────────────────────────────────────────────────────────
+    if (prescription.treatmentPlan && prescription.treatmentPlan.length > 0) {
+      y = sectionHeader(doc, "Treatment Plan", y, W);
+      y += 2;
+      
+      const tpRows = prescription.treatmentPlan.map((p) => [
+        p.name,
+        p.description || "—",
+        `Rs.${p.estimatedCost?.toLocaleString("en-IN") || "0"}`
+      ]);
+
+      autoTable(doc, {
+        startY: y,
+        head: [["Phase / Procedure", "Description", "Est. Cost"]],
+        body: tpRows,
+        theme: "plain",
+        headStyles: {
+          fillColor: C.orangeLight,
+          textColor: C.orange,
+          fontSize: 8,
+          fontStyle: "bold",
+          cellPadding: { top: 4, bottom: 4, left: 4, right: 4 },
+        },
+        bodyStyles: {
+          fontSize: 8.5,
+          cellPadding: { top: 4, bottom: 4, left: 4, right: 4 },
+          textColor: C.text,
+        },
+        alternateRowStyles: { fillColor: C.gray100 },
+        columnStyles: {
+          0: { fontStyle: "bold", cellWidth: 50 },
+          2: { halign: "right", fontStyle: "bold", cellWidth: 30 },
+        },
+        margin: { left: 12, right: 12 },
+        tableLineColor: C.gray200,
+        tableLineWidth: 0.3,
+      });
+      y = (doc as any).lastAutoTable.finalY + 8;
+    }
+
     // ── Medications ───────────────────────────────────────────────────────────
     y = sectionHeader(doc, "Medications", y, W);
     y += 2;

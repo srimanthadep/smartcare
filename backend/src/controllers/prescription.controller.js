@@ -46,15 +46,15 @@ const saveMedicines = async (medicines) => {
 export const createPrescription = async (req, res, next) => {
   try {
     const id = await dbService.generateId('PR', 'prescriptions');
-    const { patientId, patientName, doctorName, date, medicines, notes, chiefComplaint, diagnosis, nextVisitDate } = req.body;
+    const { patientId, patientName, doctorName, date, medicines, notes, chiefComplaint, diagnosis, nextVisitDate, treatmentPlan } = req.body;
     const pxDate = date || new Date().toISOString().slice(0, 10);
 
     const query = `
-      INSERT INTO prescriptions (id, patient_id, doctor_name, date, medicines, notes, chief_complaint, diagnosis, next_visit_date)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      INSERT INTO prescriptions (id, patient_id, doctor_name, date, medicines, notes, chief_complaint, diagnosis, next_visit_date, treatment_plan)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *
     `;
-    const params = [id, patientId, doctorName, pxDate, JSON.stringify(medicines), notes, chiefComplaint, diagnosis, nextVisitDate];
+    const params = [id, patientId, doctorName, pxDate, JSON.stringify(medicines), notes, chiefComplaint, diagnosis, nextVisitDate, JSON.stringify(treatmentPlan || [])];
     const result = await dbService.query(query, params);
     const prescription = dbService.mapRows('prescriptions', result.rows)[0];
 
@@ -75,6 +75,28 @@ export const createPrescription = async (req, res, next) => {
     
     // Save medicines for future recommendations
     await saveMedicines(medicines);
+
+    // Sync Treatment Plan to standalone table if provided
+    if (treatmentPlan && Array.isArray(treatmentPlan) && treatmentPlan.length > 0) {
+      try {
+        const tpId = await dbService.generateId('TP', 'treatment_plans');
+        const totalCost = treatmentPlan.reduce((sum, phase) => sum + (Number(phase.estimatedCost) || 0), 0);
+        
+        const tpQuery = `
+          INSERT INTO treatment_plans (id, patient_id, dentist_name, notes, phases, total_cost, status)
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `;
+        await dbService.query(tpQuery, [
+          tpId, patientId, doctorName || req.user.username, 
+          `Generated from Prescription ${id}`, 
+          JSON.stringify(treatmentPlan), 
+          totalCost, 'Active'
+        ]);
+        emitEvent(SOCKET_EVENTS.PATIENT_UPDATED, { id: patientId, updateType: 'TREATMENT_PLAN' });
+      } catch (tpErr) {
+        console.error('Error syncing treatment plan from prescription:', tpErr);
+      }
+    }
 
     emitEvent(SOCKET_EVENTS.PRESCRIPTION_UPDATED, prescription);
     res.status(201).json(prescription);
@@ -99,14 +121,14 @@ export const updatePrescription = async (req, res, next) => {
       nextVisitDate: 'next_visit_date'
     };
 
-    const ALLOWED_COLUMNS = ['patient_id', 'doctor_name', 'date', 'medicines', 'notes', 'chief_complaint', 'diagnosis', 'next_visit_date'];
+    const ALLOWED_COLUMNS = ['patient_id', 'doctor_name', 'date', 'medicines', 'notes', 'chief_complaint', 'diagnosis', 'next_visit_date', 'treatment_plan'];
 
     for (const [key, value] of Object.entries(fields)) {
       const dbKey = mapping[key] || key;
       if (!ALLOWED_COLUMNS.includes(dbKey)) continue;
 
       updates.push(`${dbKey} = $${i}`);
-      params.push(key === 'medicines' ? JSON.stringify(value) : value);
+      params.push((key === 'medicines' || key === 'treatmentPlan' || key === 'treatment_plan') ? JSON.stringify(value) : value);
       i++;
     }
 

@@ -68,6 +68,7 @@ export interface Prescription {
   chiefComplaint?: string;
   diagnosis?: string;
   nextVisitDate?: string;
+  treatmentPlan?: TreatmentPhase[];
 }
 
 export interface InvoiceLineItem {

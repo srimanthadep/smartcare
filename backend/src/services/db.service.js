@@ -73,7 +73,8 @@ class DbService {
         date: r.date ? new Date(r.date).toLocaleDateString('en-CA') : null,
         chiefComplaint: r.chief_complaint,
         diagnosis: r.diagnosis,
-        nextVisitDate: r.next_visit_date ? new Date(r.next_visit_date).toLocaleDateString('en-CA') : null
+        nextVisitDate: r.next_visit_date ? new Date(r.next_visit_date).toLocaleDateString('en-CA') : null,
+        treatmentPlan: r.treatment_plan
       }));
     }
 
@@ -82,6 +83,15 @@ class DbService {
         ...r,
         patientId: r.patient_id,
         lastUpdated: r.last_updated
+      }));
+    }
+    if (table === 'treatment_plans') {
+      return rows.map(r => ({
+        ...r,
+        patientId: r.patient_id,
+        dentistName: r.dentist_name,
+        createdDate: r.created_date ? new Date(r.created_date).toLocaleDateString('en-CA') : null,
+        totalCost: Number(r.total_cost) || 0
       }));
     }
     if (table === 'activity_logs') {

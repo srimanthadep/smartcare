@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileText, MessageCircle, Plus, Printer, Share2, Trash2, Sparkles, Calendar } from "lucide-react";
@@ -19,6 +19,7 @@ import PrescriptionTemplateModal from "@/components/PrescriptionTemplateModal";
 import { pdfService } from "@/lib/pdfService";
 
 const Prescriptions: React.FC = () => {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const urlPatientId = searchParams.get("patientId");
   const editId = searchParams.get("editId");
@@ -93,6 +94,7 @@ const Prescriptions: React.FC = () => {
   const [chiefComplaint, setChiefComplaint] = useState("");
   const [diagnosis, setDiagnosis] = useState("");
   const [nextVisitDate, setNextVisitDate] = useState("");
+  const [treatmentPlan, setTreatmentPlan] = useState<any[]>([]);
   const [medicines, setMedicines] = useState([{ name: "", dosage: "", frequency: "", duration: "" }]);
 
   const patient = useMemo(() => patients.find((item) => item.id === patientId), [patientId, patients]);
@@ -119,6 +121,7 @@ const Prescriptions: React.FC = () => {
         setChiefComplaint(px.chiefComplaint || "");
         setDiagnosis(px.diagnosis || "");
         setNextVisitDate(px.nextVisitDate || "");
+        setTreatmentPlan(px.treatmentPlan || []);
       }
     }
   }, [editId, savedPrescriptions]);
@@ -142,7 +145,8 @@ const Prescriptions: React.FC = () => {
       notes,
       chiefComplaint,
       diagnosis,
-      nextVisitDate
+      nextVisitDate,
+      treatmentPlan
     };
 
     if (editId) {
@@ -204,7 +208,8 @@ const Prescriptions: React.FC = () => {
                 notes,
                 chiefComplaint,
                 diagnosis,
-                nextVisitDate
+                nextVisitDate,
+                treatmentPlan
               });
             }}
           >
@@ -287,7 +292,7 @@ const Prescriptions: React.FC = () => {
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-destructive font-bold">1. Chief Complaint</Label>
+                <Label className="text-primary font-bold">1. Chief Complaint</Label>
                 <Textarea 
                   value={chiefComplaint} 
                   onChange={(e) => setChiefComplaint(e.target.value)} 
@@ -298,22 +303,8 @@ const Prescriptions: React.FC = () => {
 
               <div className="pt-2">
                 <div className="flex items-center justify-between mb-2">
-                  <Label className="font-bold">2. Diagnosis</Label>
+                  <Label className="text-primary font-bold">2. Diagnosis</Label>
                   <div className="flex items-center gap-2">
-                    <div 
-                      className="group flex items-center gap-2 border border-amber-200 bg-amber-50/50 hover:bg-amber-100/80 transition-all duration-300 px-4 h-8 rounded-full shadow-sm shadow-amber-200/20 cursor-pointer relative"
-                    >
-                      <span className="text-[9px] uppercase font-bold text-amber-600/80 tracking-tight leading-none">Next Visit</span>
-                      <span className="text-[11px] font-bold text-amber-900 min-w-[70px] text-center">
-                        {nextVisitDate ? new Date(nextVisitDate).toLocaleDateString('en-GB').replace(/\//g, '-') : 'dd-mm-yyyy'}
-                      </span>
-                      <Input 
-                        type="date" 
-                        value={nextVisitDate} 
-                        onChange={(e) => setNextVisitDate(e.target.value)} 
-                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full p-0 border-none"
-                      />
-                    </div>
                     <Button 
                       size="sm" 
                       variant="secondary" 
@@ -346,9 +337,81 @@ const Prescriptions: React.FC = () => {
 
             <Separator />
 
+            {/* 3. Treatment Plan */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="font-bold text-primary">3. Treatment Plan</Label>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="h-7 text-[10px] uppercase font-bold"
+                  onClick={() => setTreatmentPlan([...treatmentPlan, { id: `TP-${Date.now()}`, name: "", description: "", estimatedCost: 0, status: "Planned", toothNumbers: [] }])}
+                >
+                  <Plus className="w-3 h-3 mr-1" /> Add Phase
+                </Button>
+              </div>
+              
+              <AnimatePresence>
+                {treatmentPlan.map((phase, idx) => (
+                  <motion.div 
+                    key={phase.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="p-3 border rounded-lg bg-indigo-50/30 space-y-3 relative"
+                  >
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="absolute top-2 right-2 h-6 w-6 text-destructive hover:bg-destructive/10"
+                      onClick={() => setTreatmentPlan(treatmentPlan.filter((_, i) => i !== idx))}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                    
+                    <div className="grid grid-cols-12 gap-3">
+                      <div className="col-span-12 sm:col-span-8">
+                        <Input 
+                          placeholder="Phase Name (e.g. Root Canal Treatment)" 
+                          value={phase.name}
+                          onChange={(e) => setTreatmentPlan(treatmentPlan.map((p, i) => i === idx ? { ...p, name: e.target.value } : p))}
+                          className="h-8 text-sm font-medium"
+                        />
+                      </div>
+                      <div className="col-span-12 sm:col-span-4">
+                        <Input 
+                          type="number"
+                          placeholder="Cost" 
+                          value={phase.estimatedCost || ""}
+                          onChange={(e) => setTreatmentPlan(treatmentPlan.map((p, i) => i === idx ? { ...p, estimatedCost: Number(e.target.value) } : p))}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <div className="col-span-12">
+                        <Input 
+                          placeholder="Description / Tooth Numbers" 
+                          value={phase.description}
+                          onChange={(e) => setTreatmentPlan(treatmentPlan.map((p, i) => i === idx ? { ...p, description: e.target.value } : p))}
+                          className="h-8 text-xs bg-white/50"
+                        />
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+              
+              {treatmentPlan.length === 0 && (
+                <div className="text-center py-4 border border-dashed rounded-lg text-muted-foreground text-xs">
+                  No treatment phases added. Recommended for complex procedures.
+                </div>
+              )}
+            </div>
+
+            <Separator />
+
             <div className="space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <p className="font-heading font-semibold text-primary">3. Medicines</p>
+                <Label className="text-primary font-bold">4. Medicines</Label>
               </div>
               {medicines.map((medicine, index) => (
                 <div key={index} className="rounded-lg border border-border/50 bg-secondary/20 p-4">
@@ -404,9 +467,35 @@ const Prescriptions: React.FC = () => {
               </Button>
             </div>
 
-            <div className="space-y-2">
-              <Label>Notes</Label>
-              <Textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Advice, follow-up, warnings..." />
+            <div className="pt-2">
+              <Label className="text-primary font-bold block mb-3">5. Next Visit & Notes</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
+                <div className="sm:col-span-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Schedule Follow-up</Label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-600" />
+                      <Input 
+                        type="date" 
+                        value={nextVisitDate} 
+                        onChange={(e) => setNextVisitDate(e.target.value)} 
+                        className="pl-10 border-amber-200 bg-amber-50/30 focus:ring-amber-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="sm:col-span-8">
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Clinical Advice</Label>
+                    <Textarea 
+                      value={notes} 
+                      onChange={(event) => setNotes(event.target.value)} 
+                      placeholder="Advice, follow-up, warnings..." 
+                      className="min-h-[80px]"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="flex items-center justify-between">
@@ -466,8 +555,28 @@ const Prescriptions: React.FC = () => {
 
                   <Separator className="opacity-50" />
 
+                  {treatmentPlan.length > 0 && (
+                    <>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">3. Treatment Plan</p>
+                        <div className="mt-2 space-y-2">
+                          {treatmentPlan.map((phase, i) => (
+                            <div key={i} className="flex justify-between items-start border-l-2 border-indigo-500 pl-3 py-1">
+                              <div>
+                                <p className="text-sm font-semibold">{phase.name || "Unnamed Phase"}</p>
+                                {phase.description && <p className="text-[11px] text-muted-foreground">{phase.description}</p>}
+                              </div>
+                              <p className="text-sm font-bold text-indigo-700">₹{phase.estimatedCost?.toLocaleString()}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <Separator className="opacity-50" />
+                    </>
+                  )}
+
                   <div>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">3. Medicines</p>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">4. Medicines</p>
                     <div className="mt-2 space-y-3">
                       {medicines.map((medicine, index) => (
                         <div key={index}>

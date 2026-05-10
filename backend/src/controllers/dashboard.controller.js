@@ -2,7 +2,10 @@ import { dbService } from '../services/db.service.js';
 
 export const getDashboard = async (req, res, next) => {
   try {
-    const { period = 'monthly' } = req.query;
+    let { period = 'monthly' } = req.query;
+    if (typeof period !== 'string' || period.includes('[object')) {
+      period = 'monthly';
+    }
     const now = new Date();
     const todayStr = now.toISOString().slice(0, 10);
 

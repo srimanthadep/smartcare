@@ -856,7 +856,7 @@ const TreatmentPlansSection: React.FC<TreatmentPlansSectionProps> = ({ patientId
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-medium">Total Cost</p>
-                  <p className="text-xs text-muted-foreground">₹{plan.totalCost.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">₹{(plan.totalCost || 0).toLocaleString()}</p>
                 </div>
               </div>
               <Progress value={getProgress(plan)} className="h-2" />
