@@ -6,6 +6,7 @@ import { emitEvent, SOCKET_EVENTS } from '../services/socket.service.js';
 
 export const getPrescriptions = async (req, res, next) => {
   try {
+    const { patientId } = req.query;
     let query = 'SELECT * FROM prescriptions WHERE is_deleted = FALSE';
     const params = [];
 

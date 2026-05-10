@@ -3,7 +3,7 @@ import { config } from '../config/env.js';
 
 export const auth = (req, res, next) => {
   const authHeader = req.headers.authorization;
-  const token = (authHeader && authHeader.split(' ')[1]) || req.cookies?.AuthToken || req.query.token;
+  const token = (authHeader && authHeader.split(' ')[1]) || req.cookies?.AuthToken;
 
   if (!token) {
     return res.status(401).json({ message: 'Authentication required' });

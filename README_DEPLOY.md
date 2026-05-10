@@ -18,7 +18,7 @@ This project is configured for a seamless deployment on [Render](https://render.
 
 ## 3. Environment Variables
 After the blueprint starts, you MUST manually set the following secret keys in the Render Dashboard for the **backend** service:
-- `MISTRAL_API_KEY`: `auXFbIRPeEgvOeXdC63QZHQYgm4RPcCE`
+- `MISTRAL_API_KEY`: Your Mistral API key from https://console.mistral.ai/
 - `RESEND_API_KEY`: `re_...` (your resend key)
 - `DATABASE_URL`: Your Supabase connection string.
 - `CORS_ORIGINS`: Set this to your frontend URL (e.g., `https://siara-dental.onrender.com`).

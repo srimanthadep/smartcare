@@ -11,12 +11,35 @@ import { initBackupService } from './src/services/backupService.js';
 import { dbService } from './src/services/db.service.js';
 import { initSocket } from './src/services/socket.service.js';
 
+import rateLimit from 'express-rate-limit';
+
 const app = express();
 const server = createServer(app);
 initSocket(server);
 
 // Security Middlewares
-app.use(helmet());
+// Global: 100 requests per minute per IP
+const globalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many requests, slow down.' },
+});
+app.use('/api', globalLimiter);
+
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", ...config.CORS_ORIGINS],
+    },
+  },
+  hsts: { maxAge: 31536000, includeSubDomains: true },
+}));
 app.use(cors({
   origin: config.CORS_ORIGINS,
   credentials: true,

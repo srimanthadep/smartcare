@@ -12,7 +12,7 @@ export const getTemplates = async (req, res, next) => {
 export const createTemplate = async (req, res, next) => {
   try {
     const { name, medicines, notes } = req.body;
-    const id = await dbService.generateId('TPL', []);
+    const id = await dbService.generateId('TPL', 'prescription_templates');
     
     const result = await dbService.query(
       'INSERT INTO prescription_templates (id, name, medicines, notes) VALUES ($1, $2, $3, $4) RETURNING *',
