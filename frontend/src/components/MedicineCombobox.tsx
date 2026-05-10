@@ -77,20 +77,32 @@ export function MedicineCombobox({ value, onChange, placeholder = "Search or typ
                   className="relative flex cursor-pointer select-none items-start flex-col gap-1 rounded-sm px-2 py-2.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
                 >
                   <div className="flex w-full items-center justify-between">
-                    <span className="font-medium">{medicine.brand_name}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{medicine.brand_name}</span>
+                      {medicine.is_saved && (
+                        <span className="text-[9px] bg-primary/20 text-primary font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider">
+                          Saved
+                        </span>
+                      )}
+                    </div>
                     {medicine.strength && (
                       <span className="text-xs text-muted-foreground ml-2 whitespace-nowrap">
                         {medicine.strength}
                       </span>
                     )}
                   </div>
-                  {medicine.generic_name && (
+                  {medicine.generic_name && !medicine.is_saved && (
                     <span className="text-xs text-muted-foreground truncate w-full">
                       {medicine.generic_name}
                     </span>
                   )}
+                  {(medicine.frequency || medicine.duration) && (
+                    <div className="text-xs text-primary/70 font-medium">
+                      {medicine.frequency} {medicine.duration ? `• ${medicine.duration}` : ''}
+                    </div>
+                  )}
                   <div className="flex w-full justify-between mt-1">
-                    {medicine.dosage_form && (
+                    {medicine.dosage_form && !medicine.is_saved && (
                       <span className="text-[10px] bg-secondary/50 px-1.5 py-0.5 rounded text-muted-foreground">
                         {medicine.dosage_form}
                       </span>

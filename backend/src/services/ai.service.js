@@ -21,6 +21,7 @@ class AIService {
 You must return the response in strict JSON format. Do not use markdown blocks for JSON, just output raw JSON.
 The JSON must have this structure:
 {
+  "diagnosis": "Clinical diagnosis based on chief complaint",
   "medicines": [
     { "name": "Medicine Name", "dosage": "e.g., 500mg", "frequency": "e.g., BID (twice a day)", "duration": "e.g., 5 days" }
   ],
@@ -33,16 +34,16 @@ IMPORTANT RULES:
 - If the patient has allergies (e.g., Penicillin), DO NOT prescribe related medicines.
 - The output MUST BE valid JSON and nothing else.`;
 
-    const userPrompt = `Patient Details:
+const userPrompt = `Patient Details:
 Name: ${patientData.patientName || 'Unknown'}
 Age: ${patientData.age || 'Unknown'}
 Gender: ${patientData.gender || 'Unknown'}
 Allergies: ${patientData.allergies?.length ? patientData.allergies.join(', ') : 'None known'}
 Conditions: ${patientData.conditions?.length ? patientData.conditions.join(', ') : 'None known'}
-Reason for Visit / Context: ${patientData.context || 'General checkup/routine dental work'}
+Chief Complaint / Reason for Visit: ${patientData.context || 'General checkup'}
 Current Medications: ${patientData.currentMedications?.length ? patientData.currentMedications.join(', ') : 'None'}
 
-Please generate a safe, appropriate dental prescription draft.`;
+Please generate a clinical diagnosis and an appropriate dental prescription draft based on the above complaint.`;
 
     try {
       console.log('Generating AI Prescription Draft...');

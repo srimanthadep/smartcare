@@ -24,7 +24,7 @@ export const createTreatmentPlan = async (req, res, next) => {
       RETURNING *
     `;
     const params = [
-      id, patientId, dentistName || 'Dr. Saikiran', notes, 
+      id, patientId, dentistName || req.user.username, notes, 
       JSON.stringify(phases || []), totalCost || 0, status || 'Active'
     ];
 
@@ -73,7 +73,8 @@ export const updateTreatmentPlan = async (req, res, next) => {
 export const deleteTreatmentPlan = async (req, res, next) => {
   try {
     const { id } = req.params;
-    await dbService.query('DELETE FROM treatment_plans WHERE id = $1', [id]);
+    const result = await dbService.query('DELETE FROM treatment_plans WHERE id = $1 RETURNING id', [id]);
+    if (result.rows.length === 0) return res.status(404).json({ message: 'Treatment plan not found' });
     res.status(204).end();
   } catch (error) {
     next(error);

@@ -31,9 +31,6 @@ export interface Patient {
   allergies: string[];
   conditions: string[];
   medications: Medication[];
-  insuranceProvider?: string;
-  policyNumber?: string;
-  coverageNotes?: string;
   notes?: string;
   dentalHistory?: {
     lastVisit: string;
@@ -69,12 +66,20 @@ export interface Prescription {
   notes: string;
   chiefComplaint?: string;
   diagnosis?: string;
+  nextVisitDate?: string;
 }
 
 export interface InvoiceLineItem {
   description: string;
   amount: number;
   toothNumber?: string;
+}
+
+export interface Procedure {
+  id: string;
+  name: string;
+  price: number;
+  createdAt?: string;
 }
 
 export interface Invoice {
@@ -146,26 +151,7 @@ export interface PatientReport {
   notes?: string;
 }
 
-export type QueueStatus = "Waiting" | "In Triage" | "In Chair" | "Billing" | "Completed";
 
-export interface QueueItem {
-  id: string;
-  patientId: string;
-  patientName: string;
-  doctorName: string;
-  type: string;
-  status: QueueStatus;
-  arrivedAt: string;
-  notes?: string;
-}
-
-export interface DoctorAvailabilitySlot {
-  doctorId: string;
-  doctorName: string;
-  day: "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat";
-  start: string;
-  end: string;
-}
 
 export interface MedicineCatalogItem {
   id: string;
@@ -185,6 +171,9 @@ export interface MedicineSearchItem {
   manufacturer: string;
   prescription_type: string;
   packaging: string;
+  frequency?: string;
+  duration?: string;
+  is_saved?: boolean;
 }
 
 export interface PrescriptionTemplate {
@@ -210,8 +199,6 @@ export interface PatientDetailsResponse {
 
 export interface BootstrapResponse {
   doctors: Doctor[];
-  doctorAvailability: DoctorAvailabilitySlot[];
-  queue: QueueItem[];
   medicines: MedicineCatalogItem[];
   prescriptionTemplates: PrescriptionTemplate[];
 }

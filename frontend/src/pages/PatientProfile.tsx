@@ -335,16 +335,7 @@ const PatientProfile: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Card className="border-border/50">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-base font-heading"><Droplets className="h-4 w-4 text-primary" /> Insurance</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <p><span className="text-muted-foreground">Provider:</span> {patient.insuranceProvider || "Not provided"}</p>
-                <p><span className="text-muted-foreground">Policy:</span> {patient.policyNumber || "Not provided"}</p>
-                <p><span className="text-muted-foreground">Coverage:</span> {patient.coverageNotes || "Not provided"}</p>
-              </CardContent>
-            </Card>
+
 
             <Card className="border-border/50">
               <CardHeader className="pb-2">
@@ -479,6 +470,11 @@ const PatientProfile: React.FC = () => {
                         <div>
                           <p className="font-medium">Prescription - {new Date(px.date).toLocaleDateString()}</p>
                           <p className="text-xs text-muted-foreground">{px.doctorName || "Dr. Saikiran"}</p>
+                          {px.nextVisitDate && (
+                            <p className="mt-1 text-[10px] font-semibold text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded-sm inline-block">
+                              Follow-up: {new Date(px.nextVisitDate).toLocaleDateString()}
+                            </p>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-4">

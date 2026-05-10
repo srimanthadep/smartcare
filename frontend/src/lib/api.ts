@@ -250,6 +250,30 @@ export const api = {
     });
   },
 
+  getProcedures() {
+    return apiFetch<{ data: import("@/types").Procedure[] }>("/api/procedures");
+  },
+
+  createProcedure(payload: any) {
+    return apiFetch<{ data: import("@/types").Procedure }>("/api/procedures", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  updateProcedure(id: string, payload: any) {
+    return apiFetch<{ data: import("@/types").Procedure }>(`/api/procedures/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  deleteProcedure(id: string) {
+    return apiFetch<{ message: string }>(`/api/procedures/${id}`, {
+      method: "DELETE",
+    });
+  },
+
   getTreatmentPlans(patientId: string) {
     return apiFetch<any[]>(`/api/treatment-plans${buildQuery({ patientId })}`);
   },
@@ -303,5 +327,9 @@ export const api = {
       method: "POST", 
       body: JSON.stringify({ enabled }) 
     });
+  },
+
+  logout() {
+    return apiFetch<{ message: string }>("/api/auth/logout", { method: "POST" });
   },
 };

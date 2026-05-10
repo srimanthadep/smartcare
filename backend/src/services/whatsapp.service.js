@@ -113,9 +113,8 @@ export const getStatus = () => ({
 
 export const whatsappService = {
   async sendWelcome(patient) {
-    if (connectionStatus !== "connected" || !sock) {
-      throw new Error('WhatsApp service is disconnected');
-    }
+    // Silent skip — WhatsApp is optional, not a critical path
+    if (connectionStatus !== "connected" || !sock) return;
     try {
       const jid = formatPhone(patient.phone);
       if (!jid) return;
@@ -127,9 +126,8 @@ export const whatsappService = {
   },
 
   async sendInvoice(patient, invoice) {
-    if (connectionStatus !== "connected" || !sock) {
-      throw new Error('WhatsApp service is disconnected');
-    }
+    // Silent skip — WhatsApp is optional, not a critical path
+    if (connectionStatus !== "connected" || !sock) return;
     try {
       const jid = formatPhone(patient.phone);
       if (!jid) return;
@@ -147,9 +145,8 @@ export const whatsappService = {
   },
 
   async sendPrescription(patient, prescription) {
-    if (connectionStatus !== "connected" || !sock) {
-      throw new Error('WhatsApp service is disconnected');
-    }
+    // Silent skip — WhatsApp is optional, not a critical path
+    if (connectionStatus !== "connected" || !sock) return;
     try {
       const jid = formatPhone(patient.phone);
       if (!jid) return;
@@ -163,6 +160,19 @@ export const whatsappService = {
       });
     } catch (error) {
       console.error('WhatsApp sendPrescription failed:', error);
+    }
+  },
+
+  async sendReminder(appt) {
+    // Silent skip — WhatsApp is optional, not a critical path
+    if (connectionStatus !== "connected" || !sock) return;
+    try {
+      const jid = formatPhone(appt.phone);
+      if (!jid) return;
+      const message = `⏰ Reminder: Hello ${appt.name}, your ${appt.type || 'dental'} appointment at Siara Dental Clinic is *tomorrow* at *${appt.time}*.\n\nPlease arrive 5 minutes early. See you soon! 🦷`;
+      await sock.sendMessage(jid, { text: message });
+    } catch (error) {
+      console.error('WhatsApp sendReminder failed:', error);
     }
   }
 };

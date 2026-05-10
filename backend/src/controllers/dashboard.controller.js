@@ -72,7 +72,7 @@ export const getDashboard = async (req, res, next) => {
       stats: {
         dailyPatients: todayAppointments.length,
         revenue: totalRevenue,
-        profit: Math.round(totalRevenue * 0.8),
+        estimatedNet: Math.round(totalRevenue * 0.8), // Estimated 80% margin — replace with real expense tracking
         appointments: appointments.length
       },
       revenueTrend: Array.from(revenueTrendMap.entries()).map(([month, revenue]) => ({ month, revenue })),
@@ -91,18 +91,14 @@ export const getDashboard = async (req, res, next) => {
 
 export const getBootstrap = async (req, res, next) => {
   try {
-    const [doctors, availability, queue, medicines, templates] = await Promise.all([
+    const [doctors, medicines, templates] = await Promise.all([
       dbService.query('SELECT * FROM doctors'),
-      dbService.query('SELECT * FROM doctor_availability'),
-      dbService.query('SELECT * FROM queue'),
       dbService.query('SELECT * FROM medicines'),
       dbService.query('SELECT * FROM prescription_templates')
     ]);
 
     res.json({
       doctors: doctors.rows,
-      doctorAvailability: dbService.mapRows('doctor_availability', availability.rows),
-      queue: dbService.mapRows('queue', queue.rows),
       medicines: medicines.rows,
       prescriptionTemplates: templates.rows
     });

@@ -109,7 +109,8 @@ export const updateAppointment = async (req, res, next) => {
 export const deleteAppointment = async (req, res, next) => {
   try {
     const { id } = req.params;
-    await dbService.query('DELETE FROM appointments WHERE id = $1', [id]);
+    const result = await dbService.query('DELETE FROM appointments WHERE id = $1 RETURNING id', [id]);
+    if (result.rows.length === 0) return res.status(404).json({ message: 'Appointment not found' });
     emitEvent(SOCKET_EVENTS.APPOINTMENT_UPDATED, { id, deleted: true });
     res.status(204).end();
   } catch (error) {

@@ -8,17 +8,19 @@ import {
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Search, Moon, Sun, Bell, LogOut } from 'lucide-react';
+import { Search, Moon, Sun, Bell, LogOut, WifiOff } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useNavigate } from 'react-router-dom';
 import { CommandPalette } from '@/components/CommandPalette';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 export const AppHeader: React.FC = () => {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [cmdkOpen, setCmdkOpen] = useState(false);
+  const isOnline = useOnlineStatus();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -59,6 +61,13 @@ export const AppHeader: React.FC = () => {
       </button>
 
       <div className="ml-auto flex items-center gap-2">
+        {/* Offline indicator */}
+        {!isOnline && (
+          <div className="flex items-center gap-1.5 rounded-full bg-amber-500/15 px-2.5 py-1 text-amber-600 dark:text-amber-400">
+            <WifiOff className="h-3.5 w-3.5" />
+            <span className="text-xs font-medium">Offline</span>
+          </div>
+        )}
         <Button variant="ghost" size="icon" onClick={toggleTheme} className="text-muted-foreground">
           {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </Button>
@@ -87,7 +96,7 @@ export const AppHeader: React.FC = () => {
               <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => { logout(); navigate('/login'); }}>
+            <DropdownMenuItem onClick={async () => { await logout(); navigate('/login'); }}>
               <LogOut className="mr-2 h-4 w-4" /> Sign out
             </DropdownMenuItem>
           </DropdownMenuContent>

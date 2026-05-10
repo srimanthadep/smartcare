@@ -20,6 +20,50 @@ export const initBackupService = () => {
     }, {
         timezone: 'Asia/Kolkata'
     });
+
+    // Appointment reminders — 9 AM daily IST
+    cron.schedule('0 9 * * *', async () => {
+        console.log('📅 Sending appointment reminders for tomorrow...');
+        await sendAppointmentReminders();
+    }, {
+        timezone: 'Asia/Kolkata'
+    });
+};
+
+export const sendAppointmentReminders = async () => {
+    try {
+        const { dbService } = await import('./db.service.js');
+        const { whatsappService } = await import('./whatsapp.service.js');
+
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+        const result = await dbService.query(`
+            SELECT a.time, a.type, p.name, p.phone
+            FROM appointments a
+            JOIN patients p ON a.patient_id = p.id
+            WHERE a.date = $1 AND a.status != 'Cancelled'
+        `, [tomorrowStr]);
+
+        if (result.rows.length === 0) {
+            console.log('📅 No appointments tomorrow — skipping reminders.');
+            return;
+        }
+
+        let sent = 0;
+        for (const appt of result.rows) {
+            try {
+                await whatsappService.sendReminder(appt);
+                sent++;
+            } catch (e) {
+                console.error(`WA reminder failed for ${appt.name}:`, e.message);
+            }
+        }
+        console.log(`✅ Sent ${sent}/${result.rows.length} appointment reminders`);
+    } catch (err) {
+        console.error('❌ Appointment reminder cron failed:', err.message);
+    }
 };
 
 export const performFullBackup = async () => {

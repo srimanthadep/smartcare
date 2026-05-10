@@ -196,7 +196,7 @@ const Dashboard: React.FC = () => {
       <motion.div variants={item} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatsCard title="Today's Patients" value={data.stats.dailyPatients} change="Live from appointments" changeType="neutral" icon={Users} />
         <StatsCard title="Revenue" value={`₹${data.stats.revenue.toLocaleString()}`} change={revenueChangeText} changeType={revenueChangeType} icon={IndianRupee} />
-        <StatsCard title="Profit" value={`₹${data.stats.profit?.toLocaleString() || "0"}`} change="Estimated 80% margin" changeType="positive" icon={TrendingUp} />
+        <StatsCard title="Est. Net (80%)" value={`₹${data.stats.estimatedNet?.toLocaleString() || "0"}`} change="Estimated margin — not tracked expenses" changeType="positive" icon={TrendingUp} />
         <StatsCard
           title="Pending Recalls"
           value={data.stats.appointments ?? 0}

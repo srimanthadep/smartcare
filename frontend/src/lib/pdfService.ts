@@ -118,6 +118,19 @@ export const pdfService = {
       doc.text(splitNotes, 15, finalY + 22);
     }
 
+    if (prescription.nextVisitDate) {
+      const followUpY = prescription.notes ? (finalY + 35) : (finalY + 15);
+      doc.setFontSize(12);
+      doc.setTextColor(200, 150, 0); // Amber-ish
+      doc.text("Recommended Next Visit:", 15, followUpY);
+      doc.setFontSize(14);
+      doc.setTextColor(0);
+      const nextDate = new Date(prescription.nextVisitDate).toLocaleDateString('en-GB', { 
+        day: 'numeric', month: 'long', year: 'numeric' 
+      });
+      doc.text(nextDate, 15, followUpY + 8);
+    }
+
     // Footer
     const footerY = doc.internal.pageSize.getHeight() - 30;
     doc.setDrawColor(200);

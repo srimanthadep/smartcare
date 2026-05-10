@@ -5,6 +5,7 @@ import medicineRoutes from './medicine.routes.js';
 import aiRoutes from './ai.routes.js';
 import prescriptionTemplateRoutes from './prescription-template.routes.js';
 import treatmentPlanRoutes from './treatment-plan.routes.js';
+import procedureRoutes from './procedure.routes.js';
 import backupRoutes from './backup.js';
 import whatsappRoutes from './whatsapp.routes.js';
 import emailRoutes from './email.routes.js';
@@ -96,6 +97,7 @@ router.use('/medicines', medicineRoutes);
 router.use('/ai', aiRateLimit, aiRoutes);
 router.use('/prescription-templates', prescriptionTemplateRoutes);
 router.use('/treatment-plans', treatmentPlanRoutes);
+router.use('/procedures', procedureRoutes);
 router.use('/backup', authorize('admin'), backupRoutes);
 
 // Appointments

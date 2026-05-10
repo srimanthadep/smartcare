@@ -2,7 +2,7 @@ import React, { useMemo, useRef, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FileText, MessageCircle, Plus, Printer, Share2, Trash2, Sparkles } from "lucide-react";
+import { FileText, MessageCircle, Plus, Printer, Share2, Trash2, Sparkles, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
@@ -23,6 +23,7 @@ const Prescriptions: React.FC = () => {
   const urlPatientId = searchParams.get("patientId");
   const editId = searchParams.get("editId");
   const printRef = useRef<HTMLDivElement | null>(null);
+  const nextVisitInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   
   const patientsQuery = useQuery({
@@ -66,6 +67,9 @@ const Prescriptions: React.FC = () => {
   const generateAI = useMutation({
     mutationFn: api.generateAIPrescription,
     onSuccess: (res) => {
+      if (res.data.diagnosis) {
+        setDiagnosis(res.data.diagnosis);
+      }
       if (res.data.medicines && res.data.medicines.length > 0) {
         setMedicines(res.data.medicines);
       }
@@ -88,6 +92,7 @@ const Prescriptions: React.FC = () => {
   const [notes, setNotes] = useState("");
   const [chiefComplaint, setChiefComplaint] = useState("");
   const [diagnosis, setDiagnosis] = useState("");
+  const [nextVisitDate, setNextVisitDate] = useState("");
   const [medicines, setMedicines] = useState([{ name: "", dosage: "", frequency: "", duration: "" }]);
 
   const patient = useMemo(() => patients.find((item) => item.id === patientId), [patientId, patients]);
@@ -113,6 +118,7 @@ const Prescriptions: React.FC = () => {
         setNotes(px.notes);
         setChiefComplaint(px.chiefComplaint || "");
         setDiagnosis(px.diagnosis || "");
+        setNextVisitDate(px.nextVisitDate || "");
       }
     }
   }, [editId, savedPrescriptions]);
@@ -135,7 +141,8 @@ const Prescriptions: React.FC = () => {
       medicines,
       notes,
       chiefComplaint,
-      diagnosis
+      diagnosis,
+      nextVisitDate
     };
 
     if (editId) {
@@ -197,6 +204,7 @@ const Prescriptions: React.FC = () => {
                 notes,
                 chiefComplaint,
                 diagnosis,
+                nextVisitDate
               });
             }}
           >
@@ -287,8 +295,47 @@ const Prescriptions: React.FC = () => {
                   className="border-destructive/20"
                 />
               </div>
-              <div className="space-y-2">
-                <Label className="font-bold">2. Diagnosis</Label>
+
+              <div className="pt-2">
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="font-bold">2. Diagnosis</Label>
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="group flex items-center gap-2 border border-amber-200 bg-amber-50/50 hover:bg-amber-100/80 transition-all duration-300 px-4 h-8 rounded-full shadow-sm shadow-amber-200/20 cursor-pointer relative"
+                    >
+                      <span className="text-[9px] uppercase font-bold text-amber-600/80 tracking-tight leading-none">Next Visit</span>
+                      <span className="text-[11px] font-bold text-amber-900 min-w-[70px] text-center">
+                        {nextVisitDate ? new Date(nextVisitDate).toLocaleDateString('en-GB').replace(/\//g, '-') : 'dd-mm-yyyy'}
+                      </span>
+                      <Input 
+                        type="date" 
+                        value={nextVisitDate} 
+                        onChange={(e) => setNextVisitDate(e.target.value)} 
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full p-0 border-none"
+                      />
+                    </div>
+                    <Button 
+                      size="sm" 
+                      variant="secondary" 
+                      className="h-8 bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-200 transition-all duration-300 rounded-full px-3 border-none text-[10px] font-bold uppercase tracking-tight"
+                      onClick={() => {
+                        if (!patientId) {
+                          toast.error("Please select a patient first.");
+                          return;
+                        }
+                        if (!chiefComplaint.trim()) {
+                          toast.error("Please enter a chief complaint first.");
+                          return;
+                        }
+                        generateAI.mutate({ patientId, context: chiefComplaint });
+                      }}
+                      disabled={generateAI.isPending}
+                    >
+                      <Sparkles className="mr-2 h-3.5 w-3.5 text-indigo-200" /> 
+                      {generateAI.isPending ? "Generating..." : "Auto Generate"}
+                    </Button>
+                  </div>
+                </div>
                 <Textarea 
                   value={diagnosis} 
                   onChange={(e) => setDiagnosis(e.target.value)} 
@@ -302,27 +349,6 @@ const Prescriptions: React.FC = () => {
             <div className="space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <p className="font-heading font-semibold text-primary">3. Medicines</p>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button 
-                    size="sm" 
-                    variant="secondary" 
-                    className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20"
-                    onClick={() => {
-                      if (!patientId) {
-                        toast.error("Please select a patient first.");
-                        return;
-                      }
-                      generateAI.mutate({ patientId, context: "General dental visit" });
-                    }}
-                    disabled={generateAI.isPending}
-                  >
-                    <Sparkles className="mr-1 h-4 w-4" /> 
-                    {generateAI.isPending ? "Generating..." : "Auto Generate"}
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => setMedicines((current) => [...current, { name: "", dosage: "", frequency: "", duration: "" }])}>
-                    <Plus className="mr-1 h-4 w-4" /> Add
-                  </Button>
-                </div>
               </div>
               {medicines.map((medicine, index) => (
                 <div key={index} className="rounded-lg border border-border/50 bg-secondary/20 p-4">
@@ -334,9 +360,11 @@ const Prescriptions: React.FC = () => {
                         onChange={(value, selectedMedicine) => {
                           setMedicines((current) => current.map((item, itemIndex) => {
                             if (itemIndex === index) {
-                              const updates = { name: value };
-                              if (selectedMedicine && selectedMedicine.strength) {
-                                (updates as any).dosage = selectedMedicine.strength;
+                              const updates: any = { name: value };
+                              if (selectedMedicine) {
+                                if (selectedMedicine.strength) updates.dosage = selectedMedicine.strength;
+                                if (selectedMedicine.frequency) updates.frequency = selectedMedicine.frequency;
+                                if (selectedMedicine.duration) updates.duration = selectedMedicine.duration;
                               }
                               return { ...item, ...updates };
                             }
@@ -365,6 +393,15 @@ const Prescriptions: React.FC = () => {
                   </div>
                 </div>
               ))}
+
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="w-full border-dashed border-primary/30 hover:border-primary/50 hover:bg-primary/5 text-primary py-6"
+                onClick={() => setMedicines((current) => [...current, { name: "", dosage: "", frequency: "", duration: "" }])}
+              >
+                <Plus className="mr-2 h-4 w-4" /> Add Another Medicine
+              </Button>
             </div>
 
             <div className="space-y-2">
@@ -447,6 +484,18 @@ const Prescriptions: React.FC = () => {
                 <p className="text-xs text-muted-foreground">Notes</p>
                 <p className="mt-1 whitespace-pre-wrap text-sm">{notes || "-"}</p>
               </div>
+
+              {nextVisitDate && (
+                <div className="mt-4 rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-600">
+                    <Plus className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-amber-600/70 font-bold">Next Visit Schedule</p>
+                    <p className="text-sm font-semibold text-amber-700">{new Date(nextVisitDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

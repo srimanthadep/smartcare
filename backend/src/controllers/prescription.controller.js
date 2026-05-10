@@ -23,18 +23,38 @@ export const getPrescriptions = async (req, res, next) => {
   }
 };
 
+const saveMedicines = async (medicines) => {
+  if (!medicines || !Array.isArray(medicines)) return;
+  for (const med of medicines) {
+    if (!med.name) continue;
+    try {
+      await dbService.query(`
+        INSERT INTO saved_medicines (name, dose, frequency, duration, updated_at)
+        VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+        ON CONFLICT (name) DO UPDATE SET
+          dose = EXCLUDED.dose,
+          frequency = EXCLUDED.frequency,
+          duration = EXCLUDED.duration,
+          updated_at = CURRENT_TIMESTAMP
+      `, [med.name, med.dosage || '', med.frequency || '', med.duration || '']);
+    } catch (err) {
+      console.error('Error saving medicine:', err);
+    }
+  }
+};
+
 export const createPrescription = async (req, res, next) => {
   try {
     const id = await dbService.generateId('PR', 'prescriptions');
-    const { patientId, patientName, doctorName, date, medicines, notes, chiefComplaint, diagnosis } = req.body;
+    const { patientId, patientName, doctorName, date, medicines, notes, chiefComplaint, diagnosis, nextVisitDate } = req.body;
     const pxDate = date || new Date().toISOString().slice(0, 10);
 
     const query = `
-      INSERT INTO prescriptions (id, patient_id, doctor_name, date, medicines, notes, chief_complaint, diagnosis)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      INSERT INTO prescriptions (id, patient_id, doctor_name, date, medicines, notes, chief_complaint, diagnosis, next_visit_date)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING *
     `;
-    const params = [id, patientId, doctorName, pxDate, JSON.stringify(medicines), notes, chiefComplaint, diagnosis];
+    const params = [id, patientId, doctorName, pxDate, JSON.stringify(medicines), notes, chiefComplaint, diagnosis, nextVisitDate];
     const result = await dbService.query(query, params);
     const prescription = dbService.mapRows('prescriptions', result.rows)[0];
 
@@ -47,7 +67,15 @@ export const createPrescription = async (req, res, next) => {
     if (patient && patient.email) {
       emailService.sendPrescriptionEmail(patient, prescription).catch(err => console.error('Email error:', err));
     }
+    // Also send via WhatsApp (silent skip if disconnected)
+    if (patient) {
+      whatsappService.sendPrescription(patient, prescription)
+        .catch(err => console.error('WA Rx failed:', err));
+    }
     
+    // Save medicines for future recommendations
+    await saveMedicines(medicines);
+
     emitEvent(SOCKET_EVENTS.PRESCRIPTION_UPDATED, prescription);
     res.status(201).json(prescription);
   } catch (error) {
@@ -67,10 +95,11 @@ export const updatePrescription = async (req, res, next) => {
     const mapping = {
       patientId: 'patient_id',
       doctorName: 'doctor_name',
-      chiefComplaint: 'chief_complaint'
+      chiefComplaint: 'chief_complaint',
+      nextVisitDate: 'next_visit_date'
     };
 
-    const ALLOWED_COLUMNS = ['patient_id', 'doctor_name', 'date', 'medicines', 'notes', 'chief_complaint', 'diagnosis'];
+    const ALLOWED_COLUMNS = ['patient_id', 'doctor_name', 'date', 'medicines', 'notes', 'chief_complaint', 'diagnosis', 'next_visit_date'];
 
     for (const [key, value] of Object.entries(fields)) {
       const dbKey = mapping[key] || key;
@@ -86,6 +115,11 @@ export const updatePrescription = async (req, res, next) => {
 
     if (result.rows.length === 0) return res.status(404).json({ message: 'Prescription not found' });
     
+    // Save medicines for future recommendations if they were updated
+    if (fields.medicines) {
+      await saveMedicines(fields.medicines);
+    }
+
     await activityService.log(req.user.sub, req.user.username, 'Update Prescription', `Updated prescription ${id}`, req.ip);
     const px = dbService.mapRows('prescriptions', result.rows)[0];
     emitEvent(SOCKET_EVENTS.PRESCRIPTION_UPDATED, px);

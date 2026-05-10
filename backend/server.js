@@ -69,10 +69,31 @@ app.use(errorHandler);
 
 initBackupService();
 
-server.listen(config.PORT, () => {
-  console.log(`🚀 Siara Dental SaaS Backend running in ${config.NODE_ENV} mode`);
-  console.log(`🔗 API Endpoint: http://localhost:${config.PORT}/api`);
-});
+// DB health check with retry — if Supabase is briefly unavailable on startup, retry before crashing
+const startServer = async () => {
+  let retries = 5;
+  while (retries--) {
+    try {
+      await dbService.query('SELECT 1');
+      console.log('✅ Database connection verified');
+      break;
+    } catch (e) {
+      if (!retries) {
+        console.error('❌ Could not connect to database after retries. Exiting.', e.message);
+        process.exit(1);
+      }
+      console.warn(`⚠️ DB connection failed, retrying in 3s... (${retries} attempts left)`);
+      await new Promise(r => setTimeout(r, 3000));
+    }
+  }
+
+  server.listen(config.PORT, () => {
+    console.log(`🚀 Siara Dental SaaS Backend running in ${config.NODE_ENV} mode`);
+    console.log(`🔗 API Endpoint: http://localhost:${config.PORT}/api`);
+  });
+};
+
+startServer();
 
 // Keep the process alive
 setInterval(() => {}, 1000 * 60 * 60);

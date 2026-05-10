@@ -229,8 +229,6 @@ export const exportService = {
           Address: patient.address,
           Status: patient.status,
           Registered_On: patient.registeredOn,
-          Insurance_Provider: patient.insuranceProvider || "N/A",
-          Policy_Number: patient.policyNumber || "N/A",
           Clinical_Notes: patient.notes || ""
         }
       ];

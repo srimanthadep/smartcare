@@ -1,94 +1,102 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { IndianRupee, Plus, Receipt, FileDown } from "lucide-react";
-import { Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Receipt, Plus, Printer, Trash2, Calendar, FileDown, Check, ChevronsUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Skeleton } from "@/components/ui/skeleton";
-import StatsCard from "@/components/StatsCard";
+import { Separator } from "@/components/ui/separator";
 import StatusBadge from "@/components/StatusBadge";
-import InvoiceModal from "@/components/InvoiceModal";
-import InvoiceEditModal from "@/components/InvoiceEditModal";
-import { Invoice, Patient } from "@/types";
+import { Patient, InvoiceLineItem, Invoice, Procedure } from "@/types";
 import { pdfService } from "@/lib/pdfService";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-
-
+import { cn } from "@/lib/utils";
+import { ProcedureSettingsModal } from "@/components/ProcedureSettingsModal";
 
 const Billing: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const urlPatientId = searchParams.get("patientId");
+  const editId = searchParams.get("editId");
   const queryClient = useQueryClient();
-  const invoicesQuery = useQuery({
-    queryKey: ["invoices"],
-    queryFn: api.getInvoices,
-  });
-  
-  const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
-  const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
-  const [isNewInvoiceOpen, setIsNewInvoiceOpen] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [invoiceToDelete, setInvoiceToDelete] = useState<string | null>(null);
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    document.title = "Billing | Siara Dental";
-  }, []);
+  const [patientId, setPatientId] = useState<string>("");
+  const [date, setDate] = useState<string>(new Date().toISOString().split("T")[0]);
+  const [items, setItems] = useState<InvoiceLineItem[]>([{ description: "", amount: 0, toothNumber: "" }]);
+  const [status, setStatus] = useState<"Pending" | "Paid" | "Overdue">("Pending");
 
   const patientsQuery = useQuery({
     queryKey: ["patients", "billing-options"],
     queryFn: () => api.getPatients({}),
   });
-  
-  const dashboardQuery = useQuery({
-    queryKey: ["dashboard"],
-    queryFn: api.getDashboard,
+
+  const invoicesQuery = useQuery({
+    queryKey: ["invoices"],
+    queryFn: () => api.getInvoices(),
   });
 
-  const invoices = invoicesQuery.data || [];
+  const proceduresQuery = useQuery({
+    queryKey: ["procedures"],
+    queryFn: () => api.getProcedures(),
+  });
+
   const patients = patientsQuery.data || [];
-  const revenueTrend = dashboardQuery.data?.revenueTrend || [];
+  const allInvoices = invoicesQuery.data || [];
+  const procedures = proceduresQuery.data?.data || [];
+  const patient = patients.find((p) => p.id === patientId);
 
-  const [searchParams] = useSearchParams();
-  const urlPatientId = searchParams.get("patientId");
-
+  // Initialize from URL params
   useEffect(() => {
-    if (urlPatientId && patients.length > 0) {
-      const p = patients.find(p => p.id === urlPatientId);
-      if (p) {
-        setSelectedPatient(p);
-        setShowEditModal(true);
-      }
+    if (urlPatientId && patients.length > 0 && !patientId) {
+      setPatientId(urlPatientId);
     }
   }, [urlPatientId, patients]);
 
-  const totals = useMemo(() => {
-    const revenue = invoices.reduce((sum, item) => sum + item.total, 0);
-    const pending = invoices.filter((item) => item.status !== "Paid").reduce((sum, item) => sum + item.total, 0);
-    const paid = invoices.filter((item) => item.status === "Paid").reduce((sum, item) => sum + item.total, 0);
-    return { revenue, pending, paid };
-  }, [invoices]);
+  // Load invoice if editing
+  useEffect(() => {
+    if (editId && allInvoices.length > 0) {
+      const inv = allInvoices.find(i => i.id === editId);
+      if (inv) {
+        setPatientId(inv.patientId);
+        setDate(inv.date);
+        setItems(inv.items.length > 0 ? inv.items : [{ description: "", amount: 0, toothNumber: "" }]);
+        setStatus(inv.status);
+      }
+    }
+  }, [editId, allInvoices]);
 
-  const updateInvoice = useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: Partial<Invoice> }) => api.updateInvoice(id, payload),
+  useEffect(() => {
+    document.title = "Billing | Siara Dental";
+  }, []);
+
+  const total = useMemo(() => items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0), [items]);
+
+  const patientInvoices = useMemo(() => {
+    if (!patientId) return [];
+    return allInvoices.filter(i => i.patientId === patientId).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [patientId, allInvoices]);
+
+  const createInvoice = useMutation({
+    mutationFn: (payload: any) => api.createInvoice(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      toast.success("Invoice updated");
+      toast.success("Invoice created successfully");
+      resetForm();
+    },
+  });
+
+  const updateInvoice = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: any }) => api.updateInvoice(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      toast.success("Invoice updated successfully");
     },
   });
 
@@ -96,199 +104,444 @@ const Billing: React.FC = () => {
     mutationFn: api.deleteInvoice,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       toast.success("Invoice removed");
     },
   });
 
-  if (invoicesQuery.isLoading || patientsQuery.isLoading || dashboardQuery.isLoading) {
+  const resetForm = () => {
+    setItems([{ description: "", amount: 0, toothNumber: "" }]);
+    setDate(new Date().toISOString().split("T")[0]);
+    setStatus("Pending");
+  };
+
+  const handleSave = () => {
+    if (!patientId || !patient) {
+      toast.error("Please select a patient");
+      return;
+    }
+
+    const validItems = items.filter(item => item.description.trim() !== "");
+    if (validItems.length === 0) {
+      toast.error("Please add at least one procedure");
+      return;
+    }
+
+    const payload = {
+      patientId,
+      patientName: patient.name,
+      date,
+      items: validItems,
+      total,
+      status
+    };
+
+    if (editId) {
+      updateInvoice.mutate({ id: editId, payload });
+    } else {
+      createInvoice.mutate(payload);
+    }
+  };
+
+  const updateItem = (index: number, field: keyof InvoiceLineItem, value: any) => {
+    setItems(current => current.map((item, i) => i === index ? { ...item, [field]: value } : item));
+  };
+
+  const removeItem = (index: number) => {
+    setItems(current => current.filter((_, i) => i !== index));
+  };
+
+  const addItem = () => {
+    setItems(current => [...current, { description: "", amount: 0, toothNumber: "" }]);
+  };
+
+  if (patientsQuery.isLoading || invoicesQuery.isLoading) {
     return (
       <div className="space-y-4">
-        <Skeleton className="h-14 w-64" />
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-72 w-full" />
+        <Skeleton className="h-14 w-72" />
+        <Skeleton className="h-96 w-full" />
       </div>
     );
   }
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
+      {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-heading font-bold">Billing</h1>
-          <p className="text-sm text-muted-foreground">Invoices and payment tracking</p>
+          <p className="text-sm text-muted-foreground">Create invoices and track payments</p>
         </div>
-        <Button onClick={() => setIsNewInvoiceOpen(true)}>
-          <Plus className="mr-1 h-4 w-4" /> New Invoice
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <ProcedureSettingsModal />
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              if (!patient) {
+                toast.error("Select a patient to generate PDF");
+                return;
+              }
+              pdfService.generateInvoicePDF(patient, {
+                id: editId || "DRAFT",
+                patientId,
+                patientName: patient.name,
+                date,
+                items,
+                total,
+                status
+              } as Invoice);
+            }}
+          >
+            <Printer className="mr-1 h-4 w-4" /> Print PDF
+          </Button>
+          <Button
+            onClick={handleSave}
+            disabled={createInvoice.isPending || updateInvoice.isPending}
+          >
+            <Plus className="mr-1 h-4 w-4" /> {(createInvoice.isPending || updateInvoice.isPending) ? "Saving..." : (editId ? "Update" : "Save")}
+          </Button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <StatsCard title="Total Billed" value={`₹${totals.revenue.toLocaleString()}`} change="All invoices" changeType="neutral" icon={IndianRupee} />
-        <StatsCard title="Paid" value={`₹${totals.paid.toLocaleString()}`} change="Settled invoices" changeType="positive" icon={Receipt} />
-        <StatsCard title="Pending / Overdue" value={`₹${totals.pending.toLocaleString()}`} change="Action required" changeType={totals.pending > 0 ? "negative" : "neutral"} icon={Receipt} />
-      </div>
-
-      <Card className="border-border/50">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base font-heading">Revenue (last 6 months)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={revenueTrend}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis dataKey="month" className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
-              <YAxis className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} tickFormatter={(value) => `₹${Math.round(value / 1000)}k`} />
-              <Tooltip formatter={(value: number) => [`₹${value.toLocaleString()}`, "Revenue"]} contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))" }} />
-              <Line type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={{ r: 3, fill: "hsl(var(--primary))" }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-      <div className="space-y-3">
-        {invoices.map((invoice) => (
-          <Card key={invoice.id} className="border-border/50 transition-shadow hover:shadow-md">
-            <CardContent className="p-5">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                    <Receipt className="h-4 w-4 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">{invoice.patientName}</p>
-                    <p className="text-xs text-muted-foreground">{invoice.id} · {invoice.date}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <p className="text-lg font-heading font-bold">₹{invoice.total.toLocaleString()}</p>
-                  <StatusBadge status={invoice.status} />
+      {/* Main Split View */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        {/* Editor (Left) */}
+        <Card className="border-border/50">
+          <CardContent className="space-y-5 p-5">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Patient</Label>
+                <Select value={patientId} onValueChange={setPatientId}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select patient..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {patients.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name} ({p.id})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <div className="relative">
+                  <Input 
+                    type="date" 
+                    value={date} 
+                    onChange={(e) => setDate(e.target.value)} 
+                    className="w-full justify-start text-left font-normal"
+                  />
                 </div>
               </div>
-              <div className="mt-3 border-t border-border/50 pt-3">
-                <div className="space-y-1">
-                  {invoice.items.map((item, index) => (
-                    <div key={index} className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{item.description} {item.toothNumber ? `(Tooth #${item.toothNumber})` : ""}</span>
-                      <span>₹{item.amount.toLocaleString()}</span>
+            </div>
+
+            <Separator />
+
+            {/* Procedures List */}
+            <div className="space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <p className="font-heading font-semibold text-primary">Procedures</p>
+              </div>
+
+              {items.map((item, index) => (
+                <div key={index} className="rounded-lg border border-border/50 bg-secondary/20 p-4 relative group">
+                  <div className="grid grid-cols-12 gap-3">
+                    <div className="col-span-12 sm:col-span-7 space-y-2">
+                      <Label>Description</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className="w-full justify-between font-normal bg-background"
+                          >
+                            {item.description || "Select or type procedure..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[300px] p-0" align="start">
+                          <Command>
+                            <CommandInput 
+                              placeholder="Search procedures..." 
+                              value={item.description}
+                              onValueChange={(val) => updateItem(index, "description", val)}
+                            />
+                            <CommandList>
+                              <CommandEmpty>
+                                <Button 
+                                  variant="ghost" 
+                                  className="w-full justify-start text-sm"
+                                  onClick={() => {
+                                    // Just close popover, value is already in input
+                                    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+                                  }}
+                                >
+                                  Use custom: "{item.description}"
+                                </Button>
+                              </CommandEmpty>
+                              <CommandGroup heading="Standard Procedures">
+                                {procedures.map((proc: any) => (
+                                  <CommandItem
+                                    key={proc.id}
+                                    value={proc.name}
+                                    onSelect={() => {
+                                      updateItem(index, "description", proc.name);
+                                      updateItem(index, "amount", proc.price);
+                                      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        item.description === proc.name ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    <div className="flex flex-1 items-center justify-between">
+                                      <span>{proc.name}</span>
+                                      <span className="text-xs text-muted-foreground">₹{proc.price}</span>
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                     </div>
-                  ))}
-                </div>
-                <div className="mt-3 flex justify-end gap-2">
-                  <Button size="sm" variant="outline" onClick={() => setViewingInvoice(invoice)}>
-                    View Details
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => setEditingInvoice(invoice)}>
-                    Edit
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="border-primary/30"
-                    onClick={() => {
-                      const patient = patients.find(p => p.id === invoice.patientId);
-                      if (patient) pdfService.generateInvoicePDF(patient, invoice);
-                      else toast.error("Patient details not found");
-                    }}
-                  >
-                    <FileDown className="mr-1 h-3.5 w-3.5" /> PDF
-                  </Button>
-                  {invoice.status !== "Paid" && (
-                    <Button size="sm" variant="outline" className="border-primary/50 text-primary hover:bg-primary/5" onClick={() => updateInvoice.mutate({ id: invoice.id, payload: { status: "Paid" } })}>
-                      Mark paid
+                    <div className="col-span-6 sm:col-span-2 space-y-2">
+                      <Label>Tooth</Label>
+                      <Input 
+                        value={item.toothNumber || ""} 
+                        onChange={(e) => updateItem(index, "toothNumber", e.target.value)} 
+                        placeholder="e.g. 14" 
+                      />
+                    </div>
+                    <div className="col-span-6 sm:col-span-3 space-y-2">
+                      <Label>Amount (₹)</Label>
+                      <Input 
+                        type="number"
+                        value={item.amount || ""} 
+                        onChange={(e) => updateItem(index, "amount", parseFloat(e.target.value) || 0)} 
+                        placeholder="0" 
+                      />
+                    </div>
+                  </div>
+                  {items.length > 1 && (
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      className="absolute -top-3 -right-3 h-6 w-6 rounded-full bg-destructive/10 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" 
+                      onClick={() => removeItem(index)}
+                    >
+                      <Trash2 className="h-3 w-3" />
                     </Button>
                   )}
-                  <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/5" onClick={() => setInvoiceToDelete(invoice.id)}>
-                    Remove
-                  </Button>
+                </div>
+              ))}
+
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="w-full border-dashed border-primary/30 hover:border-primary/50 hover:bg-primary/5 text-primary py-6"
+                onClick={addItem}
+              >
+                <Plus className="mr-2 h-4 w-4" /> Add Another Procedure
+              </Button>
+            </div>
+            
+            <div className="flex justify-end pt-2">
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">Total Amount</p>
+                <p className="text-2xl font-bold font-heading text-primary">₹{total.toLocaleString()}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Preview (Right) */}
+        <div className="hidden xl:block">
+          <div className="sticky top-4">
+            <Card className="border-border/50 shadow-sm overflow-hidden bg-white dark:bg-card">
+              <div className="bg-primary/5 p-6 border-b border-border/50">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h2 className="text-2xl font-heading font-bold text-primary">INVOICE</h2>
+                    <p className="text-sm text-muted-foreground mt-1">DRAFT / PREVIEW</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-lg">Siara Dental</p>
+                    <p className="text-sm text-muted-foreground">Plot 123, Jubilee Hills</p>
+                    <p className="text-sm text-muted-foreground">Hyderabad, TG 500033</p>
+                  </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        ))}
+
+              <div className="p-6 space-y-6">
+                <div className="flex justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Bill To</p>
+                    {patient ? (
+                      <>
+                        <p className="font-bold text-base">{patient.name}</p>
+                        <p className="text-sm text-muted-foreground">ID: {patient.id}</p>
+                        <p className="text-sm text-muted-foreground">{patient.phone}</p>
+                      </>
+                    ) : (
+                      <p className="text-sm italic text-muted-foreground">Select a patient...</p>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <div className="mb-3">
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Invoice Date</p>
+                      <p className="text-sm font-medium">{new Date(date).toLocaleDateString('en-GB')}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Status</p>
+                      <StatusBadge status={status} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-border/50">
+                  <div className="grid grid-cols-12 gap-2 text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3 px-2">
+                    <div className="col-span-7">Description</div>
+                    <div className="col-span-2 text-center">Tooth</div>
+                    <div className="col-span-3 text-right">Amount</div>
+                  </div>
+                  <div className="space-y-2">
+                    {items.filter(i => i.description || i.amount > 0).length > 0 ? (
+                      items.filter(i => i.description || i.amount > 0).map((item, idx) => (
+                        <div key={idx} className="grid grid-cols-12 gap-2 text-sm p-2 rounded-md even:bg-secondary/20">
+                          <div className="col-span-7 font-medium">{item.description || "-"}</div>
+                          <div className="col-span-2 text-center text-muted-foreground">{item.toothNumber || "-"}</div>
+                          <div className="col-span-3 text-right font-medium">₹{item.amount.toLocaleString()}</div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-4 text-center text-sm text-muted-foreground italic border border-dashed rounded-md">
+                        No procedures added yet.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-border/50 flex justify-end">
+                  <div className="w-1/2 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Subtotal</span>
+                      <span>₹{total.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Tax</span>
+                      <span>₹0</span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between items-center py-1">
+                      <span className="font-bold text-lg">Total</span>
+                      <span className="font-bold text-xl text-primary">₹{total.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
       </div>
 
-      <InvoiceModal 
-        invoice={viewingInvoice} 
-        open={!!viewingInvoice} 
-        onOpenChange={(open) => !open && setViewingInvoice(null)} 
-      />
-
-      <InvoiceEditModal
-        invoice={editingInvoice}
-        open={!!editingInvoice}
-        onOpenChange={(open) => !open && setEditingInvoice(null)}
-      />
-
-      {isNewInvoiceOpen && (
-        <PatientSelector 
-          patients={patients} 
-          onSelect={(p) => {
-            setIsNewInvoiceOpen(false);
-            setEditingInvoice(null);
-            setSelectedPatient(p);
-            setShowEditModal(true);
-          }}
-          onClose={() => setIsNewInvoiceOpen(false)}
-        />
-      )}
-
-      {showEditModal && (
-        <InvoiceEditModal
-          open={showEditModal}
-          onOpenChange={setShowEditModal}
-          patientId={selectedPatient?.id}
-          patientName={selectedPatient?.name}
-        />
-      )}
-
-      <AlertDialog open={!!invoiceToDelete} onOpenChange={(open) => !open && setInvoiceToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove Invoice?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. The invoice will be permanently deleted.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (invoiceToDelete) {
-                  deleteInvoice.mutate(invoiceToDelete);
-                  setInvoiceToDelete(null);
-                }
-              }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {deleteInvoice.isPending ? "Removing..." : "Remove Invoice"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* History (Bottom) */}
+      <div className="pt-6">
+        <h2 className="text-xl font-heading font-bold mb-4">
+          {patient ? `Billing History for ${patient.name}` : "Recent Invoices"}
+        </h2>
+        
+        {!patientId ? (
+          <Card className="border-border/50 bg-secondary/10">
+            <CardContent className="flex flex-col items-center justify-center p-12 text-center">
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <Receipt className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="text-lg font-bold mb-1">Select a Patient</h3>
+              <p className="text-muted-foreground max-w-sm">
+                Select a patient from the form above to view their complete billing history and past invoices.
+              </p>
+            </CardContent>
+          </Card>
+        ) : patientInvoices.length === 0 ? (
+          <Card className="border-border/50">
+            <CardContent className="p-8 text-center text-muted-foreground">
+              No previous invoices found for this patient.
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {patientInvoices.map((invoice) => (
+              <Card key={invoice.id} className="border-border/50 transition-shadow hover:shadow-md">
+                <CardContent className="p-5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                        <Receipt className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{invoice.id}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(invoice.date).toLocaleDateString('en-GB')} · {invoice.items.length} item(s)</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <p className="text-lg font-heading font-bold">₹{invoice.total.toLocaleString()}</p>
+                      <StatusBadge status={invoice.status} />
+                      
+                      <div className="flex gap-2 ml-2">
+                        {/* Only show Edit button if it's not the currently editing one */}
+                        {editId !== invoice.id && (
+                          <Button size="sm" variant="outline" onClick={() => {
+                            setPatientId(invoice.patientId);
+                            setDate(invoice.date);
+                            setItems(invoice.items);
+                            setStatus(invoice.status);
+                            // To properly edit, we should update the URL.
+                            window.history.pushState({}, '', `?patientId=${invoice.patientId}&editId=${invoice.id}`);
+                          }}>
+                            Edit
+                          </Button>
+                        )}
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="border-primary/30"
+                          onClick={() => pdfService.generateInvoicePDF(patient, invoice)}
+                        >
+                          <FileDown className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="text-destructive px-2" onClick={() => {
+                          if (window.confirm("Are you sure you want to delete this invoice?")) {
+                            deleteInvoice.mutate(invoice.id);
+                          }
+                        }}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-3 border-t border-border/50 pt-3">
+                    <div className="space-y-1">
+                      {invoice.items.map((item, index) => (
+                        <div key={index} className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">{item.description} {item.toothNumber ? `(Tooth #${item.toothNumber})` : ""}</span>
+                          <span>₹{item.amount.toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
     </motion.div>
   );
 };
-
-const PatientSelector = ({ patients, onSelect, onClose }: { patients: Patient[], onSelect: (p: Patient) => void, onClose: () => void }) => (
-  <Dialog open onOpenChange={onClose}>
-    <DialogContent className="max-w-md">
-      <DialogHeader>
-        <DialogTitle>Create New Invoice</DialogTitle>
-      </DialogHeader>
-      <div className="space-y-4 pt-4">
-        <div className="space-y-2">
-          <Label>Select Patient</Label>
-          <Select onValueChange={(val) => onSelect(patients.find(p => p.id === val)!)}>
-            <SelectTrigger><SelectValue placeholder="Select patient" /></SelectTrigger>
-            <SelectContent>
-              {patients.map(p => <SelectItem key={p.id} value={p.id}>{p.name} ({p.id})</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-    </DialogContent>
-  </Dialog>
-);
 
 export default Billing;

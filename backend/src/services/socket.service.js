@@ -1,11 +1,12 @@
 import { Server } from 'socket.io';
+import { config } from '../config/env.js';
 
 let io;
 
 export const initSocket = (server) => {
   io = new Server(server, {
     cors: {
-      origin: "*", // Adjust this in production
+      origin: config.CORS_ORIGINS,
       methods: ["GET", "POST"]
     }
   });

@@ -3,33 +3,26 @@ import { config } from '../config/env.js';
 
 const { Pool } = pg;
 
+const SCHEMA = config.NODE_ENV === 'production' ? 'smartcare_prod' : 'smartcare_dev';
+
 const pool = new Pool({
   connectionString: config.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
+  ssl: { rejectUnauthorized: false },
+  options: `-c search_path=${SCHEMA}`  // set schema at connection level — no per-query overhead
 });
-
-const SCHEMA = config.NODE_ENV === 'production' ? 'smartcare_prod' : 'smartcare_dev';
 
 class DbService {
   async query(text, params) {
-    const client = await pool.connect();
-    try {
-      await client.query(`SET search_path TO ${SCHEMA}`);
-      return await client.query(text, params);
-    } finally {
-      client.release();
-    }
+    return pool.query(text, params);  // pool manages client lifecycle safely
   }
 
   // Optimized read for compatibility - but we should move away from this
   async read() {
     const db = {};
     const tables = [
-      'users', 'patients', 'doctors', 'doctor_availability', 'appointments',
+      'users', 'patients', 'doctors', 'appointments',
       'invoices', 'prescriptions', 'medicines', 'prescription_templates',
-      'activity_logs', 'dental_charts', 'queue', 'treatment_plans', 'diagnoses', 'reports'
+      'activity_logs', 'dental_charts', 'treatment_plans', 'diagnoses', 'reports', 'clinical_procedures'
     ];
 
     // Run queries in parallel for better performance
@@ -56,14 +49,6 @@ class DbService {
         chiefComplaint: r.chief_complaint
       }));
     }
-    if (table === 'doctor_availability') {
-      return rows.map(r => ({
-        ...r,
-        doctorId: r.doctor_id,
-        start: r.start_time,
-        end: r.end_time
-      }));
-    }
     if (table === 'appointments') {
       return rows.map(r => ({
         ...r,
@@ -87,18 +72,11 @@ class DbService {
         doctorName: r.doctor_name,
         date: r.date ? new Date(r.date).toLocaleDateString('en-CA') : null,
         chiefComplaint: r.chief_complaint,
-        diagnosis: r.diagnosis
+        diagnosis: r.diagnosis,
+        nextVisitDate: r.next_visit_date ? new Date(r.next_visit_date).toLocaleDateString('en-CA') : null
       }));
     }
-    if (table === 'queue') {
-      return rows.map(r => ({
-        ...r,
-        patientId: r.patient_id,
-        patientName: r.patient_name,
-        doctorName: r.doctor_name,
-        arrivedAt: r.arrived_at
-      }));
-    }
+
     if (table === 'dental_charts') {
       return rows.map(r => ({
         ...r,
@@ -137,7 +115,7 @@ class DbService {
       case 'TPL': tableName = 'prescription_templates'; break;
       case 'DIAG': tableName = 'diagnoses'; break;
       case 'TP': tableName = 'treatment_plans'; break;
-      case 'Q': tableName = 'queue'; break;
+
       default: return `${prefix}${Date.now()}`;
     }
 

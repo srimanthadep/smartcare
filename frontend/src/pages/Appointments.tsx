@@ -90,14 +90,7 @@ const Appointments: React.FC = () => {
     [filteredAppointments, todayIso],
   );
 
-  const queue = useMemo(() => {
-    const items = bootstrap?.queue || [];
-    const filtered = items.filter((item) => (typeFilter === "all" ? true : item.type === typeFilter));
-    return STATUS_ORDER.map((status) => ({
-      status,
-      items: filtered.filter((item) => item.status === status),
-    }));
-  }, [bootstrap?.queue, typeFilter]);
+
 
   const AppointmentRow = ({ appointment }: { appointment: typeof appointments[number] }) => (
     <div className="flex flex-col justify-between gap-2 rounded-lg border border-border/50 bg-secondary/30 p-4 sm:flex-row sm:items-center">
@@ -269,14 +262,7 @@ const Appointments: React.FC = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="calendar">
-        <TabsList>
-          <TabsTrigger value="calendar">Calendar</TabsTrigger>
-          <TabsTrigger value="availability">Availability</TabsTrigger>
-          <TabsTrigger value="queue">Queue</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="calendar" className="mt-4 space-y-4">
+      <div className="mt-4 space-y-4">
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
             <Card className="border-border/50">
               <CardHeader className="pb-2">
@@ -314,76 +300,7 @@ const Appointments: React.FC = () => {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="availability" className="mt-4">
-          <Card className="border-border/50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-heading">Dentist Availability</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-                {bootstrap.doctors.map((doctor) => {
-                  const slots = bootstrap.doctorAvailability.filter((item) => item.doctorId === doctor.id);
-                  return (
-                    <div key={doctor.id} className="rounded-lg border border-border/50 bg-secondary/20 p-4">
-                      <p className="font-medium">{doctor.name}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">{doctor.department}</p>
-                      <div className="mt-3 space-y-2">
-                        {slots.map((slot, index) => (
-                          <div key={`${doctor.id}-${index}`} className="flex items-center justify-between rounded-md border border-border/50 bg-card px-3 py-2 text-sm">
-                            <span className="text-muted-foreground">{slot.day}</span>
-                            <span className="font-medium">{slot.start}-{slot.end}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="queue" className="mt-4">
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-            {queue.map((group) => (
-              <Card key={group.status} className="border-border/50">
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center justify-between text-base font-heading">
-                    <span>{group.status}</span>
-                    <span className="text-xs text-muted-foreground">{group.items.length}</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {group.items.length === 0 ? (
-                    <div className="py-6 text-center text-sm text-muted-foreground">No patients</div>
-                  ) : (
-                    group.items.map((item) => (
-                      <div key={item.id} className="rounded-lg border border-border/50 bg-secondary/25 p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-medium">{item.patientName}</p>
-                            <p className="mt-1 text-xs text-muted-foreground">{item.arrivedAt} · {item.doctorName}</p>
-                          </div>
-                          <StatusBadge status={item.type} />
-                        </div>
-                        {item.notes && <p className="mt-2 text-sm text-muted-foreground">{item.notes}</p>}
-                        <div className="mt-3 flex items-center justify-between">
-                          <p className="text-xs text-muted-foreground">{item.patientId}</p>
-                          <Button size="sm" variant="outline" onClick={() => navigate(`/patients/${item.patientId}`)}>
-                            <Users className="mr-1 h-4 w-4" /> View
-                          </Button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-      </Tabs>
+      </div>
     </motion.div>
   );
 };

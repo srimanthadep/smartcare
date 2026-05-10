@@ -44,11 +44,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    try { await api.logout(); } catch { /* best-effort cookie clear */ }
     setUser(null);
     sessionStorage.removeItem(USER_STORAGE_KEY);
     sessionStorage.removeItem("smartcare_token");
-    // Ideally call a backend logout to clear the cookie
   }, []);
 
   useEffect(() => {
