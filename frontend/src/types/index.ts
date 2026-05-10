@@ -14,6 +14,7 @@ export interface Medication {
   dosage: string;
   frequency: string;
   duration?: string;
+  instructions?: string;
 }
 
 export interface Patient {
