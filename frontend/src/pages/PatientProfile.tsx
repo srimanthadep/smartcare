@@ -17,7 +17,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import StatusBadge from "@/components/StatusBadge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -694,19 +693,40 @@ const TreatmentPlansSection: React.FC<TreatmentPlansSectionProps> = ({ patientId
     },
   });
 
+  const deletePlanMutation = useMutation({
+    mutationFn: (id: string) => api.deleteTreatmentPlan(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["treatment-plans", patientId] });
+      toast.success('Treatment plan deleted');
+    },
+  });
+
+  const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
+
   const addPlan = () => {
     if (newPlan.phases.length === 0) {
       toast.error('Add at least one phase to the plan');
       return;
     }
-    createPlanMutation.mutate({
-      patientId,
-      dentistName: newPlan.dentistName,
-      notes: newPlan.notes,
-      phases: newPlan.phases,
-      totalCost: newPlan.phases.reduce((sum, p) => sum + p.estimatedCost, 0),
-      status: 'Active',
-    });
+    if (editingPlanId) {
+      updatePlanMutation.mutate({
+        id: editingPlanId,
+        payload: {
+          notes: newPlan.notes,
+          phases: newPlan.phases,
+          totalCost: newPlan.phases.reduce((sum, p) => sum + (p.estimatedCost || 0), 0),
+        }
+      });
+    } else {
+      createPlanMutation.mutate({
+        patientId,
+        dentistName: newPlan.dentistName,
+        notes: newPlan.notes,
+        phases: newPlan.phases,
+        totalCost: newPlan.phases.reduce((sum, p) => sum + (p.estimatedCost || 0), 0),
+        status: 'Active',
+      });
+    }
   };
 
   const addPhase = () => {
@@ -741,12 +761,6 @@ const TreatmentPlansSection: React.FC<TreatmentPlansSectionProps> = ({ patientId
     toast.success(`Phase marked as ${status}`);
   };
 
-  const getProgress = (plan: TreatmentPlan) => {
-    if (!plan.phases?.length) return 0;
-    const completed = plan.phases.filter(p => p.status === 'Completed').length;
-    return Math.round((completed / plan.phases.length) * 100);
-  };
-
   if (isLoading) return <Skeleton className="h-48 w-full" />;
 
   return (
@@ -759,7 +773,7 @@ const TreatmentPlansSection: React.FC<TreatmentPlansSectionProps> = ({ patientId
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="font-heading">Create Treatment Plan</DialogTitle>
+              <DialogTitle className="font-heading">{editingPlanId ? 'Edit Treatment Plan' : 'Create Treatment Plan'}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
@@ -819,10 +833,10 @@ const TreatmentPlansSection: React.FC<TreatmentPlansSectionProps> = ({ patientId
               </div>
 
               <div className="flex gap-2 pt-4">
-                <Button onClick={addPlan} className="flex-1" disabled={createPlanMutation.isPending}>
-                  {createPlanMutation.isPending ? 'Creating...' : 'Create Plan'}
+                <Button onClick={addPlan} className="flex-1" disabled={createPlanMutation.isPending || updatePlanMutation.isPending}>
+                  {editingPlanId ? (updatePlanMutation.isPending ? 'Updating...' : 'Update Plan') : (createPlanMutation.isPending ? 'Creating...' : 'Create Plan')}
                 </Button>
-                <Button variant="outline" onClick={() => setShowDialog(false)}>Cancel</Button>
+                <Button variant="outline" onClick={() => { setShowDialog(false); setEditingPlanId(null); setNewPlan({ notes: '', dentistName: 'Dr. Saikiran', phases: [] }); }}>Cancel</Button>
               </div>
             </div>
           </DialogContent>
@@ -842,25 +856,46 @@ const TreatmentPlansSection: React.FC<TreatmentPlansSectionProps> = ({ patientId
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">{plan.notes || 'Untitled Plan'}</CardTitle>
-                <Badge variant={plan.status === 'Active' ? 'default' : plan.status === 'Completed' ? 'secondary' : 'outline'}>
-                  {plan.status}
-                </Badge>
+                <div className="flex items-center gap-1">
+                  <p className="text-sm font-bold text-primary mr-2">₹{(plan.totalCost || 0).toLocaleString()}</p>
+                  <Badge variant={plan.status === 'Active' ? 'default' : plan.status === 'Completed' ? 'secondary' : 'outline'}>
+                    {plan.status}
+                  </Badge>
+                  <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    className="h-8 w-8 text-muted-foreground"
+                    onClick={() => {
+                      // If it's generated from a prescription, navigate there
+                      const pxMatch = plan.notes?.match(/Prescription (PR\d+)/);
+                      if (pxMatch) {
+                        navigate(`/prescriptions?editId=${pxMatch[1]}`);
+                      } else {
+                        setNewPlan({ notes: plan.notes, dentistName: plan.dentistName, phases: [...plan.phases] });
+                        setEditingPlanId(plan.id);
+                        setShowDialog(true);
+                      }
+                    }}
+                  >
+                    <Edit3 className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                    onClick={() => {
+                      if (confirm("Are you sure you want to delete this treatment plan?")) {
+                        deletePlanMutation.mutate(plan.id);
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               <p className="text-xs text-muted-foreground mt-2">Created {plan.createdDate} by {plan.dentistName}</p>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">Progress</p>
-                  <p className="text-xs text-muted-foreground">{getProgress(plan)}% Complete</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium">Total Cost</p>
-                  <p className="text-xs text-muted-foreground">₹{(plan.totalCost || 0).toLocaleString()}</p>
-                </div>
-              </div>
-              <Progress value={getProgress(plan)} className="h-2" />
-
               <div className="space-y-2">
                 {plan.phases.map((phase, i) => (
                   <div key={phase.id} className="rounded-lg border border-border/50 bg-secondary/20 p-3">
