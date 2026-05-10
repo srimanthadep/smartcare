@@ -42,7 +42,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ invoice, open, onOpenChange
           </head>
           <body>
             <div class="header">
-              <div class="logo">Siara Dental Clinic</div>
+              <div class="logo">Siara Dental</div>
               <div class="invoice-info">
                 <div style="font-size: 18px; font-weight: bold;">INVOICE</div>
                 <div>#${invoice.id}</div>
@@ -93,8 +93,8 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ invoice, open, onOpenChange
               </div>
             </div>
             <div class="footer">
-              <p>Thank you for choosing Siara Dental Clinic. Please contact us if you have any questions about this invoice.</p>
-              <p>123 Medical Plaza, Bangalore · +91 80 1234 5678 · billing@siaradental.com</p>
+              <p>Thank you for choosing Siara Dental. Please contact us if you have any questions about this invoice.</p>
+              <p>Omini Hospital Road, Nagole, Hyderabad · +91 89198 78543 · care@siaradental.in</p>
             </div>
           </body>
         </html>
@@ -145,7 +145,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ invoice, open, onOpenChange
         <div className="p-8" ref={printRef}>
           <div className="flex justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-foreground">Siara Dental Clinic</h2>
+              <h2 className="text-2xl font-bold text-foreground">Siara Dental</h2>
               <p className="text-sm text-muted-foreground mt-1">Specialized Oral Health Center</p>
             </div>
             <div className="text-right">

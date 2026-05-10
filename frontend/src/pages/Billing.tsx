@@ -371,8 +371,8 @@ const Billing: React.FC = () => {
                   </div>
                   <div className="text-right">
                     <p className="font-bold text-lg">Siara Dental</p>
-                    <p className="text-sm text-muted-foreground">Plot 123, Jubilee Hills</p>
-                    <p className="text-sm text-muted-foreground">Hyderabad, TG 500033</p>
+                    <p className="text-sm text-muted-foreground">Omini Hospital Road, New Nagole</p>
+                    <p className="text-sm text-muted-foreground">Hyderabad, Telangana 500035</p>
                   </div>
                 </div>
               </div>

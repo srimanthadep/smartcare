@@ -9,7 +9,7 @@ const CLINIC_TAGLINE = "CREATING MILES OF SMILES";
 const CLINIC_PHONE   = "+91 89198 78543";
 const CLINIC_EMAIL   = "care@siaradental.in";
 const CLINIC_WEB     = "www.siaradental.in";
-const CLINIC_ADDR    = "Omini Hospital Road, opp. Nayara Petrol bunk,\nHyderabad, Telangana 500035";
+const CLINIC_ADDR    = "Omini Hospital Road, New Nagole Main Rd,\nOpp. Nayara Petrol bunk, Hyderabad 500035";
 
 // ─── Brand Colors ────────────────────────────────────────────────────────────
 const C = {

@@ -24,7 +24,7 @@ export const pdfService = {
       
       doc.fillColor('#1d0d08').fontSize(22).font('Helvetica-Bold').text('SIARA DENTAL', 110, 45);
       doc.fillColor('#ff7a1a').fontSize(8).text('CREATING MILES OF SMILES', 110, 68, { characterSpacing: 1.5 });
-      doc.fillColor('#666666').fontSize(8).font('Helvetica').text('Omini Hospital Road, opp. Nayara Petrol bunk, Hyderabad', 110, 85);
+      doc.fillColor('#666666').fontSize(8).font('Helvetica').text('Omini Hospital Road, New Nagole, Hyderabad, Telangana 500035', 110, 85);
       doc.text('Ph: +91 89198 78543 | Web: www.siaradental.in', 110, 95);
 
       doc.moveTo(50, 115).lineTo(550, 115).strokeColor('#ff7a1a').lineWidth(1.5).stroke();
