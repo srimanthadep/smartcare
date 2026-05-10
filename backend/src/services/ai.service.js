@@ -21,7 +21,7 @@ class AIService {
 You must return the response in strict JSON format. Do not use markdown blocks for JSON, just output raw JSON.
 The JSON must have this structure:
 {
-  "diagnosis": "Clinical diagnosis based on chief complaint",
+  "diagnosis": "Clinical diagnosis based on chief complaint (Must be a single string, not an object)",
   "medicines": [
     { "name": "Medicine Name", "dosage": "e.g., 500mg", "frequency": "e.g., BID (twice a day)", "duration": "e.g., 5 days" }
   ],

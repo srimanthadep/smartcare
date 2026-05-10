@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState, useEffect } from "react";
+import { Medication } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -69,7 +70,12 @@ const Prescriptions: React.FC = () => {
     mutationFn: api.generateAIPrescription,
     onSuccess: (res) => {
       if (res.data.diagnosis) {
-        setDiagnosis(res.data.diagnosis);
+        if (typeof res.data.diagnosis === 'object' && res.data.diagnosis) {
+          const d = res.data.diagnosis;
+          setDiagnosis(`Primary: ${d.primary || 'N/A'}\nDifferential: ${d.differential || 'N/A'}\nNotes: ${d.notes || ''}`.trim());
+        } else {
+          setDiagnosis(res.data.diagnosis);
+        }
       }
       if (res.data.medicines && res.data.medicines.length > 0) {
         setMedicines(res.data.medicines);
@@ -95,7 +101,7 @@ const Prescriptions: React.FC = () => {
   const [diagnosis, setDiagnosis] = useState("");
   const [nextVisitDate, setNextVisitDate] = useState("");
   const [treatmentPlan, setTreatmentPlan] = useState<any[]>([]);
-  const [medicines, setMedicines] = useState([{ name: "", dosage: "", frequency: "", duration: "" }]);
+  const [medicines, setMedicines] = useState<Medication[]>([{ name: "", dosage: "", frequency: "", duration: "" }]);
 
   const patient = useMemo(() => patients.find((item) => item.id === patientId), [patientId, patients]);
 
