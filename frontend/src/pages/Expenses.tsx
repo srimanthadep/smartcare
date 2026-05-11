@@ -112,7 +112,23 @@ const Expenses: React.FC = () => {
               <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
                   <Label htmlFor="description">Expense Name</Label>
-                  <Input id="description" name="description" placeholder="e.g., Monthly Clinic Rent" required />
+                  <Input 
+                    id="description" 
+                    name="description" 
+                    placeholder="e.g., Monthly Clinic Rent" 
+                    required 
+                    onChange={(e) => {
+                      const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
+                      let val = e.target.value;
+                      val = val.split(' ').map((word, index) => {
+                        if (index > 0 && minorWords.includes(word.toLowerCase())) {
+                          return word.toLowerCase();
+                        }
+                        return word.charAt(0).toUpperCase() + word.slice(1);
+                      }).join(' ');
+                      e.target.value = val;
+                    }}
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">

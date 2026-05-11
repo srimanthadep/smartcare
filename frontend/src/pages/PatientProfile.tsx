@@ -374,7 +374,17 @@ const PatientProfile: React.FC = () => {
                 {editingConditions ? (
                   <Input 
                     value={conditionsDraft} 
-                    onChange={(e) => setConditionsDraft(e.target.value)}
+                    onChange={(e) => {
+                      const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
+                      let val = e.target.value;
+                      val = val.split(' ').map((word, index) => {
+                        if (index > 0 && minorWords.includes(word.toLowerCase())) {
+                          return word.toLowerCase();
+                        }
+                        return word.charAt(0).toUpperCase() + word.slice(1);
+                      }).join(' ');
+                      setConditionsDraft(val);
+                    }}
                     placeholder="Enter conditions separated by commas..."
                     className="h-8 text-xs"
                     autoFocus
@@ -419,7 +429,17 @@ const PatientProfile: React.FC = () => {
                 {editingAllergies ? (
                   <Input 
                     value={allergiesDraft} 
-                    onChange={(e) => setAllergiesDraft(e.target.value)}
+                    onChange={(e) => {
+                      const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
+                      let val = e.target.value;
+                      val = val.split(' ').map((word, index) => {
+                        if (index > 0 && minorWords.includes(word.toLowerCase())) {
+                          return word.toLowerCase();
+                        }
+                        return word.charAt(0).toUpperCase() + word.slice(1);
+                      }).join(' ');
+                      setAllergiesDraft(val);
+                    }}
                     placeholder="Enter allergies separated by commas..."
                     className="h-8 text-xs"
                     autoFocus
@@ -467,7 +487,17 @@ const PatientProfile: React.FC = () => {
                     <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-wider">Relevant History/Complaints:</span>
                     <Textarea 
                       value={dentalHistoryDraft}
-                      onChange={(e) => setDentalHistoryDraft(e.target.value)}
+                      onChange={(e) => {
+                        const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
+                        let val = e.target.value;
+                        val = val.split(' ').map((word, index) => {
+                          if (index > 0 && minorWords.includes(word.toLowerCase())) {
+                            return word.toLowerCase();
+                          }
+                          return word.charAt(0).toUpperCase() + word.slice(1);
+                        }).join(' ');
+                        setDentalHistoryDraft(val);
+                      }}
                       className="min-h-[80px] text-xs"
                       autoFocus
                       onBlur={() => setEditingDentalHistory(false)}
@@ -542,7 +572,17 @@ const PatientProfile: React.FC = () => {
                 {editingNotes ? (
                   <Textarea 
                     value={notesDraft}
-                    onChange={(e) => setNotesDraft(e.target.value)}
+                    onChange={(e) => {
+                      const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
+                      let val = e.target.value;
+                      val = val.split(' ').map((word, index) => {
+                        if (index > 0 && minorWords.includes(word.toLowerCase())) {
+                          return word.toLowerCase();
+                        }
+                        return word.charAt(0).toUpperCase() + word.slice(1);
+                      }).join(' ');
+                      setNotesDraft(val);
+                    }}
                     className="min-h-[100px] text-sm"
                     autoFocus
                     onClick={(e) => e.stopPropagation()}

@@ -109,7 +109,20 @@ const PatientRegistration: React.FC = () => {
   });
 
   const updateField = (key: keyof typeof form, value: string) => {
-    setForm((current) => ({ ...current, [key]: value }));
+    let finalValue = value;
+    const capitalizeFields: (keyof typeof form)[] = ["name", "address", "chiefComplaint", "allergies", "conditions", "notes", "dentalHistory"];
+    
+    if (capitalizeFields.includes(key)) {
+      const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
+      finalValue = value.split(' ').map((word, index) => {
+        if (index > 0 && minorWords.includes(word.toLowerCase())) {
+          return word.toLowerCase();
+        }
+        return word.charAt(0).toUpperCase() + word.slice(1);
+      }).join(' ');
+    }
+
+    setForm((current) => ({ ...current, [key]: finalValue }));
   };
 
   const handleSubmit = (event: React.FormEvent) => {
@@ -177,7 +190,38 @@ const PatientRegistration: React.FC = () => {
                 </div>
                 <div className="space-y-2">
                   <Label>Email</Label>
-                  <Input type="email" value={form.email} onChange={(event) => updateField("email", event.target.value)} placeholder="patient@email.com" />
+                  <div className="space-y-1">
+                    <Input 
+                      type="email" 
+                      value={form.email} 
+                      onChange={(event) => {
+                        const val = event.target.value;
+                        if (val.endsWith("@")) {
+                          updateField("email", val + "gmail.com");
+                        } else {
+                          updateField("email", val);
+                        }
+                      }} 
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && form.email && !form.email.includes("@")) {
+                          e.preventDefault();
+                          updateField("email", form.email + "@gmail.com");
+                        }
+                      }}
+                      placeholder="patient@email.com" 
+                    />
+                    {form.email && !form.email.includes("@") && (
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-6 text-[10px] px-2 py-0"
+                        onClick={() => updateField("email", form.email + "@gmail.com")}
+                      >
+                        + @gmail.com
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="space-y-2">
