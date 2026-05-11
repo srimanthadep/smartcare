@@ -16,7 +16,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   useEffect(() => {
     // In production, this should be your API URL
-    const socketUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin.replace(/:\d+$/, ':3001');
+    const socketUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
     const socketInstance = io(socketUrl, {
       transports: ['websocket'],
       reconnectionAttempts: 5,

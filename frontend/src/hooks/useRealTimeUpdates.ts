@@ -1,48 +1,53 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSocket } from '@/contexts/SocketContext';
-import { toast } from 'sonner';
 
-export const useRealTimeUpdates = () => {
+const EVENTS = {
+  PATIENT_UPDATED:      'PATIENT_UPDATED',
+  APPOINTMENT_UPDATED:  'APPOINTMENT_UPDATED',
+  INVOICE_UPDATED:      'INVOICE_UPDATED',
+  PRESCRIPTION_UPDATED: 'PRESCRIPTION_UPDATED',
+  QUEUE_UPDATED:        'QUEUE_UPDATED',
+  ACTIVITY_LOGGED:      'ACTIVITY_LOGGED',
+};
+
+export function useRealTimeUpdates() {
   const { socket } = useSocket();
   const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!socket) return;
 
-    const handleUpdate = (event: string, message: string, queryKeys: string[][]) => {
-      socket.on(event, (data) => {
-        console.log(`📡 Real-time update received: ${event}`, data);
-        
-        // Invalidate relevant queries
-        queryKeys.forEach(keys => {
-          queryClient.invalidateQueries({ queryKey: keys });
-        });
+    // When backend emits PATIENT_UPDATED, invalidate patients cache → auto-refetch
+    socket.on(EVENTS.PATIENT_UPDATED, () => {
+      queryClient.invalidateQueries({ queryKey: ['patients'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    });
 
-        // Show a subtle toast if needed
-        if (message) {
-          toast.info(message, {
-            description: data.name || data.patientName || data.id,
-            duration: 3000,
-          });
-        }
-      });
-    };
+    socket.on(EVENTS.APPOINTMENT_UPDATED, () => {
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    });
 
-    handleUpdate('PATIENT_UPDATED', 'Patient data updated', [['patients']]);
-    handleUpdate('APPOINTMENT_UPDATED', 'Schedule updated', [['appointments'], ['dashboard']]);
-    handleUpdate('INVOICE_UPDATED', 'Invoice status changed', [['invoices'], ['dashboard']]);
-    handleUpdate('PRESCRIPTION_UPDATED', 'Prescription updated', [['prescriptions']]);
-    handleUpdate('ACTIVITY_LOGGED', '', [['logs']]);
-    handleUpdate('QUEUE_UPDATED', 'Queue updated', [['queue'], ['dashboard']]);
+    socket.on(EVENTS.INVOICE_UPDATED, () => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    });
+
+    socket.on(EVENTS.PRESCRIPTION_UPDATED, () => {
+      queryClient.invalidateQueries({ queryKey: ['prescriptions'] });
+    });
+
+    socket.on(EVENTS.QUEUE_UPDATED, () => {
+      queryClient.invalidateQueries({ queryKey: ['queue'] });
+    });
+
+    socket.on(EVENTS.ACTIVITY_LOGGED, () => {
+      queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
+    });
 
     return () => {
-      socket.off('PATIENT_UPDATED');
-      socket.off('APPOINTMENT_UPDATED');
-      socket.off('INVOICE_UPDATED');
-      socket.off('PRESCRIPTION_UPDATED');
-      socket.off('ACTIVITY_LOGGED');
-      socket.off('QUEUE_UPDATED');
+      Object.values(EVENTS).forEach(event => socket.off(event));
     };
   }, [socket, queryClient]);
-};
+}
