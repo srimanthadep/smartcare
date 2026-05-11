@@ -2,23 +2,21 @@ import { config } from '../config/env.js';
 
 class AIService {
   constructor() {
-    if (!config.MISTRAL_API_KEY) {
-      console.warn('MISTRAL_API_KEY is not set. AI features will fail.');
+    if (!config.GEMINI_API_KEY) {
+      console.warn('GEMINI_API_KEY is not set. AI features will fail.');
     }
   }
 
   /**
-   * Generates a prescription using Mistral AI API.
-   * @param {Object} patientData - Details of the patient and context
-   * @returns {Object} JSON response representing the prescription
+   * Generates a prescription using Gemini AI API.
    */
   async generatePrescriptionDraft(patientData) {
-    if (!config.MISTRAL_API_KEY) {
-      throw new Error('AI service is not configured. Missing MISTRAL_API_KEY.');
+    if (!config.GEMINI_API_KEY) {
+      throw new Error('AI service is not configured. Missing GEMINI_API_KEY.');
     }
 
     const systemPrompt = `You are a helpful AI Assistant for a Dentist. Your task is to suggest a prescription draft based on the patient's dental data, medical history, and current symptoms.
-You must return the response in strict JSON format. Do not use markdown blocks for JSON, just output raw JSON.
+You must return the response in strict JSON format.
 The JSON must have this structure:
 {
   "diagnosis": "Clinical diagnosis based on chief complaint (Must be a single string, not an object)",
@@ -30,78 +28,69 @@ The JSON must have this structure:
 
 IMPORTANT RULES:
 - Never exceed 5 medicines.
-- Only suggest medicines appropriate for dental scenarios (e.g., painkillers, antibiotics for infections, anti-inflammatory, mouthwash).
+- Only suggest medicines appropriate for dental scenarios.
 - If the patient has allergies (e.g., Penicillin), DO NOT prescribe related medicines.
-- The output MUST BE valid JSON and nothing else.`;
+- The output MUST BE valid JSON.`;
 
-const userPrompt = `Patient Details:
+    const userPrompt = `Patient Details:
 Name: ${patientData.patientName || 'Unknown'}
 Age: ${patientData.age || 'Unknown'}
 Gender: ${patientData.gender || 'Unknown'}
 Allergies: ${patientData.allergies?.length ? patientData.allergies.join(', ') : 'None known'}
 Conditions: ${patientData.conditions?.length ? patientData.conditions.join(', ') : 'None known'}
 Chief Complaint / Reason for Visit: ${patientData.context || 'General checkup'}
-Current Medications: ${patientData.currentMedications?.length ? patientData.currentMedications.join(', ') : 'None'}
+Current Medications: ${patientData.currentMedications?.length ? patientData.currentMedications.join(', ') : 'None'}`;
 
-Please generate a clinical diagnosis and an appropriate dental prescription draft based on the above complaint.`;
+    const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
 
     try {
-      console.log('Generating AI Prescription Draft...');
-      const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
+      console.log('Generating AI Prescription Draft via Gemini...');
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${config.GEMINI_API_KEY}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${config.MISTRAL_API_KEY}`
         },
         body: JSON.stringify({
-          model: 'open-mistral-7b',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          response_format: { type: 'json_object' },
-          temperature: 0.2
+          contents: [{ parts: [{ text: fullPrompt }] }],
+          generationConfig: {
+            response_mime_type: "application/json",
+            temperature: 0.2
+          }
         })
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Mistral API Error Details:', errorData);
-        throw new Error(`Mistral API error: ${errorData.message || response.statusText}`);
+        console.error('Gemini API Error Details:', errorData);
+        throw new Error(`Gemini API error: ${errorData.error?.message || response.statusText}`);
       }
 
       const data = await response.json();
-      const responseText = data.choices[0].message.content;
-      
+      const responseText = data.candidates[0].content.parts[0].text;
       const parsedJSON = JSON.parse(responseText);
       
-      // Basic validation
       if (!parsedJSON.medicines || !Array.isArray(parsedJSON.medicines)) {
         throw new Error('Invalid JSON structure from AI');
       }
 
       return parsedJSON;
     } catch (error) {
-      console.error('Detailed AI Generation Error (Mistral):', error);
+      console.error('Detailed AI Generation Error (Gemini):', error);
       throw new Error('Failed to generate prescription from AI. Please try again or write manually.');
     }
   }
 
   /**
    * General purpose chat with full clinical context.
-   * @param {string} message - User message
-   * @param {Array} history - Previous messages
-   * @returns {string} AI response
    */
   async chat(message, history = []) {
-    if (!config.MISTRAL_API_KEY) {
+    if (!config.GEMINI_API_KEY) {
       throw new Error('AI service is not configured.');
     }
 
     try {
       const { dbService } = await import('./db.service.js');
-      console.log('Fetching optimized clinic context for AI...');
+      console.log('Fetching optimized clinic context for Gemini AI...');
       
       const today = new Date().toISOString().slice(0, 10);
       
@@ -123,11 +112,6 @@ Please generate a clinical diagnosis and an appropriate dental prescription draf
 
       const systemPrompt = `You are "Siara AI", an advanced clinical assistant for Siara Dental Clinic. 
 You have access to the following clinic summary:
-- Total Patients: ${summary.totalPatients}
-- Appointments Today: ${summary.todayAppointments}
-- Pending Invoices: ${summary.pendingInvoices}
-
-RECENT ACTIVITY:
 ${JSON.stringify(summary, null, 2)}
 
 YOUR ROLE:
@@ -136,43 +120,47 @@ YOUR ROLE:
 3. Help the dentist find information about specific patients if asked.
 4. Be professional, concise, and helpful. 
 
-If asked about medical advice, always add a disclaimer that this is an AI suggestion and the final clinical decision rests with Dr. Saikiran.
-Response format: Markdown.`;
+Disclaimer: Add a note that this is an AI suggestion and the final clinical decision rests with Dr. Saikiran.`;
 
-      console.log('System Prompt Length:', systemPrompt.length);
-      console.log('History Count:', history.length);
-      console.log('Calling Mistral API...');
-      const response = await fetch('https://api.mistral.ai/v1/chat/completions', {
+      // Convert history to Gemini format
+      const contents = history.map(m => ({
+        role: m.role === 'user' ? 'user' : 'model',
+        parts: [{ text: m.content }]
+      }));
+
+      // Add system prompt as a user message if it's the first turn, or prepend it.
+      // Better: Use system_instruction if supported, or just prepend to the first message.
+      const fullContents = [
+        { role: 'user', parts: [{ text: `SYSTEM INSTRUCTION: ${systemPrompt}` }] },
+        ...contents,
+        { role: 'user', parts: [{ text: message }] }
+      ];
+
+      console.log('Calling Gemini API for chat...');
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${config.GEMINI_API_KEY}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${config.MISTRAL_API_KEY}`
         },
         body: JSON.stringify({
-          model: 'open-mistral-7b',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            ...history.map(m => ({ role: m.role, content: m.content })),
-            { role: 'user', content: message }
-          ],
-          temperature: 0.7
+          contents: fullContents,
+          generationConfig: {
+            temperature: 0.7,
+            max_output_tokens: 1024,
+          }
         })
       });
 
-      console.log('Mistral API Status:', response.status);
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Mistral Chat API Error Details:', errorData);
-        throw new Error(`Mistral API error: ${errorData.message || response.statusText}`);
+        console.error('Gemini Chat API Error Details:', errorData);
+        throw new Error(`Gemini API error: ${errorData.error?.message || response.statusText}`);
       }
 
       const data = await response.json();
-      console.log('Mistral API response received.');
-      return data.choices[0].message.content;
+      return data.candidates[0].content.parts[0].text;
     } catch (error) {
-      console.error('Detailed AI Chat Error:', error);
+      console.error('Detailed AI Chat Error (Gemini):', error);
       throw new Error('Failed to get a response from Siara AI.');
     }
   }
