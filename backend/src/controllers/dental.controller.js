@@ -34,7 +34,7 @@ export const updateDentalChart = async (req, res, next) => {
     const result = await dbService.query(query, [patientId, JSON.stringify(teeth || [])]);
     const chart = dbService.mapRows('dental_charts', result.rows)[0];
 
-    await activityService.log(req.user.sub, req.user.username, 'Update Dental Chart', `Updated dental chart for patient ${patientId}`, req.ip);
+    activityService.log(req.user.sub, req.user.username, 'Update Dental Chart', `Updated dental chart for patient ${patientId}`, req.ip).catch(console.error);
     
     res.json(chart);
   } catch (error) {

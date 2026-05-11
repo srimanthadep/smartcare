@@ -58,7 +58,7 @@ export const createPrescription = async (req, res, next) => {
     const result = await dbService.query(query, params);
     const prescription = dbService.mapRows('prescriptions', result.rows)[0];
 
-    await activityService.log(req.user.sub, req.user.username, 'Create Prescription', `Created prescription for patient ${patientName}`, req.ip);
+    activityService.log(req.user.sub, req.user.username, 'Create Prescription', `Created prescription for patient ${patientName}`, req.ip).catch(console.error);
     
     // Send prescription email
     const patientRes = await dbService.query('SELECT * FROM patients WHERE id = $1', [patientId]);
@@ -145,7 +145,7 @@ export const updatePrescription = async (req, res, next) => {
       await saveMedicines(fields.medicines);
     }
 
-    await activityService.log(req.user.sub, req.user.username, 'Update Prescription', `Updated prescription ${id}`, req.ip);
+    activityService.log(req.user.sub, req.user.username, 'Update Prescription', `Updated prescription ${id}`, req.ip).catch(console.error);
     const px = dbService.mapRows('prescriptions', result.rows)[0];
     emitEvent(SOCKET_EVENTS.PRESCRIPTION_UPDATED, px);
     res.json(px);
@@ -160,7 +160,7 @@ export const deletePrescription = async (req, res, next) => {
     const result = await dbService.query('UPDATE prescriptions SET is_deleted = TRUE WHERE id = $1 RETURNING id', [id]);
     if (result.rows.length === 0) return res.status(404).json({ message: 'Prescription not found' });
     
-    await activityService.log(req.user.sub, req.user.username, 'Delete Prescription', `Deleted prescription ${id}`, req.ip);
+    activityService.log(req.user.sub, req.user.username, 'Delete Prescription', `Deleted prescription ${id}`, req.ip).catch(console.error);
     emitEvent(SOCKET_EVENTS.PRESCRIPTION_UPDATED, { id, deleted: true });
     res.json({ message: 'Prescription deleted' });
   } catch (error) {

@@ -16,6 +16,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { MedicineCombobox } from "@/components/MedicineCombobox";
+import { PatientCombobox } from "@/components/PatientCombobox";
 import PrescriptionTemplateModal from "@/components/PrescriptionTemplateModal";
 import { pdfService } from "@/lib/pdfService";
 
@@ -28,10 +29,16 @@ const Prescriptions: React.FC = () => {
   const nextVisitInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   
-  const patientsQuery = useQuery({
-    queryKey: ["patients", "prescriptions-options"],
-    queryFn: () => api.getPatients({}),
+  const [patientId, setPatientId] = useState(urlPatientId || "");
+  const [selectedPatient, setSelectedPatient] = useState<any>(null);
+
+  const patientDetailsQuery = useQuery({
+    queryKey: ["patients", patientId],
+    queryFn: () => api.getPatient(patientId),
+    enabled: !!patientId && !selectedPatient,
   });
+
+  const patient = selectedPatient || patientDetailsQuery.data?.patient;
   const bootstrapQuery = useQuery({
     queryKey: ["bootstrap"],
     queryFn: api.getBootstrap,
@@ -39,10 +46,6 @@ const Prescriptions: React.FC = () => {
   const prescriptionsQuery = useQuery({
     queryKey: ["prescriptions"],
     queryFn: () => api.getPrescriptions(),
-  });
-  const templatesQuery = useQuery({
-    queryKey: ["prescription-templates"],
-    queryFn: api.getTemplates,
   });
 
   const createPrescription = useMutation({
@@ -88,11 +91,9 @@ const Prescriptions: React.FC = () => {
     onError: (error) => toast.error(error instanceof Error ? error.message : "AI generation failed"),
   });
 
-  const patients = patientsQuery.data || [];
   const bootstrap = bootstrapQuery.data;
   const savedPrescriptions = prescriptionsQuery.data || [];
 
-  const [patientId, setPatientId] = useState(urlPatientId || "");
   const [doctorName, setDoctorName] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [templateId, setTemplateId] = useState("none");
@@ -103,7 +104,6 @@ const Prescriptions: React.FC = () => {
   const [treatmentPlan, setTreatmentPlan] = useState<any[]>([]);
   const [medicines, setMedicines] = useState<Medication[]>([{ name: "", dosage: "", frequency: "", duration: "" }]);
 
-  const patient = useMemo(() => patients.find((item) => item.id === patientId), [patientId, patients]);
 
   useEffect(() => {
     document.title = "Prescriptions | Siara Dental";
@@ -164,14 +164,14 @@ const Prescriptions: React.FC = () => {
 
   const applyTemplate = (value: string) => {
     setTemplateId(value);
-    const template = templatesQuery.data?.data?.find((item: any) => item.id === value);
+    const template = bootstrap?.prescriptionTemplates?.find((item: any) => item.id === value);
     if (!template) return;
     setMedicines(template.medicines.map((item: any) => ({ ...item })));
     setNotes(template.notes || "");
     toast.message(`Template applied: ${template.name}`);
   };
 
-  if (patientsQuery.isLoading || bootstrapQuery.isLoading || prescriptionsQuery.isLoading) {
+  if (bootstrapQuery.isLoading || prescriptionsQuery.isLoading || (!!patientId && !patient && patientDetailsQuery.isLoading)) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-14 w-72" />
@@ -258,14 +258,14 @@ const Prescriptions: React.FC = () => {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Patient</Label>
-                <Select value={patientId} onValueChange={setPatientId}>
-                  <SelectTrigger><SelectValue placeholder="Select patient" /></SelectTrigger>
-                  <SelectContent>
-                    {patients.map((item) => (
-                      <SelectItem key={item.id} value={item.id}>{item.name} ({item.id})</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <PatientCombobox 
+                  value={patientId}
+                  initialLabel={patient?.name}
+                  onSelect={(p) => {
+                    setPatientId(p.id);
+                    setSelectedPatient(p);
+                  }}
+                />
               </div>
               <div className="space-y-2">
                 <Label>Doctor</Label>
@@ -288,7 +288,7 @@ const Prescriptions: React.FC = () => {
                   <SelectTrigger><SelectValue placeholder="Choose template" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
-                    {templatesQuery.data?.data?.map((template: any) => (
+                    {bootstrap.prescriptionTemplates?.map((template: any) => (
                       <SelectItem key={template.id} value={template.id}>{template.name}</SelectItem>
                     ))}
                   </SelectContent>

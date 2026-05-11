@@ -21,7 +21,7 @@ export const login = async (req, res, next) => {
       { expiresIn: `${config.TOKEN_TTL_HOURS}h` }
     );
 
-    await activityService.log(user.id, user.name, 'Login', 'User logged in successfully', req.ip);
+    activityService.log(user.id, user.name, 'Login', 'User logged in successfully', req.ip).catch(console.error);
 
     res.cookie('AuthToken', token, {
       httpOnly: true,
