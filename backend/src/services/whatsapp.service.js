@@ -5,6 +5,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { pdfService } from './pdf.service.js';
+import { dbService } from './db.service.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const AUTH_PATH = path.join(__dirname, '../../data/whatsapp_auth');
