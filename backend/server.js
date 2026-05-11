@@ -10,6 +10,7 @@ import { errorHandler } from './src/middleware/error.js';
 import { initBackupService } from './src/services/backupService.js';
 import { dbService } from './src/services/db.service.js';
 import { initSocket } from './src/services/socket.service.js';
+import { runMigrations } from './src/services/migrationService.js';
 
 import rateLimit from 'express-rate-limit';
 
@@ -102,6 +103,7 @@ const startServer = async () => {
     try {
       await dbService.query('SELECT 1');
       console.log('✅ Database connection verified');
+      await runMigrations();
       break;
     } catch (e) {
       if (!retries) {
