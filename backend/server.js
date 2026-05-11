@@ -116,6 +116,7 @@ const startServer = async () => {
   server.listen(config.PORT, () => {
     console.log(`🚀 Siara Dental SaaS Backend running in ${config.NODE_ENV} mode`);
     console.log(`🔗 API Endpoint: http://localhost:${config.PORT}/api`);
+    console.log(`🛡️  Allowed CORS Origins: ${config.CORS_ORIGINS.join(', ')}`);
   });
 };
 
