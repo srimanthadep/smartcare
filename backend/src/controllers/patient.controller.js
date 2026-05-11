@@ -49,15 +49,13 @@ export const getPatient = async (req, res, next) => {
   try {
     const { id } = req.params;
     
-    const patientRes = await dbService.query('SELECT * FROM patients WHERE id = $1', [id]);
-    if (patientRes.rows.length === 0) return res.status(404).json({ message: 'Patient not found' });
-
-    // For diagnoses and reports, we don't have tables yet in my previous scripts but I should have created them or I'll just return empty for now if they don't exist.
-    // Wait, I created 'diagnoses' and 'reports' in init-db.js? Let me check.
-    // Ah, I missed them in init-db.js! I only had them in the list.
+    const [patientRes, diagnosesRes, reportsRes] = await Promise.all([
+      dbService.query('SELECT * FROM patients WHERE id = $1', [id]),
+      dbService.query('SELECT * FROM diagnoses WHERE patient_id = $1', [id]).catch(() => ({ rows: [] })),
+      dbService.query('SELECT * FROM reports WHERE patient_id = $1', [id]).catch(() => ({ rows: [] }))
+    ]);
     
-    const diagnosesRes = await dbService.query('SELECT * FROM diagnoses WHERE patient_id = $1', [id]).catch(() => ({ rows: [] }));
-    const reportsRes = await dbService.query('SELECT * FROM reports WHERE patient_id = $1', [id]).catch(() => ({ rows: [] }));
+    if (patientRes.rows.length === 0) return res.status(404).json({ message: 'Patient not found' });
 
     res.json({
       patient: dbService.mapRows('patients', patientRes.rows)[0],
