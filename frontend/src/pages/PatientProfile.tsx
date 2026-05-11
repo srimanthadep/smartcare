@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
-import { Activity, AlertTriangle, ArrowLeft, Droplets, FileText, Pill, Smile, Receipt, Trash2, Eye, Edit3, Mail, FileDown, Download, MessageCircle, ClipboardList, PlusCircle, Undo2, MoreHorizontal, CheckCircle, ChevronDown, CreditCard, Save } from "lucide-react";
+import { Activity, AlertTriangle, ArrowLeft, Droplets, FileText, Pill, Smile, Receipt, Trash2, Eye, Edit3, Mail, FileDown, Download, MessageCircle, ClipboardList, PlusCircle, Undo2, MoreHorizontal, CheckCircle, ChevronDown, CreditCard, Save, X } from "lucide-react";
 import { 
   Dialog, 
   DialogContent, 
@@ -176,6 +176,28 @@ const PatientProfile: React.FC = () => {
     },
   });
 
+  // Inline editing states
+  const [editingConditions, setEditingConditions] = useState(false);
+  const [conditionsDraft, setConditionsDraft] = useState("");
+  
+  const [editingAllergies, setEditingAllergies] = useState(false);
+  const [allergiesDraft, setAllergiesDraft] = useState("");
+
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [notesDraft, setNotesDraft] = useState("");
+
+  const [editingDentalHistory, setEditingDentalHistory] = useState(false);
+  const [dentalHistoryDraft, setDentalHistoryDraft] = useState("");
+
+  useEffect(() => {
+    if (data?.patient) {
+      setConditionsDraft(data.patient.conditions.join(", "));
+      setAllergiesDraft(data.patient.allergies.join(", "));
+      setNotesDraft(data.patient.notes || "");
+      setDentalHistoryDraft(data.patient.dentalHistory?.history || "");
+    }
+  }, [data?.patient]);
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -327,34 +349,90 @@ const PatientProfile: React.FC = () => {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Card className="border-border/50">
               <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-base font-heading"><Activity className="h-4 w-4" /> Conditions</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-base font-heading"><Activity className="h-4 w-4" /> Conditions</CardTitle>
+                  {!editingConditions ? null : (
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingConditions(false)}>
+                        <X className="h-3 w-3" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" onClick={() => {
+                        const arr = conditionsDraft.split(",").map(s => s.trim()).filter(Boolean);
+                        updatePatient.mutate({ conditions: arr as any });
+                        setEditingConditions(false);
+                      }}>
+                        <CheckCircle className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </CardHeader>
-              <CardContent>
-                {patient.conditions.length > 0 ? (
+              <CardContent 
+                className={!editingConditions ? "cursor-pointer hover:bg-secondary/10 transition-colors rounded-b-lg min-h-[60px]" : ""}
+                onClick={() => !editingConditions && setEditingConditions(true)}
+              >
+                {editingConditions ? (
+                  <Input 
+                    value={conditionsDraft} 
+                    onChange={(e) => setConditionsDraft(e.target.value)}
+                    placeholder="Enter conditions separated by commas..."
+                    className="h-8 text-xs"
+                    autoFocus
+                    onBlur={() => setEditingConditions(false)}
+                  />
+                ) : patient.conditions.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     {patient.conditions.map((condition) => (
                       <span key={condition} className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs text-primary">{condition}</span>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No conditions recorded</p>
+                  <p className="text-sm text-muted-foreground italic">No conditions recorded. Click to add.</p>
                 )}
               </CardContent>
             </Card>
 
             <Card className="border-border/50">
               <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-base font-heading"><AlertTriangle className="h-4 w-4 text-warning" /> Allergies</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-base font-heading"><AlertTriangle className="h-4 w-4 text-warning" /> Allergies</CardTitle>
+                  {!editingAllergies ? null : (
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingAllergies(false)}>
+                        <X className="h-3 w-3" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" onClick={() => {
+                        const arr = allergiesDraft.split(",").map(s => s.trim()).filter(Boolean);
+                        updatePatient.mutate({ allergies: arr as any });
+                        setEditingAllergies(false);
+                      }}>
+                        <CheckCircle className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </CardHeader>
-              <CardContent>
-                {patient.allergies.length > 0 ? (
+              <CardContent 
+                className={!editingAllergies ? "cursor-pointer hover:bg-secondary/10 transition-colors rounded-b-lg min-h-[60px]" : ""}
+                onClick={() => !editingAllergies && setEditingAllergies(true)}
+              >
+                {editingAllergies ? (
+                  <Input 
+                    value={allergiesDraft} 
+                    onChange={(e) => setAllergiesDraft(e.target.value)}
+                    placeholder="Enter allergies separated by commas..."
+                    className="h-8 text-xs"
+                    autoFocus
+                    onBlur={() => setEditingAllergies(false)}
+                  />
+                ) : patient.allergies.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     {patient.allergies.map((allergy) => (
                       <span key={allergy} className="rounded-full border border-destructive/20 bg-destructive/10 px-2.5 py-1 text-xs text-destructive">{allergy}</span>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No known allergies</p>
+                  <p className="text-sm text-muted-foreground italic">No known allergies. Click to add.</p>
                 )}
               </CardContent>
             </Card>
@@ -363,10 +441,39 @@ const PatientProfile: React.FC = () => {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Card className="border-border/50">
               <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-base font-heading"><ClipboardList className="h-4 w-4 text-primary" /> Dental History</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-base font-heading"><ClipboardList className="h-4 w-4 text-primary" /> Dental History</CardTitle>
+                  {!editingDentalHistory ? null : (
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingDentalHistory(false)}>
+                        <X className="h-3 w-3" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" onClick={() => {
+                        updatePatient.mutate({ dentalHistory: { ...patient.dentalHistory, history: dentalHistoryDraft } as any });
+                        setEditingDentalHistory(false);
+                      }}>
+                        <CheckCircle className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                {patient.dentalHistory ? (
+              <CardContent 
+                className={!editingDentalHistory ? "cursor-pointer hover:bg-secondary/10 transition-colors rounded-b-lg" : ""}
+                onClick={() => !editingDentalHistory && setEditingDentalHistory(true)}
+              >
+                {editingDentalHistory ? (
+                  <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+                    <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-wider">Relevant History/Complaints:</span>
+                    <Textarea 
+                      value={dentalHistoryDraft}
+                      onChange={(e) => setDentalHistoryDraft(e.target.value)}
+                      className="min-h-[80px] text-xs"
+                      autoFocus
+                      onBlur={() => setEditingDentalHistory(false)}
+                    />
+                  </div>
+                ) : patient.dentalHistory ? (
                   <>
                     <div className="flex justify-between border-b border-border/50 pb-1">
                       <span className="text-muted-foreground text-xs uppercase font-semibold">Oral Hygiene:</span>
@@ -378,11 +485,11 @@ const PatientProfile: React.FC = () => {
                     </div>
                     <div className="flex flex-col gap-1 mt-2">
                       <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-wider">Relevant History/Complaints:</span>
-                      <p className="rounded-md bg-secondary/30 p-2 italic text-xs leading-relaxed">{patient.dentalHistory.history || "No notes provided."}</p>
+                      <p className="rounded-md bg-secondary/30 p-2 italic text-xs leading-relaxed">{patient.dentalHistory.history || "No notes provided. Click to add."}</p>
                     </div>
                   </>
                 ) : (
-                  <p className="py-4 text-center text-muted-foreground italic">No dental history recorded.</p>
+                  <p className="py-4 text-center text-sm text-muted-foreground italic">No dental history recorded. Click to add.</p>
                 )}
               </CardContent>
             </Card>
@@ -393,28 +500,57 @@ const PatientProfile: React.FC = () => {
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2 text-base font-heading"><FileText className="h-4 w-4 text-primary" /> Clinical Notes</CardTitle>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-7 text-[10px] text-primary"
-                    onClick={async () => {
-                      if (!patient.notes) return;
-                      toast.promise(api.refineClinicalNotes(patient.notes), {
-                        loading: 'Refining notes...',
-                        success: (res: any) => {
-                          updatePatient.mutate({ notes: res.data });
-                          return 'Notes refined!';
-                        },
-                        error: 'Failed to refine notes'
-                      });
-                    }}
-                  >
-                    <motion.span animate={{ opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 2 }}>✨</motion.span> Refine with AI
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-7 text-[10px] text-primary"
+                      onClick={async () => {
+                        if (!patient.notes) return;
+                        toast.promise(api.refineClinicalNotes(patient.notes), {
+                          loading: 'Refining notes...',
+                          success: (res: any) => {
+                            updatePatient.mutate({ notes: res.data });
+                            return 'Notes refined!';
+                          },
+                          error: 'Failed to refine notes'
+                        });
+                      }}
+                    >
+                      <motion.span animate={{ opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 2 }}>✨</motion.span> Refine
+                    </Button>
+                    {!editingNotes ? null : (
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingNotes(false)}>
+                          <X className="h-3 w-3" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" onClick={() => {
+                          updatePatient.mutate({ notes: notesDraft });
+                          setEditingNotes(false);
+                        }}>
+                          <CheckCircle className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{patient.notes || "No additional notes recorded."}</p>
+              <CardContent 
+                className={!editingNotes ? "cursor-pointer hover:bg-secondary/10 transition-colors rounded-b-lg min-h-[100px]" : ""}
+                onClick={() => !editingNotes && setEditingNotes(true)}
+              >
+                {editingNotes ? (
+                  <Textarea 
+                    value={notesDraft}
+                    onChange={(e) => setNotesDraft(e.target.value)}
+                    className="min-h-[100px] text-sm"
+                    autoFocus
+                    onClick={(e) => e.stopPropagation()}
+                    onBlur={() => setEditingNotes(false)}
+                  />
+                ) : (
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{patient.notes || "No additional notes recorded. Click to edit."}</p>
+                )}
               </CardContent>
             </Card>
           </div>

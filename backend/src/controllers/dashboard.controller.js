@@ -42,6 +42,19 @@ export const getDashboard = async (req, res, next) => {
     const appointments = dbService.mapRows('appointments', apptsRes.rows);
     const doctors = doctorsRes.rows;
 
+    // Global Totals (independent of the period filter)
+    const [patientCountRes, globalInvoicesRes, expensesRes] = await Promise.all([
+      dbService.query('SELECT COUNT(*) FROM patients WHERE is_deleted = FALSE'),
+      dbService.query('SELECT SUM(total) as total_rev, SUM(paid_amount) as total_paid FROM invoices WHERE is_deleted = FALSE'),
+      dbService.query('SELECT SUM(amount) as total_exp FROM expenses WHERE is_deleted = FALSE')
+    ]);
+
+    const totalPatients = parseInt(patientCountRes.rows[0].count);
+    const totalRevenueGlobal = Number(globalInvoicesRes.rows[0].total_rev || 0);
+    const totalPaidGlobal = Number(globalInvoicesRes.rows[0].total_paid || 0);
+    const totalPendingGlobal = totalRevenueGlobal - totalPaidGlobal;
+    const totalExpensesGlobal = Number(expensesRes.rows[0].total_exp || 0);
+
     const todayAppointments = appointments.filter(a => a.date === todayStr);
 
     const revenueTrendMap = new Map();
@@ -74,8 +87,12 @@ export const getDashboard = async (req, res, next) => {
     res.json({
       stats: {
         dailyPatients: todayAppointments.length,
-        revenue: totalRevenue,
-        estimatedNet: Math.round(totalRevenue * 0.8), // Estimated 80% margin — replace with real expense tracking
+        totalPatients,
+        totalRevenue: totalRevenueGlobal,
+        totalPaid: totalPaidGlobal,
+        totalPending: totalPendingGlobal,
+        totalExpenses: totalExpensesGlobal,
+        periodRevenue: totalRevenue,
         appointments: appointments.length
       },
       revenueTrend: Array.from(revenueTrendMap.entries()).map(([month, revenue]) => ({ month, revenue })),

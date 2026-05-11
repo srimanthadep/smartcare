@@ -19,6 +19,7 @@ import Appointments from "@/pages/Appointments";
 import Prescriptions from "@/pages/Prescriptions";
 import Billing from "@/pages/Billing";
 import Analytics from "@/pages/Analytics";
+import Expenses from "@/pages/Expenses";
 import Pharmacy from "@/pages/Pharmacy";
 import AI from "@/pages/AI";
 import Notifications from "@/pages/Notifications";
@@ -68,6 +69,7 @@ const App = () => (
                 <Route path="prescriptions" element={<Prescriptions />} />
                 <Route path="billing" element={<Billing />} />
                 <Route path="pharmacy" element={<Pharmacy />} />
+                <Route path="expenses" element={<Expenses />} />
                 <Route path="recalls" element={<RecallSystem />} />
                 <Route path="analytics" element={<Analytics />} />
                 <Route path="ai" element={<AI />} />

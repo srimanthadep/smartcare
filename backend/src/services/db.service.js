@@ -134,6 +134,7 @@ class DbService {
         case 'TPL': tableName = 'prescription_templates'; break;
         case 'DIAG': tableName = 'diagnoses'; break;
         case 'TP': tableName = 'treatment_plans'; break;
+        case 'EXP': tableName = 'expenses'; break;
 
         default: return `${prefix}${Date.now()}`;
       }

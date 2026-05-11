@@ -262,6 +262,37 @@ Format:
       throw new Error('Failed to refine notes.');
     }
   }
+
+  /**
+   * Automatically categorizes an expense based on its name.
+   */
+  async autoCategorizeExpense(expenseName) {
+    if (!config.GEMINI_API_KEY) return 'Other';
+
+    const systemPrompt = `You are a clinic management assistant. Categorize the following expense name into one of these categories:
+    Rent, Salaries, Medicine Supplies, Equipment, Utility Bills, Marketing, Other.
+    Return ONLY the category name.`;
+
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${config.GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: `${systemPrompt}\n\nExpense Name: ${expenseName}` }] }],
+          generationConfig: { temperature: 0.1 }
+        })
+      });
+
+      if (!response.ok) return 'Other';
+      const data = await response.json();
+      const category = data.candidates[0].content.parts[0].text.trim();
+      
+      const CATEGORIES = ["Rent", "Salaries", "Medicine Supplies", "Equipment", "Utility Bills", "Marketing", "Other"];
+      return CATEGORIES.includes(category) ? category : 'Other';
+    } catch (error) {
+      return 'Other';
+    }
+  }
 }
 
 export const aiService = new AIService();

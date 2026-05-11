@@ -367,6 +367,23 @@ export const api = {
     });
   },
 
+  getExpenses() {
+    return apiFetch<any[]>("/api/expenses");
+  },
+
+  createExpense(payload: any) {
+    return apiFetch<any>("/api/expenses", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  deleteExpense(id: string) {
+    return apiFetch<{ message: string }>(`/api/expenses/${id}`, {
+      method: "DELETE",
+    });
+  },
+
   logout() {
     return apiFetch<{ message: string }>("/api/auth/logout", { method: "POST" });
   },

@@ -193,17 +193,12 @@ const Dashboard: React.FC = () => {
           </Tabs>
         </div>
       </motion.div>
-      <motion.div variants={item} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatsCard title="Today's Patients" value={data.stats.dailyPatients} change="Live from appointments" changeType="neutral" icon={Users} />
-        <StatsCard title="Revenue" value={`₹${data.stats.revenue.toLocaleString()}`} change={revenueChangeText} changeType={revenueChangeType} icon={IndianRupee} />
-        <StatsCard title="Est. Net (80%)" value={`₹${data.stats.estimatedNet?.toLocaleString() || "0"}`} change="Estimated margin — not tracked expenses" changeType="positive" icon={TrendingUp} />
-        <StatsCard
-          title="Pending Recalls"
-          value={data.stats.appointments ?? 0}
-          change="Due this week"
-          changeType="negative"
-          icon={CalendarClock}
-        />
+      <motion.div variants={item} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <StatsCard title="Total Patients" value={data.stats.totalPatients} change="Lifetime" changeType="neutral" icon={Users} />
+        <StatsCard title="Total Revenue" value={`₹${data.stats.totalRevenue.toLocaleString()}`} change="Gross Billing" changeType="neutral" icon={IndianRupee} />
+        <StatsCard title="Total Paid" value={`₹${data.stats.totalPaid.toLocaleString()}`} change="Collected Cash" changeType="positive" icon={TrendingUp} />
+        <StatsCard title="Total Pending" value={`₹${data.stats.totalPending.toLocaleString()}`} change="Outstanding" changeType="negative" icon={CalendarClock} />
+        <StatsCard title="Total Expenses" value={`₹${data.stats.totalExpenses.toLocaleString()}`} change="Outflow" changeType="negative" icon={IndianRupee} />
       </motion.div>
 
       <motion.div variants={item} className="grid grid-cols-1 gap-4 lg:grid-cols-3">

@@ -2,7 +2,7 @@ import React from 'react';
 import {
   LayoutDashboard, Users, CalendarDays, FileText, Receipt,
   Pill, Bot, Settings, Bell, Activity,
-  CalendarClock, History
+  CalendarClock, History, Wallet
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,6 +19,7 @@ const allNavItems = [
   { title: 'Appointments', url: '/appointments', icon: CalendarDays, roles: ['doctor'] },
   { title: 'Prescriptions', url: '/prescriptions', icon: FileText, roles: ['doctor'] },
   { title: 'Billing', url: '/billing', icon: Receipt, roles: ['doctor', 'admin'] },
+  { title: 'Expenses', url: '/expenses', icon: Wallet, roles: ['doctor', 'admin'] },
   { title: 'Dental Supplies', url: '/pharmacy', icon: Pill, roles: ['doctor'] },
   { title: 'Recall System', url: '/recalls', icon: CalendarClock, roles: ['doctor'] },
   { title: 'AI Assistant', url: '/ai', icon: Bot, roles: ['doctor'] },
