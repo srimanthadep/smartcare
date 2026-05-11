@@ -391,10 +391,30 @@ const PatientProfile: React.FC = () => {
 
             <Card className="border-border/50">
               <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-base font-heading"><FileText className="h-4 w-4 text-primary" /> Clinical Notes</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-base font-heading"><FileText className="h-4 w-4 text-primary" /> Clinical Notes</CardTitle>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-7 text-[10px] text-primary"
+                    onClick={async () => {
+                      if (!patient.notes) return;
+                      toast.promise(api.refineClinicalNotes(patient.notes), {
+                        loading: 'Refining notes...',
+                        success: (res: any) => {
+                          updatePatient.mutate({ notes: res.data });
+                          return 'Notes refined!';
+                        },
+                        error: 'Failed to refine notes'
+                      });
+                    }}
+                  >
+                    <motion.span animate={{ opacity: [0.5, 1, 0.5] }} transition={{ repeat: Infinity, duration: 2 }}>✨</motion.span> Refine with AI
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">{patient.notes || "No additional notes recorded."}</p>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{patient.notes || "No additional notes recorded."}</p>
               </CardContent>
             </Card>
           </div>
@@ -929,6 +949,27 @@ const TreatmentPlansSection: React.FC<TreatmentPlansSectionProps> = ({ patientId
   const [newPlan, setNewPlan] = useState({ notes: '', dentistName: 'Dr. Saikiran', phases: [] as TreatmentPhase[] });
   const [newPhase, setNewPhase] = useState({ name: '', description: '', cost: 1000 });
 
+  const generateAIPlanMutation = useMutation({
+    mutationFn: (findings: string) => api.generateAITreatmentPlan(findings),
+    onSuccess: (res: any) => {
+      const suggested = res.data;
+      setNewPlan({
+        ...newPlan,
+        notes: suggested.notes || newPlan.notes,
+        phases: suggested.phases.map((p: any) => ({
+          id: `PH_${Date.now()}_${Math.random()}`,
+          name: p.name,
+          description: p.items.join(', '),
+          estimatedCost: parseInt(p.estimatedCost.replace(/[^0-9]/g, '')) || 0,
+          status: 'Planned',
+          toothNumbers: []
+        }))
+      });
+      toast.success("AI Suggested a Treatment Plan!");
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "AI failed to suggest a plan"),
+  });
+
   const { data: tpTemplates = [] } = useQuery({
     queryKey: ["treatment-plan-templates"],
     queryFn: () => api.getTreatmentPlanTemplates().then(res => res.data),
@@ -1090,11 +1131,22 @@ const TreatmentPlansSection: React.FC<TreatmentPlansSectionProps> = ({ patientId
               </div>
 
               <div className="space-y-2">
-                <Label>Clinical Notes</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Clinical Notes / Findings</Label>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-7 text-[10px] text-primary"
+                    disabled={!newPlan.notes || generateAIPlanMutation.isPending}
+                    onClick={() => generateAIPlanMutation.mutate(newPlan.notes)}
+                  >
+                    {generateAIPlanMutation.isPending ? "Suggesting..." : "✨ AI Suggest Plan"}
+                  </Button>
+                </div>
                 <Textarea
                   value={newPlan.notes}
                   onChange={(e) => setNewPlan({ ...newPlan, notes: e.target.value })}
-                  placeholder="Treatment rationale, patient concerns..."
+                  placeholder="Paste clinical findings here and click AI Suggest..."
                   className="min-h-20"
                 />
               </div>

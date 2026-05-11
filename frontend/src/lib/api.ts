@@ -226,6 +226,20 @@ export const api = {
     });
   },
 
+  generateAITreatmentPlan(findings: string) {
+    return apiFetch<{ data: any }>("/api/ai/generate-treatment-plan", {
+      method: "POST",
+      body: JSON.stringify({ findings }),
+    });
+  },
+
+  refineClinicalNotes(rawNotes: string) {
+    return apiFetch<{ data: string }>("/api/ai/refine-notes", {
+      method: "POST",
+      body: JSON.stringify({ rawNotes }),
+    });
+  },
+
   getTemplates() {
     return apiFetch<{ data: any[] }>("/api/prescription-templates");
   },

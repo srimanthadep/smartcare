@@ -164,6 +164,104 @@ Disclaimer: Add a note that this is an AI suggestion and the final clinical deci
       throw new Error('Failed to get a response from Siara AI.');
     }
   }
+
+  /**
+   * Generates a structured treatment plan based on clinical findings.
+   */
+  async generateTreatmentPlan(findings) {
+    if (!config.GEMINI_API_KEY) {
+      throw new Error('AI service is not configured.');
+    }
+
+    const systemPrompt = `You are an expert Treatment Planning Assistant for a Dentist. 
+Given the clinical findings, suggest a multi-phase treatment plan.
+You must return the response in strict JSON format.
+Structure:
+{
+  "title": "Short title for the plan",
+  "phases": [
+    {
+      "name": "Phase Name (e.g., Phase 1: Urgent Care)",
+      "items": ["Procedure 1", "Procedure 2"],
+      "estimatedCost": "Approx cost in INR",
+      "duration": "e.g., 1 visit, 2 weeks"
+    }
+  ],
+  "totalEstimatedCost": "Total INR",
+  "notes": "Advice for the patient"
+}
+Output raw JSON only.`;
+
+    const fullPrompt = `${systemPrompt}\n\nClinical Findings: ${findings}`;
+
+    try {
+      console.log('Generating AI Treatment Plan via Gemini...');
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${config.GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: fullPrompt }] }],
+          generationConfig: {
+            response_mime_type: "application/json",
+            temperature: 0.3
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Gemini API error: ${errorData.error?.message || response.statusText}`);
+      }
+
+      const data = await response.json();
+      return JSON.parse(data.candidates[0].content.parts[0].text);
+    } catch (error) {
+      console.error('AI Treatment Plan Error:', error);
+      throw new Error('Failed to generate treatment plan.');
+    }
+  }
+
+  /**
+   * Cleans up messy clinical notes/transcripts into professional structure.
+   */
+  async refineClinicalNotes(rawNotes) {
+    if (!config.GEMINI_API_KEY) {
+      throw new Error('AI service is not configured.');
+    }
+
+    const systemPrompt = `You are a Clinical Documentation Specialist. 
+Convert the following messy, spoken-style clinical notes into a professional, structured dental clinical note.
+Format:
+- Chief Complaint
+- Observations
+- Procedure Performed
+- Advice & Next Steps`;
+
+    const fullPrompt = `${systemPrompt}\n\nRaw Notes: ${rawNotes}`;
+
+    try {
+      console.log('Refining Clinical Notes via Gemini...');
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${config.GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: fullPrompt }] }],
+          generationConfig: { temperature: 0.1 }
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Gemini API error: ${errorData.error?.message || response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.candidates[0].content.parts[0].text;
+    } catch (error) {
+      console.error('AI Note Refinement Error:', error);
+      throw new Error('Failed to refine notes.');
+    }
+  }
 }
 
 export const aiService = new AIService();

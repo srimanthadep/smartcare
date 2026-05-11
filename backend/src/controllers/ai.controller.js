@@ -51,3 +51,29 @@ export const chat = async (req, res, next) => {
     next(error);
   }
 };
+
+export const generateTreatmentPlan = async (req, res, next) => {
+  try {
+    const { findings } = req.body;
+    if (!findings) {
+      return res.status(400).json({ message: 'Findings are required' });
+    }
+    const plan = await aiService.generateTreatmentPlan(findings);
+    res.json({ data: plan });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const refineNotes = async (req, res, next) => {
+  try {
+    const { rawNotes } = req.body;
+    if (!rawNotes) {
+      return res.status(400).json({ message: 'Notes are required' });
+    }
+    const refined = await aiService.refineClinicalNotes(rawNotes);
+    res.json({ data: refined });
+  } catch (error) {
+    next(error);
+  }
+};
