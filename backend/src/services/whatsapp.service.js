@@ -25,7 +25,7 @@ const formatPhone = (phone) => {
 export const initWhatsApp = async () => {
   console.log('🔄 Initiating WhatsApp connection sequence...');
   
-  if (connectionStatus === "connected") return;
+  if (connectionStatus === "connected" || connectionStatus === "connecting") return;
 
   connectionStatus = "connecting";
   qrCode = null;

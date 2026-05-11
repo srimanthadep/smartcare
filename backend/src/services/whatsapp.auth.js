@@ -40,11 +40,8 @@ export const usePostgresAuthState = async (sessionId) => {
           const data = {};
           await Promise.all(
             ids.map(async (id) => {
-              let value = await readData(`${type}-${id}`);
-              if (type === 'app-state-sync-key' && value) {
-                value = (await import('@whiskeysockets/baileys')).proto.Message.AppStateSyncKeyData.fromObject(value);
-              }
-              data[id] = value;
+              const value = await readData(`${type}-${id}`);
+              data[id] = value || undefined;
             })
           );
           return data;
