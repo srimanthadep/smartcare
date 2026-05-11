@@ -22,7 +22,7 @@ const AuthContext = createContext<AuthContextType>({
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => {
-    const raw = sessionStorage.getItem(USER_STORAGE_KEY);
+    const raw = localStorage.getItem(USER_STORAGE_KEY);
     return raw ? JSON.parse(raw) : null;
   });
 
@@ -38,26 +38,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const handleAuthSuccess = (response: { user: User; token: string }) => {
     setUser(response.user);
-    sessionStorage.setItem(USER_STORAGE_KEY, JSON.stringify(response.user));
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(response.user));
     if (response.token) {
-      sessionStorage.setItem("smartcare_token", response.token);
+      localStorage.setItem("smartcare_token", response.token);
     }
   };
 
   const logout = useCallback(async () => {
     try { await api.logout(); } catch { /* best-effort cookie clear */ }
     setUser(null);
-    sessionStorage.removeItem(USER_STORAGE_KEY);
-    sessionStorage.removeItem("smartcare_token");
+    localStorage.removeItem(USER_STORAGE_KEY);
+    localStorage.removeItem("smartcare_token");
   }, []);
 
   useEffect(() => {
     api.me().then(({ user: updatedUser }) => {
       setUser(updatedUser);
-      sessionStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
     }).catch(() => {
       setUser(null);
-      sessionStorage.removeItem(USER_STORAGE_KEY);
+      localStorage.removeItem(USER_STORAGE_KEY);
     });
   }, []);
 
