@@ -40,7 +40,7 @@ export const initWhatsApp = async () => {
     sock = makeWASocket({
       auth: state,
       printQRInTerminal: false,
-      browser: ['SmartDental', 'Chrome', '1.0.0'],
+      browser: ['Ubuntu', 'Chrome', '20.0.04'],
     });
 
     console.log('🔌 Socket created');
@@ -93,6 +93,14 @@ export const disconnectWhatsApp = async () => {
   
   connectionStatus = "disconnected";
   qrCode = null;
+
+  // Clear database session
+  try {
+    await dbService.query("DELETE FROM whatsapp_sessions WHERE id LIKE 'default-session-%' OR id = 'default-session'");
+    console.log('🗑️ WhatsApp session cleared from database');
+  } catch (err) {
+    console.error('Failed to clear whatsapp session from DB:', err);
+  }
 
   if (fs.existsSync(AUTH_PATH)) {
     fs.rmSync(AUTH_PATH, { recursive: true, force: true });
