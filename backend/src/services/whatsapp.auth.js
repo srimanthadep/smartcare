@@ -30,7 +30,7 @@ export const usePostgresAuthState = async (sessionId) => {
     }
   };
 
-  const creds = (await readData('creds')) || (await import('@whiskeysockets/baileys')).initAuthState().creds;
+  const creds = (await readData('creds')) || (await import('@whiskeysockets/baileys')).initAuthCreds();
 
   return {
     state: {
