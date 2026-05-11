@@ -17,6 +17,9 @@ const app = express();
 const server = createServer(app);
 initSocket(server);
 
+// Essential for Render/Vercel to correctly handle IP-based rate limiting
+app.set('trust proxy', 1);
+
 // Security Middlewares
 // Global: 100 requests per minute per IP
 const globalLimiter = rateLimit({
