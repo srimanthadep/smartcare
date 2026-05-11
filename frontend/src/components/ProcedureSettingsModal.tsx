@@ -24,7 +24,7 @@ export const ProcedureSettingsModal = () => {
     enabled: isOpen,
   });
 
-  const procedures = response?.data || [];
+  const procedures = (response || []) as Procedure[];
 
   const createMutation = useMutation({
     mutationFn: api.createProcedure,

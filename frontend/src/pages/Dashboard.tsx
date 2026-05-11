@@ -17,8 +17,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { CalendarDays, CalendarPlus, FileText, Scan, IndianRupee, UserPlus, Users, CalendarClock, TrendingUp } from "lucide-react";
-import { MdBackup } from "react-icons/md";
+import { CalendarDays, CalendarPlus, FileText, Scan, UserPlus, Users, CalendarClock, TrendingUp, Banknote, Receipt, Download } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -75,51 +74,51 @@ const Dashboard: React.FC = () => {
 
   const handleBackup = async () => {
     if (!window.confirm('Start a full database backup? This may take a moment.')) {
-        return;
+      return;
     }
 
     setBackupLoading(true);
     const toastId = (await import('sonner')).toast.loading("Creating Backup...");
 
     try {
-        const token = sessionStorage.getItem("smartdental_auth_token");
-        const headers = new Headers();
-        if (token) headers.set("Authorization", `Bearer ${token}`);
+      const token = localStorage.getItem("smartcare_token");
+      const headers = new Headers();
+      if (token) headers.set("Authorization", `Bearer ${token}`);
 
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:3001"}/api/backup/download`, {
-            method: 'POST',
-            headers
-        });
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:3001"}/api/backup/download`, {
+        method: 'POST',
+        headers
+      });
 
-        if (!res.ok) {
-            if (res.status === 429) throw new Error('A backup is already in progress. Please wait.');
-            throw new Error('Backup failed. Please try again.');
-        }
+      if (!res.ok) {
+        if (res.status === 429) throw new Error('A backup is already in progress. Please wait.');
+        throw new Error('Backup failed. Please try again.');
+      }
 
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
 
-        const link = document.createElement('a');
-        link.href = url;
+      const link = document.createElement('a');
+      link.href = url;
 
-        const disposition = res.headers.get('content-disposition');
-        const match = disposition?.match(/filename[^;=\n]*=['"]?([^'"\n;]*)/);
-        const filename = match?.[1] || 'siara_dental_backup.zip';
+      const disposition = res.headers.get('content-disposition');
+      const match = disposition?.match(/filename[^;=\n]*=['"]?([^'"\n;]*)/);
+      const filename = match?.[1] || 'siara_dental_backup.zip';
 
-        link.setAttribute('download', filename);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
 
-        window.URL.revokeObjectURL(url);
-        (await import('sonner')).toast.success('Backup downloaded successfully!', { id: toastId });
+      window.URL.revokeObjectURL(url);
+      (await import('sonner')).toast.success('Backup downloaded successfully!', { id: toastId });
 
     } catch (err: any) {
-        const message = err.message || 'Backup failed. Please try again.';
-        (await import('sonner')).toast.error(message, { id: toastId });
-        console.error('Backup error:', err);
+      const message = err.message || 'Backup failed. Please try again.';
+      (await import('sonner')).toast.error(message, { id: toastId });
+      console.error('Backup error:', err);
     } finally {
-        setBackupLoading(false);
+      setBackupLoading(false);
     }
   };
 
@@ -173,13 +172,13 @@ const Dashboard: React.FC = () => {
         <Button size="sm" variant="outline" onClick={() => navigate("/prescriptions")}>
           <FileText className="mr-1 h-4 w-4" /> Create Prescription
         </Button>
-        <Button 
-          size="sm" 
-          onClick={handleBackup} 
+        <Button
+          size="sm"
+          onClick={handleBackup}
           disabled={backupLoading}
           className="bg-amber-500 hover:bg-amber-600 text-white"
         >
-          <MdBackup className="mr-1 h-4 w-4" /> 
+          <Download className="mr-1 h-4 w-4" />
           {backupLoading ? 'Creating Backup...' : 'Download Backup'}
         </Button>
         <div className="ml-auto">
@@ -195,10 +194,10 @@ const Dashboard: React.FC = () => {
       </motion.div>
       <motion.div variants={item} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatsCard title="Total Patients" value={data.stats.totalPatients} change="Lifetime" changeType="neutral" icon={Users} />
-        <StatsCard title="Total Revenue" value={`₹${data.stats.totalRevenue.toLocaleString()}`} change="Gross Billing" changeType="neutral" icon={IndianRupee} />
+        <StatsCard title="Total Revenue" value={`₹${data.stats.totalRevenue.toLocaleString()}`} change="Gross Billing" changeType="neutral" icon={Banknote} />
         <StatsCard title="Total Paid" value={`₹${data.stats.totalPaid.toLocaleString()}`} change="Collected Cash" changeType="positive" icon={TrendingUp} />
         <StatsCard title="Total Pending" value={`₹${data.stats.totalPending.toLocaleString()}`} change="Outstanding" changeType="negative" icon={CalendarClock} />
-        <StatsCard title="Total Expenses" value={`₹${data.stats.totalExpenses.toLocaleString()}`} change="Outflow" changeType="negative" icon={IndianRupee} />
+        <StatsCard title="Total Expenses" value={`₹${data.stats.totalExpenses.toLocaleString()}`} change="Outflow" changeType="negative" icon={Receipt} />
       </motion.div>
 
       <motion.div variants={item} className="grid grid-cols-1 gap-4 lg:grid-cols-3">

@@ -3,7 +3,7 @@ import { dbService } from '../services/db.service.js';
 export const getTemplates = async (req, res, next) => {
   try {
     const result = await dbService.query('SELECT * FROM treatment_plan_templates WHERE is_deleted = FALSE ORDER BY name ASC');
-    res.json({ data: dbService.mapRows('treatment_plan_templates', result.rows) });
+    res.json(dbService.mapRows('treatment_plan_templates', result.rows));
   } catch (error) {
     next(error);
   }
@@ -19,7 +19,7 @@ export const createTemplate = async (req, res, next) => {
       [id, name, JSON.stringify(phases || []), notes]
     );
     
-    res.status(201).json({ data: dbService.mapRows('treatment_plan_templates', result.rows)[0] });
+    res.status(201).json(dbService.mapRows('treatment_plan_templates', result.rows)[0]);
   } catch (error) {
     next(error);
   }
@@ -37,7 +37,7 @@ export const updateTemplate = async (req, res, next) => {
     
     if (result.rows.length === 0) return res.status(404).json({ message: 'Template not found' });
     
-    res.json({ data: dbService.mapRows('treatment_plan_templates', result.rows)[0] });
+    res.json(dbService.mapRows('treatment_plan_templates', result.rows)[0]);
   } catch (error) {
     next(error);
   }

@@ -1148,7 +1148,7 @@ const TreatmentPlansSection: React.FC<TreatmentPlansSectionProps> = ({ patientId
 
   const { data: tpTemplates = [] } = useQuery({
     queryKey: ["treatment-plan-templates"],
-    queryFn: () => api.getTreatmentPlanTemplates().then(res => res.data),
+    queryFn: () => api.getTreatmentPlanTemplates(),
   });
 
   const saveAsTemplateMutation = useMutation({

@@ -33,6 +33,7 @@ export interface Patient {
   conditions: string[];
   medications: Medication[];
   notes?: string;
+  consultationFee?: number;
   dentalHistory?: {
     lastVisit: string;
     hygiene: string;
@@ -93,6 +94,7 @@ export interface Invoice {
   total: number;
   paidAmount: number;
   status: "Paid" | "Pending" | "Overdue" | "Partially Paid";
+  patientPhone?: string;
   payments?: { date: string, amount: number }[];
 }
 
@@ -104,8 +106,12 @@ export interface Doctor {
 
 export interface DashboardStats {
   dailyPatients: number;
-  revenue: number;
-  profit: number;
+  totalPatients: number;
+  totalRevenue: number;
+  totalPaid: number;
+  totalPending: number;
+  totalExpenses: number;
+  periodRevenue: number;
   appointments: number;
 }
 

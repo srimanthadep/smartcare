@@ -12,7 +12,7 @@ export function useMedicinesSearch(query: string) {
         return [];
       }
       const response = await api.searchMedicines(debouncedQuery);
-      return response.data;
+      return response;
     },
     enabled: true,
   });

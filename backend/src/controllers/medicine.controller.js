@@ -6,7 +6,7 @@ export const searchMedicines = async (req, res, next) => {
     const { q } = req.query;
     
     if (!q || q.trim().length < 2) {
-      return res.json({ data: [] });
+      return res.json([]);
     }
 
     // 1. Search personalized saved medicines
@@ -38,7 +38,7 @@ export const searchMedicines = async (req, res, next) => {
     // Combine results, prioritizing saved medicines
     const results = [...savedMedicines, ...genericResults];
     
-    res.json({ data: results });
+    res.json(results);
   } catch (error) {
     next(error);
   }

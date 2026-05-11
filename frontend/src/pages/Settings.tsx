@@ -72,7 +72,7 @@ const Settings: React.FC = () => {
   };
 
   const startQrStream = () => {
-    const token = sessionStorage.getItem('smartcare_token');
+    const token = localStorage.getItem('smartcare_token');
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
     const es = new EventSource(`${apiBaseUrl}/api/whatsapp/qr-stream?token=${token}`);
 

@@ -3,7 +3,7 @@ import { dbService } from '../services/db.service.js';
 export const getProcedures = async (req, res, next) => {
   try {
     const result = await dbService.query('SELECT * FROM clinical_procedures WHERE is_deleted = FALSE ORDER BY name ASC');
-    res.json({ data: result.rows });
+    res.json(result.rows);
   } catch (error) {
     next(error);
   }
@@ -20,7 +20,7 @@ export const createProcedure = async (req, res, next) => {
       RETURNING *
     `;
     const result = await dbService.query(query, [id, name, price || 0]);
-    res.status(201).json({ data: result.rows[0] });
+    res.status(201).json(result.rows[0]);
   } catch (error) {
     next(error);
   }
@@ -43,7 +43,7 @@ export const updateProcedure = async (req, res, next) => {
       return res.status(404).json({ message: 'Procedure not found' });
     }
 
-    res.json({ data: result.rows[0] });
+    res.json(result.rows[0]);
   } catch (error) {
     next(error);
   }

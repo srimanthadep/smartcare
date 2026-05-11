@@ -1,241 +1,339 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { mockPatients } from '@/data/mockData';
-import { Bell, MessageCircle, Plus } from 'lucide-react';
-import { toast } from 'sonner';
+import React, { useEffect, useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import {
+  Bell,
+  CalendarDays,
+  CheckCheck,
+  CreditCard,
+  FileText,
+  Search,
+  ShieldAlert,
+  Trash2,
+  Users,
+} from "lucide-react";
 
-type Reminder = {
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+
+type NoticeKind = "patient" | "billing" | "prescription" | "system";
+type Notice = {
   id: string;
-  patientId: string;
-  patientName: string;
-  channel: 'WhatsApp' | 'SMS' | 'Email';
-  when: string;
-  message: string;
-  enabled: boolean;
+  title: string;
+  body: string;
+  time: string;
+  read: boolean;
+  kind: NoticeKind;
+  actionLabel?: string;
+  actionPath?: string;
 };
 
-const initial: Reminder[] = [
-  { id: 'N001', patientId: 'P001', patientName: 'Aarav Sharma', channel: 'WhatsApp', when: '2026-03-19 09:00', message: 'Reminder: Follow-up appointment tomorrow at 09:00.', enabled: true },
-  { id: 'N002', patientId: 'P003', patientName: 'Rahul Verma', channel: 'SMS', when: '2026-03-18 18:00', message: 'Please collect your X-ray report from Siara Dental.', enabled: true },
-  { id: 'N003', patientId: 'P002', patientName: 'Priya Patel', channel: 'Email', when: '2026-03-20 10:00', message: 'Your spirometry report is available on the portal.', enabled: false },
+const STORAGE_KEY = "siara-notifications-v1";
+
+const seedNotifications: Notice[] = [
+  {
+    id: "NTF-001",
+    title: "Upcoming chair load",
+    body: "Three appointments are scheduled in the next two hours.",
+    time: "2 min ago",
+    read: false,
+    kind: "system",
+    actionLabel: "Open appointments",
+    actionPath: "/appointments",
+  },
+  {
+    id: "NTF-002",
+    title: "Pending invoice follow-up",
+    body: "Two invoices still show as pending and may need collection follow-up.",
+    time: "18 min ago",
+    read: false,
+    kind: "billing",
+    actionLabel: "Open billing",
+    actionPath: "/billing",
+  },
+  {
+    id: "NTF-003",
+    title: "Prescription shared",
+    body: "A recent prescription was sent successfully through communication channels.",
+    time: "42 min ago",
+    read: true,
+    kind: "prescription",
+    actionLabel: "Open prescriptions",
+    actionPath: "/prescriptions",
+  },
+  {
+    id: "NTF-004",
+    title: "Patient activity updated",
+    body: "A patient profile was recently edited and synced into the record system.",
+    time: "1 hr ago",
+    read: true,
+    kind: "patient",
+    actionLabel: "Open patients",
+    actionPath: "/patients",
+  },
 ];
 
+const toneMap: Record<NoticeKind, string> = {
+  patient:
+    "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/20 dark:text-sky-300 dark:border-sky-900/40",
+  billing:
+    "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/20 dark:text-amber-300 dark:border-amber-900/40",
+  prescription:
+    "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-300 dark:border-emerald-900/40",
+  system:
+    "bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/20 dark:text-violet-300 dark:border-violet-900/40",
+};
+
+const iconMap: Record<NoticeKind, React.ReactNode> = {
+  patient: <Users className="h-4 w-4" />,
+  billing: <CreditCard className="h-4 w-4" />,
+  prescription: <FileText className="h-4 w-4" />,
+  system: <ShieldAlert className="h-4 w-4" />,
+};
+
 const Notifications: React.FC = () => {
-  const [reminders, setReminders] = useState<Reminder[]>(initial);
-  const enabledCount = useMemo(() => reminders.filter((r) => r.enabled).length, [reminders]);
+  const navigate = useNavigate();
+  const [notifications, setNotifications] = useState<Notice[]>(seedNotifications);
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<"all" | "unread" | NoticeKind>("all");
 
   useEffect(() => {
-    document.title = "Notifications | Siara Dental";
+    document.title = "Notifications · Siara Dental";
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) setNotifications(JSON.parse(stored));
+    } catch {
+      setNotifications(seedNotifications);
+    }
   }, []);
 
-  const CreateReminderDialog = () => {
-    const [patientId, setPatientId] = useState(mockPatients[0]?.id || 'P001');
-    const [channel, setChannel] = useState<Reminder['channel']>('WhatsApp');
-    const [when, setWhen] = useState('2026-03-19 09:00');
-    const [message, setMessage] = useState('Reminder: Your appointment is scheduled.');
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications));
+  }, [notifications]);
 
-    const patient = mockPatients.find((p) => p.id === patientId);
+  const filtered = useMemo(() => {
+    return notifications.filter((item) => {
+      const matchesText =
+        item.title.toLowerCase().includes(query.toLowerCase()) ||
+        item.body.toLowerCase().includes(query.toLowerCase());
 
-    return (
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button><Plus className="h-4 w-4 mr-1" /> New reminder</Button>
-        </DialogTrigger>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="font-heading">Create reminder</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="space-y-2">
-                <Label>Patient</Label>
-                <Select value={patientId} onValueChange={setPatientId}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {mockPatients.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>{p.name} ({p.id})</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Channel</Label>
-                <Select value={channel} onValueChange={(v) => setChannel(v as Reminder['channel'])}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="WhatsApp">WhatsApp</SelectItem>
-                    <SelectItem value="SMS">SMS</SelectItem>
-                    <SelectItem value="Email">Email</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>When</Label>
-                <Input value={when} onChange={(e) => setWhen(e.target.value)} placeholder="YYYY-MM-DD HH:mm" />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Message</Label>
-              <Input value={message} onChange={(e) => setMessage(e.target.value)} />
-            </div>
-            <div className="flex justify-end">
-              <Button
-                onClick={() => {
-                  if (!patient) return;
-                  const id = `N${String(Math.floor(Math.random() * 900) + 100)}`;
-                  setReminders((prev) => [
-                    { id, patientId: patient.id, patientName: patient.name, channel, when, message, enabled: true },
-                    ...prev,
-                  ]);
-                  toast.success('Reminder created');
-                }}
-              >
-                Create
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      const matchesFilter =
+        filter === "all"
+          ? true
+          : filter === "unread"
+            ? !item.read
+            : item.kind === filter;
+
+      return matchesText && matchesFilter;
+    });
+  }, [notifications, query, filter]);
+
+  const stats = useMemo(
+    () => ({
+      total: notifications.length,
+      unread: notifications.filter((n) => !n.read).length,
+      system: notifications.filter((n) => n.kind === "system").length,
+      actionable: notifications.filter((n) => !!n.actionPath).length,
+    }),
+    [notifications]
+  );
+
+  const markRead = (id: string) => {
+    setNotifications((current) =>
+      current.map((item) => (item.id === id ? { ...item, read: true } : item))
     );
   };
 
+  const markAllRead = () => {
+    setNotifications((current) => current.map((item) => ({ ...item, read: true })));
+  };
+
+  const removeOne = (id: string) => {
+    setNotifications((current) => current.filter((item) => item.id !== id));
+  };
+
+  const clearRead = () => {
+    setNotifications((current) => current.filter((item) => !item.read));
+  };
+
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-heading font-bold">Notifications</h1>
-          <p className="text-sm text-muted-foreground">{enabledCount} active reminders</p>
+    <motion.div
+      className="luxury-page space-y-5"
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28 }}
+    >
+      <section className="luxury-panel p-6 sm:p-8">
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+          <div>
+            <p className="luxury-subtitle mb-2">Activity inbox</p>
+            <h1 className="luxury-title text-4xl font-semibold sm:text-5xl">
+              Notifications and clinic signals
+            </h1>
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground">
+              Track operational alerts, billing prompts, prescription events, and system notices in one premium feed.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={clearRead}>
+              <Trash2 className="h-4 w-4" />
+              Clear read
+            </Button>
+            <Button onClick={markAllRead}>
+              <CheckCheck className="h-4 w-4" />
+              Mark all read
+            </Button>
+          </div>
         </div>
-        <CreateReminderDialog />
-      </div>
 
-      <Tabs defaultValue="reminders">
-        <TabsList>
-          <TabsTrigger value="reminders">Reminders</TabsTrigger>
-          <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
-          <TabsTrigger value="portal">Patient portal</TabsTrigger>
-        </TabsList>
+        <div className="mt-6 grid gap-4 md:grid-cols-4">
+          {[
+            { label: "Total", value: stats.total, icon: <Bell className="h-4 w-4" /> },
+            { label: "Unread", value: stats.unread, icon: <CheckCheck className="h-4 w-4" /> },
+            { label: "System", value: stats.system, icon: <ShieldAlert className="h-4 w-4" /> },
+            {
+              label: "Actionable",
+              value: stats.actionable,
+              icon: <CalendarDays className="h-4 w-4" />,
+            },
+          ].map((item) => (
+            <div
+              key={item.label}
+              className="rounded-[24px] border border-white/60 bg-white/75 p-4 shadow-sm"
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                  {item.label}
+                </p>
+                <div className="text-primary">{item.icon}</div>
+              </div>
+              <p className="mt-3 text-2xl font-semibold text-foreground">{item.value}</p>
+            </div>
+          ))}
+        </div>
+      </section>
 
-        <TabsContent value="reminders" className="mt-4">
-          <Card className="border-border/50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-heading flex items-center gap-2">
-                <Bell className="h-4 w-4" /> Reminder management
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {reminders.map((r) => (
-                <div key={r.id} className="rounded-lg border border-border/50 bg-secondary/15 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium">{r.patientName}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{r.when} · {r.channel}</p>
-                      <p className="text-sm text-muted-foreground mt-2">{r.message}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={r.enabled}
-                        onCheckedChange={(v) => setReminders((prev) => prev.map((x) => (x.id === r.id ? { ...x, enabled: v } : x)))}
-                      />
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => toast.message('Send notification', { description: `Sent via ${r.channel}` })}
-                      >
-                        Send now
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </TabsContent>
+      <section className="grid grid-cols-1 gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
+        <Card className="luxury-card">
+          <CardHeader>
+            <CardTitle className="text-2xl">Filters</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search notices"
+                className="pl-9"
+              />
+            </div>
 
-        <TabsContent value="whatsapp" className="mt-4">
-          <Card className="border-border/50">
-            <CardContent className="p-8">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <div className="h-10 w-10 rounded-full bg-success/15 flex items-center justify-center">
-                    <MessageCircle className="h-5 w-5 text-success" />
-                  </div>
-                  <div>
-                    <p className="font-heading font-semibold text-lg">WhatsApp communication</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Configure templates, opt-in and delivery status with a real WhatsApp provider.
-                    </p>
-                  </div>
-                </div>
-                <Button variant="outline" onClick={() => toast.message('Connect', { description: 'This would open provider setup.' })}>
-                  Connect provider
+            <div className="flex flex-wrap gap-2">
+              {["all", "unread", "patient", "billing", "prescription", "system"].map((value) => (
+                <Button
+                  key={value}
+                  size="sm"
+                  variant={filter === value ? "default" : "outline"}
+                  onClick={() => setFilter(value as any)}
+                >
+                  {value === "all"
+                    ? "All"
+                    : value === "unread"
+                      ? "Unread"
+                      : value.charAt(0).toUpperCase() + value.slice(1)}
                 </Button>
-              </div>
-              <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-3">
-                {['Appointment reminder', 'Lab ready', 'Payment link'].map((t) => (
-                  <div key={t} className="rounded-lg border border-border/50 bg-secondary/15 p-4">
-                    <p className="font-medium">{t}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Template · Approved</p>
-                    <div className="mt-3 flex justify-end">
-                      <Button size="sm" variant="outline" onClick={() => toast.message('Preview', { description: t })}>Preview</Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
-        <TabsContent value="portal" className="mt-4">
-          <Card className="border-border/50">
-            <CardContent className="p-8">
-              <p className="font-heading font-semibold text-lg">Patient portal simulation</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                A lightweight portal experience for reports, appointments and payments.
-              </p>
-              <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="rounded-lg border border-border/50 bg-secondary/15 p-4">
-                  <p className="font-medium">Reports</p>
-                  <p className="text-xs text-muted-foreground mt-1">Preview available reports and downloads</p>
-                  <div className="mt-3 flex justify-end">
-                    <Button size="sm" variant="outline" onClick={() => toast.message('Portal', { description: 'Open Reports' })}>Open</Button>
-                  </div>
-                </div>
-                <div className="rounded-lg border border-border/50 bg-secondary/15 p-4">
-                  <p className="font-medium">Appointments</p>
-                  <p className="text-xs text-muted-foreground mt-1">Upcoming and reschedule request</p>
-                  <div className="mt-3 flex justify-end">
-                    <Button size="sm" variant="outline" onClick={() => toast.message('Portal', { description: 'Open Appointments' })}>Open</Button>
-                  </div>
-                </div>
-                <div className="rounded-lg border border-border/50 bg-secondary/15 p-4">
-                  <p className="font-medium">Payments</p>
-                  <p className="text-xs text-muted-foreground mt-1">Invoices and status tracking</p>
-                  <div className="mt-3 flex justify-end">
-                    <Button size="sm" variant="outline" onClick={() => toast.message('Portal', { description: 'Open Payments' })}>Open</Button>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-6 flex items-center gap-2">
-                <Badge variant="secondary" className="text-xs">Portal</Badge>
-                <Badge variant="outline" className="text-xs">OAuth / ABHA-ready placeholder</Badge>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+        <Card className="luxury-card">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-2xl">Recent updates</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <AnimatePresence initial={false}>
+              {filtered.length === 0 ? (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="rounded-[24px] bg-secondary/15 p-8 text-center text-sm text-muted-foreground"
+                >
+                  No notifications match the current filters.
+                </motion.div>
+              ) : (
+                filtered.map((item) => (
+                  <motion.div
+                    key={item.id}
+                    layout
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    className={`rounded-[24px] border p-4 shadow-sm transition-all ${item.read
+                        ? "border-border/60 bg-white/75"
+                        : "border-primary/20 bg-primary/5"
+                      }`}
+                  >
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge className={`border ${toneMap[item.kind]}`}>
+                            <span className="mr-1 inline-flex">{iconMap[item.kind]}</span>
+                            {item.kind}
+                          </Badge>
+
+                          {!item.read ? (
+                            <Badge className="bg-primary text-primary-foreground">Unread</Badge>
+                          ) : null}
+
+                          <span className="text-xs text-muted-foreground">{item.time}</span>
+                        </div>
+
+                        <p className="mt-3 text-base font-semibold text-foreground">
+                          {item.title}
+                        </p>
+                        <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                          {item.body}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        {!item.read ? (
+                          <Button size="sm" variant="outline" onClick={() => markRead(item.id)}>
+                            Mark read
+                          </Button>
+                        ) : null}
+
+                        {item.actionPath ? (
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              markRead(item.id);
+                              navigate(item.actionPath!);
+                            }}
+                          >
+                            {item.actionLabel || "Open"}
+                          </Button>
+                        ) : null}
+
+                        <Button size="sm" variant="ghost" onClick={() => removeOne(item.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))
+              )}
+            </AnimatePresence>
+          </CardContent>
+        </Card>
+      </section>
     </motion.div>
   );
 };
 
 export default Notifications;
-

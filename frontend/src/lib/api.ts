@@ -22,6 +22,13 @@ async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<
   const headers = new Headers(options.headers || {});
   headers.set("Content-Type", "application/json");
 
+  if (!options.skipAuth) {
+    const token = localStorage.getItem("smartcare_token");
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+  }
+
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers,
@@ -197,7 +204,7 @@ export const api = {
   },
 
   searchMedicines(query: string) {
-    return apiFetch<{ data: import("@/types").MedicineSearchItem[] }>(`/api/medicines/search${buildQuery({ q: query })}`);
+    return apiFetch<import("@/types").MedicineSearchItem[]>(`/api/medicines/search${buildQuery({ q: query })}`);
   },
 
   generateAIPrescription(payload: any) {
@@ -241,18 +248,18 @@ export const api = {
   },
 
   getTemplates() {
-    return apiFetch<{ data: any[] }>("/api/prescription-templates");
+    return apiFetch<any[]>("/api/prescription-templates");
   },
 
   createTemplate(payload: any) {
-    return apiFetch<{ data: any }>("/api/prescription-templates", {
+    return apiFetch<any>("/api/prescription-templates", {
       method: "POST",
       body: JSON.stringify(payload),
     });
   },
 
   updateTemplate(id: string, payload: any) {
-    return apiFetch<{ data: any }>(`/api/prescription-templates/${id}`, {
+    return apiFetch<any>(`/api/prescription-templates/${id}`, {
       method: "PATCH",
       body: JSON.stringify(payload),
     });
@@ -265,18 +272,18 @@ export const api = {
   },
 
   getTreatmentPlanTemplates() {
-    return apiFetch<{ data: any[] }>("/api/treatment-plan-templates");
+    return apiFetch<any[]>("/api/treatment-plan-templates");
   },
 
   createTreatmentPlanTemplate(payload: any) {
-    return apiFetch<{ data: any }>("/api/treatment-plan-templates", {
+    return apiFetch<any>("/api/treatment-plan-templates", {
       method: "POST",
       body: JSON.stringify(payload),
     });
   },
 
   updateTreatmentPlanTemplate(id: string, payload: any) {
-    return apiFetch<{ data: any }>(`/api/treatment-plan-templates/${id}`, {
+    return apiFetch<any>(`/api/treatment-plan-templates/${id}`, {
       method: "PATCH",
       body: JSON.stringify(payload),
     });
@@ -289,18 +296,18 @@ export const api = {
   },
 
   getProcedures() {
-    return apiFetch<{ data: import("@/types").Procedure[] }>("/api/procedures");
+    return apiFetch<import("@/types").Procedure[]>("/api/procedures");
   },
 
   createProcedure(payload: any) {
-    return apiFetch<{ data: import("@/types").Procedure }>("/api/procedures", {
+    return apiFetch<import("@/types").Procedure>("/api/procedures", {
       method: "POST",
       body: JSON.stringify(payload),
     });
   },
 
   updateProcedure(id: string, payload: any) {
-    return apiFetch<{ data: import("@/types").Procedure }>(`/api/procedures/${id}`, {
+    return apiFetch<import("@/types").Procedure>(`/api/procedures/${id}`, {
       method: "PATCH",
       body: JSON.stringify(payload),
     });

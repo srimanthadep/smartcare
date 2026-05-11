@@ -78,10 +78,11 @@ const Expenses: React.FC = () => {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    const category = formData.get("category");
     const payload = {
       description: formData.get("description"),
       amount: formData.get("amount"),
-      category: formData.get("category"),
+      category: category === "auto" ? null : category,
       date: formData.get("date"),
     };
     createExpense.mutate(payload);
@@ -139,6 +140,20 @@ const Expenses: React.FC = () => {
                     <Label htmlFor="date">Date</Label>
                     <Input id="date" name="date" type="date" defaultValue={new Date().toISOString().split("T")[0]} required />
                   </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="category">Category <span className="text-muted-foreground text-[10px]">(leave Auto for AI categorization)</span></Label>
+                  <Select name="category" defaultValue="auto">
+                    <SelectTrigger>
+                      <SelectValue placeholder="Auto (AI)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="auto">Auto (AI categorization)</SelectItem>
+                      {CATEGORIES.map((cat) => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <DialogFooter>

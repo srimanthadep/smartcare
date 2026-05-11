@@ -27,7 +27,19 @@ const EditableField: React.FC<Props> = ({ label, value, onSave, type = 'text', p
             autoFocus
             type={type}
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => {
+              let val = e.target.value;
+              if (type === 'text' || type === 'textarea') {
+                const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
+                val = val.split(' ').map((word, index) => {
+                  if (index > 0 && minorWords.includes(word.toLowerCase())) {
+                    return word.toLowerCase();
+                  }
+                  return word.charAt(0).toUpperCase() + word.slice(1);
+                }).join(' ');
+              }
+              setDraft(val);
+            }}
             placeholder={placeholder}
             className="mt-1"
             disabled={disabled}

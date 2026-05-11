@@ -16,7 +16,7 @@ import { toast } from "sonner";
 const PatientRegistration: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  
+
   useEffect(() => {
     document.title = "Register Patient | Siara Dental";
   }, []);
@@ -75,7 +75,7 @@ const PatientRegistration: React.FC = () => {
     onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ["patients"] });
       toast.success("Patient registered successfully");
-      
+
       if (bookAppointment) {
         const bootstrap = bootstrapQuery.data;
         const doctorName = bootstrap?.doctors[0]?.name || "Dr. Saikiran";
@@ -100,7 +100,7 @@ const PatientRegistration: React.FC = () => {
           toast.error("Failed to book automatic appointment");
         }
       }
-      
+
       navigate("/patients");
     },
     onError: (error) => {
@@ -111,7 +111,7 @@ const PatientRegistration: React.FC = () => {
   const updateField = (key: keyof typeof form, value: string) => {
     let finalValue = value;
     const capitalizeFields: (keyof typeof form)[] = ["name", "address", "chiefComplaint", "allergies", "conditions", "notes", "dentalHistory"];
-    
+
     if (capitalizeFields.includes(key)) {
       const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
       finalValue = value.split(' ').map((word, index) => {
@@ -191,9 +191,9 @@ const PatientRegistration: React.FC = () => {
                 <div className="space-y-2">
                   <Label>Email</Label>
                   <div className="space-y-1">
-                    <Input 
-                      type="email" 
-                      value={form.email} 
+                    <Input
+                      type="email"
+                      value={form.email}
                       onChange={(event) => {
                         const val = event.target.value;
                         if (val.endsWith("@")) {
@@ -201,20 +201,20 @@ const PatientRegistration: React.FC = () => {
                         } else {
                           updateField("email", val);
                         }
-                      }} 
+                      }}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && form.email && !form.email.includes("@")) {
                           e.preventDefault();
                           updateField("email", form.email + "@gmail.com");
                         }
                       }}
-                      placeholder="patient@email.com" 
+                      placeholder="patient@email.com"
                     />
                     {form.email && !form.email.includes("@") && (
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
                         className="h-6 text-[10px] px-2 py-0"
                         onClick={() => updateField("email", form.email + "@gmail.com")}
                       >
@@ -230,21 +230,21 @@ const PatientRegistration: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <Label className="text-destructive font-bold">Chief Complaint</Label>
-                <Textarea 
-                  value={form.chiefComplaint} 
-                  onChange={(event) => updateField("chiefComplaint", event.target.value)} 
-                  placeholder="Why is the patient visiting the clinic? (e.g., Severe toothache, Bleeding gums)" 
+                <Textarea
+                  value={form.chiefComplaint}
+                  onChange={(event) => updateField("chiefComplaint", event.target.value)}
+                  placeholder="Why is the patient visiting the clinic? (e.g., Severe toothache, Bleeding gums)"
                   className="border-destructive/30"
                 />
               </div>
               <div className="space-y-2">
                 <Label className="text-primary font-bold">Consultation Fee (₹)</Label>
-                <Input 
-                  type="number" 
-                  value={form.consultationFee} 
-                  onChange={(event) => updateField("consultationFee", event.target.value)} 
-                  placeholder="300" 
-                  required 
+                <Input
+                  type="number"
+                  value={form.consultationFee}
+                  onChange={(event) => updateField("consultationFee", event.target.value)}
+                  placeholder="300"
+                  required
                   className="border-primary/30"
                 />
               </div>
@@ -321,10 +321,10 @@ const PatientRegistration: React.FC = () => {
               </div>
               <div className="flex items-center justify-between border-t border-border/50 pt-4">
                 <div className="flex items-center space-x-2">
-                  <Switch 
-                    id="book-appointment" 
-                    checked={bookAppointment} 
-                    onCheckedChange={setBookAppointment} 
+                  <Switch
+                    id="book-appointment"
+                    checked={bookAppointment}
+                    onCheckedChange={setBookAppointment}
                   />
                   <Label htmlFor="book-appointment" className="cursor-pointer">Book appointment after registration</Label>
                 </div>

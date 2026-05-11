@@ -24,7 +24,7 @@ const PrescriptionTemplateModal: React.FC = () => {
     enabled: isOpen,
   });
 
-  const templates = templatesRes?.data || [];
+  const templates = templatesRes || [];
 
   const createMutation = useMutation({
     mutationFn: api.createTemplate,

@@ -3,16 +3,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useDebounce } from "@/hooks/useDebounce";
-import { 
-  Mail, 
-  Phone, 
-  Search, 
-  UserPlus, 
-  Edit, 
-  Trash2, 
-  MoreHorizontal, 
-  FilePlus, 
-  Receipt, 
+import {
+  Mail,
+  Phone,
+  Search,
+  UserPlus,
+  Edit,
+  Trash2,
+  MoreHorizontal,
+  FilePlus,
+  Receipt,
   ClipboardList,
   User,
   Filter,
@@ -69,7 +69,7 @@ const PatientList: React.FC = () => {
       const chart = await api.getDentalChart(patientId).catch(() => ({ teeth: [] }));
       const invoices = await api.getInvoices().catch(() => []);
       const px = await api.getPrescriptions(patientId).catch(() => []);
-      
+
       const patientInvoices = invoices.filter((i: any) => i.patientId === patientId);
 
       if (format === 'pdf') {
@@ -123,7 +123,7 @@ const PatientList: React.FC = () => {
       toast.error(`Failed to generate bulk ${format.toUpperCase()}`, { id: toastId });
     }
   };
-  
+
   const pageSize = 8;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -185,7 +185,7 @@ const PatientList: React.FC = () => {
             <Skeleton className="h-10 w-40" />
           </div>
         </div>
-        
+
         <Card className="border-border/40">
           <CardContent className="p-4">
             <Skeleton className="h-11 w-full" />
@@ -274,22 +274,22 @@ const PatientList: React.FC = () => {
       </div>
 
       {/* Search & Filters Section */}
-      <Card className="border-border/40 shadow-sm">
-        <CardContent className="p-4">
+      <Card className="luxury-panel overflow-hidden border-none shadow-lg">
+        <CardContent className="p-5">
           <div className="flex flex-col gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input 
-                placeholder="Search by patient name, ID, or phone..." 
-                value={search} 
-                onChange={(event) => setSearch(event.target.value)} 
-                className="pl-10 h-11 bg-muted/30 focus-visible:ring-primary" 
+              <Input
+                placeholder="Search by patient name, ID, or phone..."
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                className="pl-10 h-11 bg-muted/30 focus-visible:ring-primary"
               />
             </div>
-            
+
             <AnimatePresence>
               {showFilters && (
-                <motion.div 
+                <motion.div
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
@@ -346,7 +346,7 @@ const PatientList: React.FC = () => {
       </Card>
 
       {/* Data Table Section */}
-      <Card className="border-border/40 shadow-sm overflow-hidden">
+      <Card className="luxury-card overflow-hidden">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
@@ -363,8 +363,8 @@ const PatientList: React.FC = () => {
               <TableBody>
                 {pageItems.length > 0 ? (
                   pageItems.map((patient) => (
-                    <TableRow 
-                      key={patient.id} 
+                    <TableRow
+                      key={patient.id}
                       className="group transition-colors hover:bg-muted/20"
                     >
                       <TableCell onClick={() => navigate(`/patients/${patient.id}`)} className="cursor-pointer">
@@ -385,11 +385,11 @@ const PatientList: React.FC = () => {
                       <TableCell>
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 text-sm text-foreground">
-                            <Phone className="h-3 w-3 text-muted-foreground" /> 
+                            <Phone className="h-3 w-3 text-muted-foreground" />
                             {patient.phone}
                           </div>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Mail className="h-3 w-3" /> 
+                            <Mail className="h-3 w-3" />
                             {patient.email || "No email"}
                           </div>
                         </div>
@@ -444,7 +444,7 @@ const PatientList: React.FC = () => {
                               <Download className="mr-2 h-4 w-4" /> Export as Excel
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               className="text-destructive focus:text-destructive focus:bg-destructive/10"
                               onClick={() => setPatientToDelete(patient.id)}
                             >
@@ -480,9 +480,9 @@ const PatientList: React.FC = () => {
               <Pagination className="w-auto ml-0 mr-0">
                 <PaginationContent>
                   <PaginationItem>
-                    <PaginationPrevious 
-                      onClick={() => setPage((v) => Math.max(1, v - 1))} 
-                      className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"} 
+                    <PaginationPrevious
+                      onClick={() => setPage((v) => Math.max(1, v - 1))}
+                      className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
                     />
                   </PaginationItem>
                   {Array.from({ length: totalPages }).map((_, i) => {
@@ -502,9 +502,9 @@ const PatientList: React.FC = () => {
                     return null;
                   })}
                   <PaginationItem>
-                    <PaginationNext 
-                      onClick={() => setPage((v) => Math.min(totalPages, v + 1))} 
-                      className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"} 
+                    <PaginationNext
+                      onClick={() => setPage((v) => Math.min(totalPages, v + 1))}
+                      className={page === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
                     />
                   </PaginationItem>
                 </PaginationContent>
@@ -526,7 +526,7 @@ const PatientList: React.FC = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={() => patientToDelete && deleteMutation.mutate(patientToDelete)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >

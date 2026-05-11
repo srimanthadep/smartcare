@@ -35,7 +35,7 @@ const Appointments: React.FC = () => {
 
   useEffect(() => {
     document.title = "Appointments | Siara Dental";
-    
+
     if (searchParams.get("book") === "true") {
       setIsBookOpen(true);
     }
@@ -279,43 +279,43 @@ const Appointments: React.FC = () => {
       </div>
 
       <div className="mt-4 space-y-4">
-          <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-            <Card className="border-border/50">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base font-heading">Pick a day</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Calendar mode="single" selected={selectedDay} onSelect={(value) => value && setSelectedDay(value)} className="rounded-md border border-border/50" />
-                <p className="mt-3 text-xs text-muted-foreground">Selected: <span className="font-medium text-foreground">{selectedIso}</span></p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border/50 xl:col-span-2">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base font-heading">Day schedule</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {dayAppointments.length === 0 ? (
-                  <div className="p-10 text-center text-sm text-muted-foreground">No appointments on this day</div>
-                ) : (
-                  dayAppointments.map((appointment) => <AppointmentRow key={appointment.id} appointment={appointment} />)
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
           <Card className="border-border/50">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base font-heading">Upcoming</CardTitle>
+              <CardTitle className="text-base font-heading">Pick a day</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Calendar mode="single" selected={selectedDay} onSelect={(value) => value && setSelectedDay(value)} className="rounded-md border border-border/50" />
+              <p className="mt-3 text-xs text-muted-foreground">Selected: <span className="font-medium text-foreground">{selectedIso}</span></p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50 xl:col-span-2">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-heading">Day schedule</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {upcoming.length === 0 ? (
-                <div className="p-10 text-center text-sm text-muted-foreground">No upcoming appointments</div>
+              {dayAppointments.length === 0 ? (
+                <div className="p-10 text-center text-sm text-muted-foreground">No appointments on this day</div>
               ) : (
-                upcoming.slice(0, 10).map((appointment) => <AppointmentRow key={appointment.id} appointment={appointment} />)
+                dayAppointments.map((appointment) => <AppointmentRow key={appointment.id} appointment={appointment} />)
               )}
             </CardContent>
           </Card>
+        </div>
+
+        <Card className="border-border/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-heading">Upcoming</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {upcoming.length === 0 ? (
+              <div className="p-10 text-center text-sm text-muted-foreground">No upcoming appointments</div>
+            ) : (
+              upcoming.slice(0, 10).map((appointment) => <AppointmentRow key={appointment.id} appointment={appointment} />)
+            )}
+          </CardContent>
+        </Card>
       </div>
     </motion.div>
   );

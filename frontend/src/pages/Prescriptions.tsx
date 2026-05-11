@@ -28,7 +28,7 @@ const Prescriptions: React.FC = () => {
   const printRef = useRef<HTMLDivElement | null>(null);
   const nextVisitInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
-  
+
   const [patientId, setPatientId] = useState(urlPatientId || "");
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
 
@@ -74,10 +74,10 @@ const Prescriptions: React.FC = () => {
     onSuccess: (res) => {
       if (res.data.diagnosis) {
         if (typeof res.data.diagnosis === 'object' && res.data.diagnosis) {
-          const d = res.data.diagnosis;
+          const d = res.data.diagnosis as any;
           setDiagnosis(`Primary: ${d.primary || 'N/A'}\nDifferential: ${d.differential || 'N/A'}\nNotes: ${d.notes || ''}`.trim());
         } else {
-          setDiagnosis(res.data.diagnosis);
+          setDiagnosis(res.data.diagnosis as string);
         }
       }
       if (res.data.medicines && res.data.medicines.length > 0) {
@@ -141,7 +141,7 @@ const Prescriptions: React.FC = () => {
       toast.error("Select medicines before saving");
       return;
     }
-    
+
     const payload = {
       patientId,
       patientName: patient.name,
@@ -197,8 +197,8 @@ const Prescriptions: React.FC = () => {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <PrescriptionTemplateModal />
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => {
               if (!patient) {
                 toast.error("Select a patient to generate PDF");
@@ -221,8 +221,8 @@ const Prescriptions: React.FC = () => {
           >
             <Printer className="mr-1 h-4 w-4" /> Print PDF
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => {
               if (!editId) {
                 toast.error("Please save the prescription before sending via WhatsApp");
@@ -258,7 +258,7 @@ const Prescriptions: React.FC = () => {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Patient</Label>
-                <PatientCombobox 
+                <PatientCombobox
                   value={patientId}
                   initialLabel={patient?.name}
                   onSelect={(p) => {
@@ -299,8 +299,8 @@ const Prescriptions: React.FC = () => {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label className="text-primary font-bold">1. Chief Complaint</Label>
-                <Textarea 
-                  value={chiefComplaint} 
+                <Textarea
+                  value={chiefComplaint}
                   onChange={(e) => {
                     const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
                     let val = e.target.value;
@@ -311,7 +311,7 @@ const Prescriptions: React.FC = () => {
                       return word.charAt(0).toUpperCase() + word.slice(1);
                     }).join(' ');
                     setChiefComplaint(val);
-                  }} 
+                  }}
                   placeholder="e.g. Severe toothache, Bleeding gums"
                   className="border-destructive/20"
                 />
@@ -321,9 +321,9 @@ const Prescriptions: React.FC = () => {
                 <div className="flex items-center justify-between mb-2">
                   <Label className="text-primary font-bold">2. Diagnosis</Label>
                   <div className="flex items-center gap-2">
-                    <Button 
-                      size="sm" 
-                      variant="secondary" 
+                    <Button
+                      size="sm"
+                      variant="secondary"
                       className="h-8 bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-200 transition-all duration-300 rounded-full px-3 border-none text-[10px] font-bold uppercase tracking-tight"
                       onClick={() => {
                         if (!patientId) {
@@ -338,13 +338,13 @@ const Prescriptions: React.FC = () => {
                       }}
                       disabled={generateAI.isPending}
                     >
-                      <Sparkles className="mr-2 h-3.5 w-3.5 text-indigo-200" /> 
+                      <Sparkles className="mr-2 h-3.5 w-3.5 text-indigo-200" />
                       {generateAI.isPending ? "Generating..." : "Auto Generate"}
                     </Button>
                   </div>
                 </div>
-                <Textarea 
-                  value={diagnosis} 
+                <Textarea
+                  value={diagnosis}
                   onChange={(e) => {
                     const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
                     let val = e.target.value;
@@ -355,7 +355,7 @@ const Prescriptions: React.FC = () => {
                       return word.charAt(0).toUpperCase() + word.slice(1);
                     }).join(' ');
                     setDiagnosis(val);
-                  }} 
+                  }}
                   placeholder="e.g. Acute Pulpitis, Periodontitis"
                 />
               </div>
@@ -367,38 +367,38 @@ const Prescriptions: React.FC = () => {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <Label className="font-bold text-primary">3. Treatment Plan</Label>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
+                <Button
+                  size="sm"
+                  variant="outline"
                   className="h-7 text-[10px] uppercase font-bold"
                   onClick={() => setTreatmentPlan([...treatmentPlan, { id: `TP-${Date.now()}`, name: "", description: "", estimatedCost: 0, status: "Planned", toothNumbers: [] }])}
                 >
                   <Plus className="w-3 h-3 mr-1" /> Add Phase
                 </Button>
               </div>
-              
+
               <AnimatePresence>
                 {treatmentPlan.map((phase, idx) => (
-                  <motion.div 
+                  <motion.div
                     key={phase.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
                     className="p-3 border rounded-lg bg-indigo-50/30 space-y-3 relative"
                   >
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       className="absolute top-2 right-2 h-6 w-6 text-destructive hover:bg-destructive/10"
                       onClick={() => setTreatmentPlan(treatmentPlan.filter((_, i) => i !== idx))}
                     >
                       <Trash2 className="w-3 h-3" />
                     </Button>
-                    
+
                     <div className="grid grid-cols-12 gap-3">
                       <div className="col-span-12 sm:col-span-8">
-                        <Input 
-                          placeholder="Phase Name (e.g. Root Canal Treatment)" 
+                        <Input
+                          placeholder="Phase Name (e.g. Root Canal Treatment)"
                           value={phase.name}
                           onChange={(e) => {
                             const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
@@ -415,17 +415,17 @@ const Prescriptions: React.FC = () => {
                         />
                       </div>
                       <div className="col-span-12 sm:col-span-4">
-                        <Input 
+                        <Input
                           type="number"
-                          placeholder="Cost" 
+                          placeholder="Cost"
                           value={phase.estimatedCost || ""}
                           onChange={(e) => setTreatmentPlan(treatmentPlan.map((p, i) => i === idx ? { ...p, estimatedCost: Number(e.target.value) } : p))}
                           className="h-8 text-sm"
                         />
                       </div>
                       <div className="col-span-12">
-                        <Input 
-                          placeholder="Description / Tooth Numbers" 
+                        <Input
+                          placeholder="Description / Tooth Numbers"
                           value={phase.description}
                           onChange={(e) => {
                             const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
@@ -445,7 +445,7 @@ const Prescriptions: React.FC = () => {
                   </motion.div>
                 ))}
               </AnimatePresence>
-              
+
               {treatmentPlan.length === 0 && (
                 <div className="text-center py-4 border border-dashed rounded-lg text-muted-foreground text-xs">
                   No treatment phases added. Recommended for complex procedures.
@@ -464,7 +464,7 @@ const Prescriptions: React.FC = () => {
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label>Medicine</Label>
-                      <MedicineCombobox 
+                      <MedicineCombobox
                         value={medicine.name}
                         onChange={(value, selectedMedicine) => {
                           setMedicines((current) => current.map((item, itemIndex) => {
@@ -533,9 +533,9 @@ const Prescriptions: React.FC = () => {
                 </div>
               ))}
 
-              <Button 
-                size="sm" 
-                variant="outline" 
+              <Button
+                size="sm"
+                variant="outline"
                 className="w-full border-dashed border-primary/30 hover:border-primary/50 hover:bg-primary/5 text-primary py-6"
                 onClick={() => setMedicines((current) => [...current, { name: "", dosage: "", frequency: "", duration: "" }])}
               >
@@ -551,10 +551,10 @@ const Prescriptions: React.FC = () => {
                     <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Schedule Follow-up</Label>
                     <div className="relative">
                       <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-600" />
-                      <Input 
-                        type="date" 
-                        value={nextVisitDate} 
-                        onChange={(e) => setNextVisitDate(e.target.value)} 
+                      <Input
+                        type="date"
+                        value={nextVisitDate}
+                        onChange={(e) => setNextVisitDate(e.target.value)}
                         className="pl-10 border-amber-200 bg-amber-50/30 focus:ring-amber-500"
                       />
                     </div>
@@ -563,8 +563,8 @@ const Prescriptions: React.FC = () => {
                 <div className="sm:col-span-8">
                   <div className="space-y-2">
                     <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Clinical Advice</Label>
-                    <Textarea 
-                      value={notes} 
+                    <Textarea
+                      value={notes}
                       onChange={(event) => {
                         const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
                         let val = event.target.value;
@@ -575,8 +575,8 @@ const Prescriptions: React.FC = () => {
                           return word.charAt(0).toUpperCase() + word.slice(1);
                         }).join(' ');
                         setNotes(val);
-                      }} 
-                      placeholder="Advice, follow-up, warnings..." 
+                      }}
+                      placeholder="Advice, follow-up, warnings..."
                       className="min-h-[80px]"
                     />
                   </div>
@@ -631,9 +631,9 @@ const Prescriptions: React.FC = () => {
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">1. Chief Complaint</p>
                     <p className="mt-1 text-sm font-medium text-destructive">{chiefComplaint || "-"}</p>
                   </div>
-                  
+
                   <Separator className="opacity-50" />
-                  
+
                   <div>
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">2. Diagnosis</p>
                     <p className="mt-1 text-sm">{diagnosis || "-"}</p>

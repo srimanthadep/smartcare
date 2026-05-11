@@ -12,11 +12,11 @@ export const getExpenses = async (req, res, next) => {
 
 export const createExpense = async (req, res, next) => {
   try {
-    const { description, amount, date } = req.body;
+    const { description, amount, date, category: providedCategory } = req.body;
     const id = await dbService.generateId('EXP', 'expenses');
     
-    // Auto-categorize based on description/name
-    const category = await aiService.autoCategorizeExpense(description);
+    // Use provided category if available, otherwise auto-categorize with AI
+    const category = providedCategory || await aiService.autoCategorizeExpense(description);
     
     const result = await dbService.query(
       'INSERT INTO expenses (id, description, amount, category, date) VALUES ($1, $2, $3, $4, $5) RETURNING *',

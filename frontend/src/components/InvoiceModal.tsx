@@ -1,249 +1,185 @@
-import React, { useRef } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle, Download, Mail, Printer, Receipt, Undo2 } from "lucide-react";
-import { toast } from "sonner";
-import { api } from "@/lib/api";
+import React from "react";
+import { Download, Printer, Receipt, X } from "lucide-react";
+
+import type { Invoice, Patient } from "@/types";
+import { pdfService } from "@/lib/pdfService";
+
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Invoice } from "@/types";
-import StatusBadge from "./StatusBadge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import StatusBadge from "@/components/StatusBadge";
 
 interface InvoiceModalProps {
-  invoice: Invoice | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  invoice: Invoice | null;
+  patient?: Patient | null;
 }
 
-const InvoiceModal: React.FC<InvoiceModalProps> = ({ invoice, open, onOpenChange }) => {
-  const queryClient = useQueryClient();
-  const printRef = useRef<HTMLDivElement>(null);
-
-  const updateStatus = useMutation({
-    mutationFn: (status: "Paid" | "Pending" | "Overdue") => 
-      api.updateInvoice(invoice!.id, { 
-        status, 
-        paidAmount: status === "Paid" ? invoice!.total : 0 
-      }),
-    onSuccess: (_, status) => {
-      queryClient.invalidateQueries({ queryKey: ["invoices"] });
-      toast.success(`Invoice marked as ${status}`);
-    },
-    onError: () => toast.error("Failed to update status"),
-  });
-
+const InvoiceModal: React.FC<InvoiceModalProps> = ({
+  open,
+  onOpenChange,
+  invoice,
+  patient,
+}) => {
   if (!invoice) return null;
 
-  const handlePrint = () => {
-    const printContent = printRef.current;
-    const windowPrint = window.open('', '', 'width=900,height=650');
-    if (windowPrint && printContent) {
-      windowPrint.document.write(`
-        <html>
-          <head>
-            <title>Invoice ${invoice.id}</title>
-            <style>
-              body { font-family: sans-serif; padding: 40px; color: #333; }
-              .header { display: flex; justify-content: space-between; border-bottom: 2px solid #eee; padding-bottom: 20px; }
-              .logo { font-size: 24px; font-weight: bold; color: #0f172a; }
-              .invoice-info { text-align: right; }
-              .details { margin-top: 40px; display: flex; justify-content: space-between; }
-              table { width: 100%; border-collapse: collapse; margin-top: 40px; }
-              th { text-align: left; border-bottom: 2px solid #eee; padding: 10px; font-size: 14px; color: #666; }
-              td { padding: 15px 10px; border-bottom: 1px solid #eee; font-size: 14px; }
-              .total-section { margin-top: 30px; text-align: right; }
-              .total-row { display: flex; justify-content: flex-end; gap: 40px; margin-top: 10px; }
-              .grand-total { font-size: 20px; font-weight: bold; color: #000; }
-              .footer { margin-top: 60px; font-size: 12px; color: #999; text-align: center; }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <div class="logo">Siara Dental</div>
-              <div class="invoice-info">
-                <div style="font-size: 18px; font-weight: bold;">INVOICE</div>
-                <div>#${invoice.id}</div>
-                <div>Date: ${invoice.date}</div>
-              </div>
-            </div>
-            <div class="details">
-              <div>
-                <div style="color: #666; font-size: 12px; margin-bottom: 5px;">BILL TO</div>
-                <div style="font-weight: bold;">${invoice.patientName}</div>
-                <div>Patient ID: ${invoice.patientId}</div>
-              </div>
-              <div style="text-align: right;">
-                <div style="color: #666; font-size: 12px; margin-bottom: 5px;">PAYMENT STATUS</div>
-                <div style="font-weight: bold;">${invoice.status.toUpperCase()}</div>
-              </div>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Description</th>
-                  <th>Tooth #</th>
-                  <th style="text-align: right;">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${invoice.items.map(item => `
-                  <tr>
-                    <td>${item.description}</td>
-                    <td>${item.toothNumber || '-'}</td>
-                    <td style="text-align: right;">₹${item.amount.toLocaleString()}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-            <div class="total-section">
-              <div class="total-row">
-                <span>Subtotal</span>
-                <span>₹${invoice.total.toLocaleString()}</span>
-              </div>
-              <div class="total-row">
-                <span>Tax (0%)</span>
-                <span>₹0</span>
-              </div>
-              <div class="total-row grand-total">
-                <span>Total Amount</span>
-                <span>₹${invoice.total.toLocaleString()}</span>
-              </div>
-            </div>
-            <div class="footer">
-              <p>Thank you for choosing Siara Dental. Please contact us if you have any questions about this invoice.</p>
-              <p>Omini Hospital Road, Nagole, Hyderabad · +91 89198 78543 · care@siaradental.in</p>
-            </div>
-          </body>
-        </html>
-      `);
-      windowPrint.document.close();
-      windowPrint.focus();
-      windowPrint.print();
-      windowPrint.close();
-    }
-  };
-
-  const handleSend = () => {
-    toast.promise(new Promise(resolve => setTimeout(resolve, 1500)), {
-      loading: 'Sending invoice to patient...',
-      success: `Invoice #${invoice.id} has been sent to the patient's email.`,
-      error: 'Failed to send invoice.',
-    });
-  };
+  const balance = Math.max(Number(invoice.total || 0) - Number(invoice.paidAmount || 0), 0);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 scrollbar-hide">
-        <DialogHeader className="border-b border-border/50 bg-secondary/15 p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                <Receipt className="h-6 w-6 text-primary" />
-              </div>
+      <DialogContent className="max-w-4xl rounded-[30px] border-white/60 bg-white/95 p-0 shadow-[0_20px_60px_rgba(26,18,14,0.16)] backdrop-blur-xl">
+        <div className="flex items-center justify-between border-b border-border/60 bg-gradient-to-r from-secondary/50 via-white to-secondary/30 px-6 py-4">
+          <DialogHeader className="space-y-1">
+            <DialogTitle className="font-heading text-3xl font-semibold">
+              Invoice preview
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Premium billing sheet ready for print or export
+            </p>
+          </DialogHeader>
+
+          <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <div className="max-h-[80vh] overflow-y-auto px-6 py-6">
+          <div className="rounded-[32px] border border-border/60 bg-gradient-to-br from-white to-secondary/10 p-8 shadow-sm">
+            <div className="flex flex-col gap-5 border-b border-border/60 pb-6 md:flex-row md:items-start md:justify-between">
               <div>
-                <DialogTitle className="text-xl font-heading">Invoice Details</DialogTitle>
-                <p className="text-sm text-muted-foreground">Manage and export patient bill</p>
+                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                  Dental invoice
+                </p>
+                <h2 className="mt-2 font-heading text-3xl font-semibold text-foreground">
+                  Siara Dental
+                </h2>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Elegant billing summary for clinical services
+                </p>
+              </div>
+
+              <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-primary/10 text-primary">
+                <Receipt className="h-6 w-6" />
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={handlePrint}>
-                <Printer className="mr-1.5 h-4 w-4" /> Print
-              </Button>
-              <Button size="sm" variant="outline" onClick={handlePrint}>
-                <Download className="mr-1.5 h-4 w-4" /> PDF
-              </Button>
-              <Button size="sm" onClick={handleSend}>
-                <Mail className="mr-1.5 h-4 w-4" /> Send to Patient
-              </Button>
-              {invoice.status === "Paid" ? (
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  className="text-amber-600 border-amber-200 hover:bg-amber-50" 
-                  onClick={() => updateStatus.mutate("Pending")}
-                  disabled={updateStatus.isPending}
-                >
-                  <Undo2 className="mr-1.5 h-4 w-4" /> Undo Payment
-                </Button>
-              ) : (
-                <Button 
-                  size="sm" 
-                  className="bg-emerald-600 hover:bg-emerald-700" 
-                  onClick={() => updateStatus.mutate("Paid")}
-                  disabled={updateStatus.isPending}
-                >
-                  <CheckCircle className="mr-1.5 h-4 w-4" /> Mark as Paid
-                </Button>
-              )}
-            </div>
-          </div>
-        </DialogHeader>
 
-        <div className="p-6" ref={printRef}>
-          <div className="flex justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">Siara Dental</h2>
-              <p className="text-sm text-muted-foreground mt-1">Specialized Oral Health Center</p>
-            </div>
-            <div className="text-right">
-              <div className="text-xl font-heading font-bold text-primary">INVOICE</div>
-              <p className="text-sm font-medium">#{invoice.id}</p>
-              <p className="text-sm text-muted-foreground">{invoice.date}</p>
-            </div>
-          </div>
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              <div className="rounded-[24px] border border-border/60 bg-white/80 p-5">
+                <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Bill to</p>
+                <p className="mt-2 text-lg font-semibold text-foreground">
+                  {patient?.name || invoice.patientName}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  ID {invoice.patientId}
+                </p>
+                {patient?.phone ? (
+                  <p className="text-sm text-muted-foreground">{patient.phone}</p>
+                ) : null}
+                {patient?.email ? (
+                  <p className="text-sm text-muted-foreground">{patient.email}</p>
+                ) : null}
+              </div>
 
-          <div className="mt-10 grid grid-cols-2 gap-8 rounded-lg bg-secondary/20 p-6">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Bill To</p>
-              <p className="mt-1 text-lg font-bold">{invoice.patientName}</p>
-              <p className="text-sm text-muted-foreground">ID: {invoice.patientId}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Status</p>
-              <div className="mt-2 flex justify-end">
-                <StatusBadge status={invoice.status} />
+              <div className="rounded-[24px] border border-border/60 bg-white/80 p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                      Invoice details
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-foreground">{invoice.id}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{invoice.date}</p>
+                  </div>
+                  <StatusBadge status={invoice.status} />
+                </div>
               </div>
             </div>
-          </div>
 
-          <table className="mt-10 w-full border-collapse">
-            <thead>
-              <tr className="border-b border-border text-left text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                <th className="pb-3 pl-2">Description</th>
-                <th className="pb-3 text-center">Tooth #</th>
-                <th className="pb-3 pr-2 text-right">Amount</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/50">
-              {invoice.items.map((item, index) => (
-                <tr key={index}>
-                  <td className="py-4 pl-2 text-sm font-medium">{item.description}</td>
-                  <td className="py-4 text-center text-sm text-muted-foreground">{item.toothNumber || "-"}</td>
-                  <td className="py-4 pr-2 text-right text-sm font-bold">₹{item.amount.toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            <div className="mt-8 overflow-hidden rounded-[24px] border border-border/60">
+              <table className="w-full border-collapse">
+                <thead className="bg-secondary/15">
+                  <tr className="text-left text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    <th className="px-5 py-4">Description</th>
+                    <th className="px-5 py-4 text-center">Tooth</th>
+                    <th className="px-5 py-4 text-right">Amount</th>
+                  </tr>
+                </thead>
 
-          <div className="mt-8 flex justify-end">
-            <div className="w-full max-w-[240px] space-y-2 border-t-2 border-primary pt-4">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Subtotal</span>
-                <span className="font-medium">₹{invoice.total.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-emerald-600 font-medium">Amount Paid</span>
-                <span className="font-bold text-emerald-600">₹{(invoice.paidAmount || 0).toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between border-t border-border pt-2 text-lg font-bold">
-                <span>Balance Due</span>
-                <span className="text-primary">₹{(invoice.total - (invoice.paidAmount || 0)).toLocaleString()}</span>
+                <tbody className="divide-y divide-border/60 bg-white/80">
+                  {invoice.items.map((item, index) => (
+                    <tr key={index}>
+                      <td className="px-5 py-4 text-sm font-medium text-foreground">
+                        {item.description}
+                      </td>
+                      <td className="px-5 py-4 text-center text-sm text-muted-foreground">
+                        {item.toothNumber || "-"}
+                      </td>
+                      <td className="px-5 py-4 text-right text-sm font-semibold text-foreground">
+                        ₹{Number(item.amount || 0).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-8 flex justify-end">
+              <div className="w-full max-w-[280px] rounded-[24px] border border-border/60 bg-white/85 p-5">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="font-medium text-foreground">
+                    ₹{Number(invoice.total || 0).toLocaleString()}
+                  </span>
+                </div>
+
+                <div className="mt-3 flex justify-between text-sm">
+                  <span className="font-medium text-emerald-600">Amount paid</span>
+                  <span className="font-semibold text-emerald-600">
+                    ₹{Number(invoice.paidAmount || 0).toLocaleString()}
+                  </span>
+                </div>
+
+                <Separator className="my-4" />
+
+                <div className="flex justify-between text-lg font-semibold">
+                  <span className="text-foreground">Balance due</span>
+                  <span className="text-primary">₹{balance.toLocaleString()}</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="mt-12 text-center text-[10px] text-muted-foreground italic">
-            Thank you for choosing Siara Dental. Your oral health is our priority.
+            <div className="mt-10 text-center text-[11px] italic text-muted-foreground">
+              Thank you for choosing Siara Dental. Your oral health is our priority.
+            </div>
           </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border/60 px-6 py-4">
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (!patient) return;
+              pdfService.generateInvoicePDF(patient, invoice as any);
+            }}
+          >
+            <Download className="h-4 w-4" />
+            Export PDF
+          </Button>
+
+          <Button
+            onClick={() => {
+              if (!patient) return;
+              pdfService.generateInvoicePDF(patient, invoice as any);
+            }}
+          >
+            <Printer className="h-4 w-4" />
+            Print
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

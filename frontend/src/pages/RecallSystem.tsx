@@ -1,131 +1,256 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CalendarClock, Phone, MessageSquare, CheckCircle2, AlertTriangle } from 'lucide-react';
-import { RecallEntry } from '@/types';
-import StatusBadge from '@/components/StatusBadge';
-import StatsCard from '@/components/StatsCard';
-import { toast } from 'sonner';
+import React, { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
+import {
+  AlertTriangle,
+  CalendarClock,
+  CheckCircle2,
+  MessageSquare,
+  Phone,
+  Search,
+} from "lucide-react";
+import { toast } from "sonner";
 
-const STORAGE_KEY = 'siara_recalls';
+import StatsCard from "@/components/StatsCard";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+type RecallEntry = {
+  id: string;
+  patientId: string;
+  patientName: string;
+  lastVisit: string;
+  recallDate: string;
+  status: "Due" | "Overdue" | "Scheduled" | "Completed";
+  type: string;
+  notes?: string;
+};
+
+const STORAGE_KEY = "siara-recalls";
 
 const initialRecalls: RecallEntry[] = [
-  { id: 'RC001', patientId: 'P001', patientName: 'Aarav Sharma', lastVisit: '2026-03-15', recallDate: '2026-09-15', status: 'Due', type: 'Routine Checkup' },
-  { id: 'RC002', patientId: 'P002', patientName: 'Priya Patel', lastVisit: '2026-03-17', recallDate: '2026-04-17', status: 'Due', type: 'Orthodontic Review', notes: 'Monthly adjustment needed' },
-  { id: 'RC003', patientId: 'P003', patientName: 'Rahul Verma', lastVisit: '2026-03-18', recallDate: '2026-04-01', status: 'Overdue', type: 'Post-Procedure', notes: 'Post RCT follow-up for #46' },
-  { id: 'RC004', patientId: 'P004', patientName: 'Sneha Gupta', lastVisit: '2026-03-10', recallDate: '2026-09-10', status: 'Scheduled', type: 'Routine Checkup' },
-  { id: 'RC005', patientId: 'P005', patientName: 'Vikram Singh', lastVisit: '2026-01-20', recallDate: '2026-03-20', status: 'Overdue', type: 'Periodontal', notes: 'Denture review + periodontal probing' },
-  { id: 'RC006', patientId: 'P006', patientName: 'Meera Reddy', lastVisit: '2026-03-16', recallDate: '2026-06-16', status: 'Due', type: 'Routine Checkup' },
+  {
+    id: "RC001",
+    patientId: "P001",
+    patientName: "Aarav Sharma",
+    lastVisit: "2026-03-15",
+    recallDate: "2026-09-15",
+    status: "Due",
+    type: "Routine Checkup",
+  },
+  {
+    id: "RC002",
+    patientId: "P002",
+    patientName: "Priya Patel",
+    lastVisit: "2026-03-17",
+    recallDate: "2026-04-17",
+    status: "Due",
+    type: "Orthodontic Review",
+    notes: "Monthly adjustment needed",
+  },
+  {
+    id: "RC003",
+    patientId: "P003",
+    patientName: "Rahul Verma",
+    lastVisit: "2026-03-18",
+    recallDate: "2026-04-01",
+    status: "Overdue",
+    type: "Post-Procedure",
+    notes: "Post RCT follow-up for 46",
+  },
+  {
+    id: "RC004",
+    patientId: "P004",
+    patientName: "Sneha Gupta",
+    lastVisit: "2026-03-10",
+    recallDate: "2026-09-10",
+    status: "Scheduled",
+    type: "Routine Checkup",
+  },
+  {
+    id: "RC005",
+    patientId: "P005",
+    patientName: "Vikram Singh",
+    lastVisit: "2026-01-20",
+    recallDate: "2026-03-20",
+    status: "Overdue",
+    type: "Periodontal",
+    notes: "Denture review periodontal probing",
+  },
+  {
+    id: "RC006",
+    patientId: "P006",
+    patientName: "Meera Reddy",
+    lastVisit: "2026-03-16",
+    recallDate: "2026-06-16",
+    status: "Due",
+    type: "Routine Checkup",
+  },
 ];
+
+const statusTone: Record<RecallEntry["status"], string> = {
+  Due: "bg-warning/10 text-warning border-warning/20",
+  Overdue: "bg-destructive/10 text-destructive border-destructive/20",
+  Scheduled: "bg-info/10 text-info border-info/20",
+  Completed: "bg-success/10 text-success border-success/20",
+};
 
 function loadRecalls(): RecallEntry[] {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return JSON.parse(stored) as RecallEntry[];
+    return stored ? JSON.parse(stored) : initialRecalls;
   } catch {
-    // ignore parse errors
-  }
-  return initialRecalls;
-}
-
-function saveRecalls(recalls: RecallEntry[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(recalls));
-  } catch {
-    // ignore storage errors
+    return initialRecalls;
   }
 }
-
-const statusColors: Record<string, string> = {
-  Due: 'bg-warning/10 text-warning border-warning/20',
-  Overdue: 'bg-destructive/10 text-destructive border-destructive/20',
-  Scheduled: 'bg-info/10 text-info border-info/20',
-  Completed: 'bg-success/10 text-success border-success/20',
-};
 
 const RecallSystem: React.FC = () => {
   const [recalls, setRecalls] = useState<RecallEntry[]>(loadRecalls);
-  const [query, setQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | RecallEntry["status"]>("all");
 
   useEffect(() => {
-    document.title = 'Recalls | Siara Dental';
+    document.title = "Recall System · Siara Dental";
   }, []);
 
-  // Persist to localStorage whenever recalls change
   useEffect(() => {
-    saveRecalls(recalls);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(recalls));
   }, [recalls]);
 
   const filtered = useMemo(() => {
     return recalls
-      .filter((r) => statusFilter === 'all' || r.status === statusFilter)
-      .filter((r) => r.patientName.toLowerCase().includes(query.toLowerCase()));
+      .filter((item) => (statusFilter === "all" ? true : item.status === statusFilter))
+      .filter((item) =>
+        item.patientName.toLowerCase().includes(query.toLowerCase())
+      );
   }, [recalls, query, statusFilter]);
 
-  const stats = useMemo(() => ({
-    total: recalls.length,
-    overdue: recalls.filter((r) => r.status === 'Overdue').length,
-    due: recalls.filter((r) => r.status === 'Due').length,
-    scheduled: recalls.filter((r) => r.status === 'Scheduled').length,
-  }), [recalls]);
+  const stats = useMemo(
+    () => ({
+      total: recalls.length,
+      overdue: recalls.filter((item) => item.status === "Overdue").length,
+      due: recalls.filter((item) => item.status === "Due").length,
+      scheduled: recalls.filter((item) => item.status === "Scheduled").length,
+    }),
+    [recalls]
+  );
 
   const markScheduled = (id: string) => {
-    setRecalls((prev) => prev.map((r) => r.id === id ? { ...r, status: 'Scheduled' as const } : r));
-    toast.success('Recall scheduled — appointment booked');
+    setRecalls((current) =>
+      current.map((item) =>
+        item.id === id ? { ...item, status: "Scheduled" } : item
+      )
+    );
+    toast.success("Recall scheduled and ready for booking");
   };
 
   const markCompleted = (id: string) => {
-    setRecalls((prev) => prev.map((r) => r.id === id ? { ...r, status: 'Completed' as const } : r));
-    toast.success('Recall marked complete');
+    setRecalls((current) =>
+      current.map((item) =>
+        item.id === id ? { ...item, status: "Completed" } : item
+      )
+    );
+    toast.success("Recall marked complete");
   };
 
-  const sendReminder = (name: string, channel: string) => {
+  const sendReminder = (name: string, channel: "SMS" | "WhatsApp") => {
     toast.success(`${channel} reminder sent to ${name}`);
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-heading font-bold">Recall System</h1>
-        <p className="text-sm text-muted-foreground">6-month recalls, overdue follow-ups, and reminder management</p>
-      </div>
+    <motion.div
+      className="luxury-page space-y-5"
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28 }}
+    >
+      <section className="luxury-panel p-6 sm:p-8">
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+          <div>
+            <p className="luxury-subtitle mb-2">Follow-up desk</p>
+            <h1 className="luxury-title text-4xl font-semibold sm:text-5xl">
+              Recalls, overdue reviews and patient reminders
+            </h1>
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground">
+              Keep six-month reviews, post-procedure follow-ups and overdue patient outreach visible in one structured workspace.
+            </p>
+          </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatsCard title="Total Recalls" value={stats.total} change="All patients" changeType="neutral" icon={CalendarClock} />
-        <StatsCard title="Overdue" value={stats.overdue} change="Action needed" changeType={stats.overdue > 0 ? 'negative' : 'positive'} icon={AlertTriangle} />
-        <StatsCard title="Coming Due" value={stats.due} change="Upcoming" changeType="neutral" icon={CalendarClock} />
-        <StatsCard title="Scheduled" value={stats.scheduled} change="Appointment booked" changeType="positive" icon={CheckCircle2} />
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search patients..." className="sm:max-w-xs" />
-        <div className="flex gap-2 flex-wrap">
-          {['all', 'Overdue', 'Due', 'Scheduled', 'Completed'].map((s) => (
-            <Button
-              key={s}
-              size="sm"
-              variant={statusFilter === s ? 'default' : 'outline'}
-              onClick={() => setStatusFilter(s)}
-            >
-              {s === 'all' ? 'All' : s}
-            </Button>
-          ))}
+          <div className="flex w-full max-w-md items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search patients..."
+                className="pl-9"
+              />
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
-      {/* Table */}
-      <Card className="border-border/50">
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatsCard
+          title="Total Recalls"
+          value={String(stats.total)}
+          change="All tracked recalls"
+          changeType="neutral"
+          icon={CalendarClock}
+        />
+        <StatsCard
+          title="Overdue"
+          value={String(stats.overdue)}
+          change="Action needed"
+          changeType={stats.overdue > 0 ? "negative" : "positive"}
+          icon={AlertTriangle}
+        />
+        <StatsCard
+          title="Coming Due"
+          value={String(stats.due)}
+          change="Upcoming"
+          changeType="neutral"
+          icon={CalendarClock}
+        />
+        <StatsCard
+          title="Scheduled"
+          value={String(stats.scheduled)}
+          change="Appointment booked"
+          changeType="positive"
+          icon={CheckCircle2}
+        />
+      </section>
+
+      <Card className="luxury-card">
+        <CardHeader className="gap-4">
+          <CardTitle className="text-2xl">Recall queue</CardTitle>
+          <div className="flex flex-wrap gap-2">
+            {["all", "Overdue", "Due", "Scheduled", "Completed"].map((value) => (
+              <Button
+                key={value}
+                size="sm"
+                variant={statusFilter === value ? "default" : "outline"}
+                onClick={() => setStatusFilter(value as any)}
+              >
+                {value === "all" ? "All" : value}
+              </Button>
+            ))}
+          </div>
+        </CardHeader>
+
         <CardContent className="p-0">
-          <div className="rounded-lg border border-border/50 overflow-hidden">
+          <div className="overflow-x-auto">
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-secondary/15">
                 <TableRow>
                   <TableHead>Patient</TableHead>
                   <TableHead>Type</TableHead>
@@ -135,53 +260,94 @@ const RecallSystem: React.FC = () => {
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
+
               <TableBody>
-                {filtered.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell>
-                      <p className="font-medium">{r.patientName}</p>
-                      <p className="text-xs text-muted-foreground">{r.patientId}</p>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs">{r.type}</Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{r.lastVisit}</TableCell>
-                    <TableCell className="text-sm font-medium">{r.recallDate}</TableCell>
-                    <TableCell>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${statusColors[r.status] || ''}`}>
-                        {r.status}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {r.status !== 'Completed' && (
-                          <>
-                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => sendReminder(r.patientName, 'SMS')} title="Send SMS reminder">
-                              <Phone className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => sendReminder(r.patientName, 'WhatsApp')} title="Send WhatsApp reminder">
-                              <MessageSquare className="h-3.5 w-3.5" />
-                            </Button>
-                          </>
-                        )}
-                        {(r.status === 'Due' || r.status === 'Overdue') && (
-                          <Button size="sm" variant="outline" onClick={() => markScheduled(r.id)}>Book</Button>
-                        )}
-                        {r.status === 'Scheduled' && (
-                          <Button size="sm" variant="outline" onClick={() => markCompleted(r.id)}>
-                            <CheckCircle2 className="h-3 w-3 mr-1" />Done
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {filtered.length === 0 && (
+                {filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground">
-                      No recalls matching your filters
+                    <TableCell colSpan={6} className="py-12 text-center text-sm text-muted-foreground">
+                      No recalls match the current filters.
                     </TableCell>
                   </TableRow>
+                ) : (
+                  filtered.map((item) => (
+                    <TableRow key={item.id} className="hover:bg-secondary/10">
+                      <TableCell>
+                        <p className="font-medium text-foreground">{item.patientName}</p>
+                        <p className="text-xs text-muted-foreground">{item.patientId}</p>
+                      </TableCell>
+
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">
+                          {item.type}
+                        </Badge>
+                      </TableCell>
+
+                      <TableCell className="text-sm text-muted-foreground">
+                        {item.lastVisit}
+                      </TableCell>
+
+                      <TableCell className="text-sm font-medium text-foreground">
+                        {item.recallDate}
+                      </TableCell>
+
+                      <TableCell>
+                        <span
+                          className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${statusTone[item.status]}`}
+                        >
+                          {item.status}
+                        </span>
+                      </TableCell>
+
+                      <TableCell className="text-right">
+                        <div className="flex flex-wrap items-center justify-end gap-1">
+                          {item.status !== "Completed" ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0"
+                                onClick={() => sendReminder(item.patientName, "SMS")}
+                                title="Send SMS reminder"
+                              >
+                                <Phone className="h-3.5 w-3.5" />
+                              </Button>
+
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0"
+                                onClick={() => sendReminder(item.patientName, "WhatsApp")}
+                                title="Send WhatsApp reminder"
+                              >
+                                <MessageSquare className="h-3.5 w-3.5" />
+                              </Button>
+                            </>
+                          ) : null}
+
+                          {(item.status === "Due" || item.status === "Overdue") ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => markScheduled(item.id)}
+                            >
+                              Book
+                            </Button>
+                          ) : null}
+
+                          {item.status === "Scheduled" ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => markCompleted(item.id)}
+                            >
+                              <CheckCircle2 className="mr-1 h-3 w-3" />
+                              Done
+                            </Button>
+                          ) : null}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
                 )}
               </TableBody>
             </Table>

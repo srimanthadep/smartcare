@@ -14,12 +14,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogFooter 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
@@ -63,7 +63,7 @@ const Billing: React.FC = () => {
 
   const patients = patientsQuery.data || [];
   const allInvoices = invoicesQuery.data || [];
-  const procedures = proceduresQuery.data?.data || [];
+  const procedures = (proceduresQuery.data || []) as any[];
   const patient = patients.find((p) => p.id === patientId);
 
   // Initialize from URL params
@@ -128,9 +128,9 @@ const Billing: React.FC = () => {
       const payload: any = { status };
       if (status === "Paid") {
         payload.paidAmount = invoice?.total || 0;
-        payload.payments = [...(invoice?.payments || []), { 
-          date: new Date().toLocaleDateString('en-CA'), 
-          amount: remaining 
+        payload.payments = [...(invoice?.payments || []), {
+          date: new Date().toLocaleDateString('en-CA'),
+          amount: remaining
         }];
       } else if (status === "Pending") {
         payload.paidAmount = 0;
@@ -174,7 +174,7 @@ const Billing: React.FC = () => {
     }
 
     const calculatedStatus = paidAmount >= total ? "Paid" : paidAmount > 0 ? "Partially Paid" : "Pending";
-    
+
     const payload = {
       patientId,
       patientName: patient.name,
@@ -223,8 +223,8 @@ const Billing: React.FC = () => {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <ProcedureSettingsModal />
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => {
               if (!patient) {
                 toast.error("Select a patient to generate PDF");
@@ -276,10 +276,10 @@ const Billing: React.FC = () => {
               <div className="space-y-2">
                 <Label>Date</Label>
                 <div className="relative">
-                  <Input 
-                    type="date" 
-                    value={date} 
-                    onChange={(e) => setDate(e.target.value)} 
+                  <Input
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
                     className="w-full justify-start text-left font-normal"
                   />
                 </div>
@@ -312,15 +312,15 @@ const Billing: React.FC = () => {
                         </PopoverTrigger>
                         <PopoverContent className="w-[300px] p-0" align="start">
                           <Command>
-                            <CommandInput 
-                              placeholder="Search procedures..." 
+                            <CommandInput
+                              placeholder="Search procedures..."
                               value={item.description}
                               onValueChange={(val) => updateItem(index, "description", val)}
                             />
                             <CommandList>
                               <CommandEmpty>
-                                <Button 
-                                  variant="ghost" 
+                                <Button
+                                  variant="ghost"
                                   className="w-full justify-start text-sm"
                                   onClick={() => {
                                     // Just close popover, value is already in input
@@ -361,27 +361,27 @@ const Billing: React.FC = () => {
                     </div>
                     <div className="col-span-6 sm:col-span-2 space-y-2">
                       <Label>Tooth</Label>
-                      <Input 
-                        value={item.toothNumber || ""} 
-                        onChange={(e) => updateItem(index, "toothNumber", e.target.value)} 
-                        placeholder="e.g. 14" 
+                      <Input
+                        value={item.toothNumber || ""}
+                        onChange={(e) => updateItem(index, "toothNumber", e.target.value)}
+                        placeholder="e.g. 14"
                       />
                     </div>
                     <div className="col-span-6 sm:col-span-3 space-y-2">
                       <Label>Amount (₹)</Label>
-                      <Input 
+                      <Input
                         type="number"
-                        value={item.amount || ""} 
-                        onChange={(e) => updateItem(index, "amount", parseFloat(e.target.value) || 0)} 
-                        placeholder="0" 
+                        value={item.amount || ""}
+                        onChange={(e) => updateItem(index, "amount", parseFloat(e.target.value) || 0)}
+                        placeholder="0"
                       />
                     </div>
                   </div>
                   {items.length > 1 && (
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
-                      className="absolute -top-3 -right-3 h-6 w-6 rounded-full bg-destructive/10 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" 
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="absolute -top-3 -right-3 h-6 w-6 rounded-full bg-destructive/10 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={() => removeItem(index)}
                     >
                       <Trash2 className="h-3 w-3" />
@@ -390,24 +390,24 @@ const Billing: React.FC = () => {
                 </div>
               ))}
 
-              <Button 
-                size="sm" 
-                variant="outline" 
+              <Button
+                size="sm"
+                variant="outline"
                 className="w-full border-dashed border-primary/30 hover:border-primary/50 hover:bg-primary/5 text-primary py-6"
                 onClick={addItem}
               >
                 <Plus className="mr-2 h-4 w-4" /> Add Another Procedure
               </Button>
             </div>
-            
+
             <div className="pt-4 border-t border-border/50">
               <div className="flex items-center justify-between gap-4">
                 <div className="space-y-2 flex-1">
                   <Label className="text-emerald-600 font-bold">Amount Paid (Advance)</Label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₹</span>
-                    <Input 
-                      type="number" 
+                    <Input
+                      type="number"
                       className="pl-7 bg-emerald-50/30 border-emerald-100"
                       value={paidAmount}
                       onChange={(e) => setPaidAmount(Number(e.target.value))}
@@ -524,7 +524,7 @@ const Billing: React.FC = () => {
         <h2 className="text-xl font-heading font-bold mb-4">
           {patient ? `Billing History for ${patient.name}` : "Recent Invoices"}
         </h2>
-        
+
         {patientInvoices.length === 0 ? (
           <Card className="border-border/50 bg-secondary/10">
             <CardContent className="flex flex-col items-center justify-center p-12 text-center">
@@ -535,8 +535,8 @@ const Billing: React.FC = () => {
                 {patientId ? "No Invoices for this Patient" : "No Invoices Found"}
               </h3>
               <p className="text-muted-foreground max-w-sm">
-                {patientId 
-                  ? "This patient doesn't have any billing history recorded yet." 
+                {patientId
+                  ? "This patient doesn't have any billing history recorded yet."
                   : "There are no invoices recorded in the system yet."}
               </p>
             </CardContent>
@@ -552,251 +552,251 @@ const Billing: React.FC = () => {
             {patientInvoices.map((invoice) => (
               <Card key={invoice.id} className="border-border/50 transition-shadow hover:shadow-md">
                 <CardContent className="p-5">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                          <Receipt className="h-4 w-4 text-primary" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold">{!patientId ? `${invoice.patientName || 'Patient'} · ` : ""}{invoice.id}</p>
-                          <p className="text-xs text-muted-foreground">{new Date(invoice.date).toLocaleDateString('en-GB')} · {invoice.items.length} item(s)</p>
-                        </div>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                        <Receipt className="h-4 w-4 text-primary" />
                       </div>
-                      
-                      <div className="flex items-center gap-3">
-                        <div className="text-right mr-4">
-                          <p className="text-base font-bold">₹{invoice.total.toLocaleString()}</p>
-                          <StatusBadge status={invoice.status} />
-                        </div>
-                        
-                        <div className="flex items-center gap-1">
-                          <TooltipProvider>
-                            {invoice.status === "Paid" ? (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline"
-                                    className="h-8 text-[10px] px-2 text-amber-600 border-amber-200 hover:bg-amber-50 mr-2"
-                                    onClick={() => updateInvoiceStatus.mutate({ invId: invoice.id, status: "Pending" })}
-                                    disabled={updateInvoiceStatus.isPending}
-                                  >
-                                    <Undo2 className="mr-1 h-3 w-3" /> Undo
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent><p>Mark as Pending</p></TooltipContent>
-                              </Tooltip>
-                            ) : (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button 
-                                    size="sm" 
-                                    className="h-8 text-[10px] px-2 bg-emerald-600 hover:bg-emerald-700 mr-2 text-white"
-                                    disabled={updateInvoiceStatus.isPending || updateInvoice.isPending}
-                                  >
-                                    <CheckCircle className="mr-1 h-3 w-3" /> Mark Payment <ChevronDown className="ml-1 h-3 w-3" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-48">
-                                  <DropdownMenuItem onClick={() => updateInvoiceStatus.mutate({ invId: invoice.id, status: "Paid" })}>
-                                    <CheckCircle className="mr-2 h-4 w-4 text-emerald-600" /> Full Payment
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => {
-                                    setSelectedInvoiceForPayment(invoice);
-                                    setAdditionalPayment("");
-                                    setIsPartialPaymentOpen(true);
-                                  }}>
-                                    <CreditCard className="mr-2 h-4 w-4 text-primary" /> Partial Payment
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
-                            
-                            {editId !== invoice.id && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => {
-                                    setPatientId(invoice.patientId);
-                                    setDate(invoice.date);
-                                    setItems(invoice.items);
-                                    setPaidAmount(invoice.paidAmount || 0);
-                                    setStatus(invoice.status);
-                                    window.history.pushState({}, '', `?patientId=${invoice.patientId}&editId=${invoice.id}`);
-                                  }}>
-                                    <Edit3 className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent><p>Edit Invoice</p></TooltipContent>
-                              </Tooltip>
-                            )}
-
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => {
-                                  pdfService.generateInvoicePDF({ name: invoice.patientName, id: invoice.patientId, phone: invoice.patientPhone } as any, invoice);
-                                }}>
-                                  <FileDown className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent><p>Download PDF</p></TooltipContent>
-                            </Tooltip>
-
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => {
-                                  toast.promise(api.sendInvoiceWhatsapp(invoice.id), {
-                                    loading: 'Sending...',
-                                    success: 'Sent!',
-                                    error: 'Error'
-                                  });
-                                }}>
-                                  <MessageCircle className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent><p>Send via WhatsApp</p></TooltipContent>
-                            </Tooltip>
-
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => {
-                                  toast.promise(api.sendInvoiceEmail(invoice.id), {
-                                    loading: 'Sending...',
-                                    success: 'Sent!',
-                                    error: 'Error'
-                                  });
-                                }}>
-                                  <Mail className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent><p>Send via Email</p></TooltipContent>
-                            </Tooltip>
-
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => {
-                                  if (window.confirm("Delete this invoice?")) deleteInvoice.mutate(invoice.id);
-                                }}>
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent><p>Delete Invoice</p></TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
+                      <div>
+                        <p className="text-sm font-bold">{!patientId ? `${invoice.patientName || 'Patient'} · ` : ""}{invoice.id}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(invoice.date).toLocaleDateString('en-GB')} · {invoice.items.length} item(s)</p>
                       </div>
                     </div>
-                  <div className="mt-3 border-t border-border/50 pt-3">
-                      <div className="space-y-1">
-                        {invoice.items.map((item, index) => (
-                          <div key={index} className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">{item.description} {item.toothNumber ? `(Tooth #${item.toothNumber})` : ""}</span>
-                            <span>₹{item.amount.toLocaleString()}</span>
-                          </div>
-                        ))}
-                        {invoice.status === "Partially Paid" && (
-                          <div className="flex justify-between items-center pt-2 mt-2 border-t border-dashed border-border/50">
-                            <span className="text-xs font-bold text-destructive uppercase tracking-wider">Remaining Balance Due</span>
-                            <span className="text-base font-bold text-destructive">
-                              ₹{(invoice.total - (invoice.paidAmount || 0)).toLocaleString()}
-                            </span>
-                          </div>
-                        )}
+
+                    <div className="flex items-center gap-3">
+                      <div className="text-right mr-4">
+                        <p className="text-base font-bold">₹{invoice.total.toLocaleString()}</p>
+                        <StatusBadge status={invoice.status} />
                       </div>
+
+                      <div className="flex items-center gap-1">
+                        <TooltipProvider>
+                          {invoice.status === "Paid" ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 text-[10px] px-2 text-amber-600 border-amber-200 hover:bg-amber-50 mr-2"
+                                  onClick={() => updateInvoiceStatus.mutate({ invId: invoice.id, status: "Pending" })}
+                                  disabled={updateInvoiceStatus.isPending}
+                                >
+                                  <Undo2 className="mr-1 h-3 w-3" /> Undo
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent><p>Mark as Pending</p></TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  className="h-8 text-[10px] px-2 bg-emerald-600 hover:bg-emerald-700 mr-2 text-white"
+                                  disabled={updateInvoiceStatus.isPending || updateInvoice.isPending}
+                                >
+                                  <CheckCircle className="mr-1 h-3 w-3" /> Mark Payment <ChevronDown className="ml-1 h-3 w-3" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuItem onClick={() => updateInvoiceStatus.mutate({ invId: invoice.id, status: "Paid" })}>
+                                  <CheckCircle className="mr-2 h-4 w-4 text-emerald-600" /> Full Payment
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => {
+                                  setSelectedInvoiceForPayment(invoice);
+                                  setAdditionalPayment("");
+                                  setIsPartialPaymentOpen(true);
+                                }}>
+                                  <CreditCard className="mr-2 h-4 w-4 text-primary" /> Partial Payment
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+
+                          {editId !== invoice.id && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => {
+                                  setPatientId(invoice.patientId);
+                                  setDate(invoice.date);
+                                  setItems(invoice.items);
+                                  setPaidAmount(invoice.paidAmount || 0);
+                                  setStatus(invoice.status);
+                                  window.history.pushState({}, '', `?patientId=${invoice.patientId}&editId=${invoice.id}`);
+                                }}>
+                                  <Edit3 className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent><p>Edit Invoice</p></TooltipContent>
+                            </Tooltip>
+                          )}
+
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => {
+                                pdfService.generateInvoicePDF({ name: invoice.patientName, id: invoice.patientId, phone: invoice.patientPhone } as any, invoice);
+                              }}>
+                                <FileDown className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent><p>Download PDF</p></TooltipContent>
+                          </Tooltip>
+
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => {
+                                toast.promise(api.sendInvoiceWhatsapp(invoice.id), {
+                                  loading: 'Sending...',
+                                  success: 'Sent!',
+                                  error: 'Error'
+                                });
+                              }}>
+                                <MessageCircle className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent><p>Send via WhatsApp</p></TooltipContent>
+                          </Tooltip>
+
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => {
+                                toast.promise(api.sendInvoiceEmail(invoice.id), {
+                                  loading: 'Sending...',
+                                  success: 'Sent!',
+                                  error: 'Error'
+                                });
+                              }}>
+                                <Mail className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent><p>Send via Email</p></TooltipContent>
+                          </Tooltip>
+
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => {
+                                if (window.confirm("Delete this invoice?")) deleteInvoice.mutate(invoice.id);
+                              }}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent><p>Delete Invoice</p></TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-3 border-t border-border/50 pt-3">
+                    <div className="space-y-1">
+                      {invoice.items.map((item, index) => (
+                        <div key={index} className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">{item.description} {item.toothNumber ? `(Tooth #${item.toothNumber})` : ""}</span>
+                          <span>₹{item.amount.toLocaleString()}</span>
+                        </div>
+                      ))}
+                      {invoice.status === "Partially Paid" && (
+                        <div className="flex justify-between items-center pt-2 mt-2 border-t border-dashed border-border/50">
+                          <span className="text-xs font-bold text-destructive uppercase tracking-wider">Remaining Balance Due</span>
+                          <span className="text-base font-bold text-destructive">
+                            ₹{(invoice.total - (invoice.paidAmount || 0)).toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
             ))}
             {/* Partial Payment Dialog */}
-      <Dialog open={isPartialPaymentOpen} onOpenChange={setIsPartialPaymentOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5 text-primary" />
-              Record Partial Payment
-            </DialogTitle>
-          </DialogHeader>
-          {selectedInvoiceForPayment && (
-            <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="space-y-1">
-                  <p className="text-muted-foreground uppercase text-[10px] font-bold">Invoice ID</p>
-                  <p className="font-medium">{selectedInvoiceForPayment.id}</p>
-                </div>
-                <div className="space-y-1 text-right">
-                  <p className="text-muted-foreground uppercase text-[10px] font-bold">Total Bill</p>
-                  <p className="font-medium">₹{selectedInvoiceForPayment.total.toLocaleString()}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-emerald-600 uppercase text-[10px] font-bold">Already Paid</p>
-                  <p className="font-medium text-emerald-600">₹{(selectedInvoiceForPayment.paidAmount || 0).toLocaleString()}</p>
-                </div>
-                <div className="space-y-1 text-right">
-                  <p className="text-destructive uppercase text-[10px] font-bold">Balance Due</p>
-                  <p className="font-medium text-destructive">₹{(selectedInvoiceForPayment.total - (selectedInvoiceForPayment.paidAmount || 0)).toLocaleString()}</p>
-                </div>
-              </div>
+            <Dialog open={isPartialPaymentOpen} onOpenChange={setIsPartialPaymentOpen}>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5 text-primary" />
+                    Record Partial Payment
+                  </DialogTitle>
+                </DialogHeader>
+                {selectedInvoiceForPayment && (
+                  <div className="space-y-4 py-4">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="space-y-1">
+                        <p className="text-muted-foreground uppercase text-[10px] font-bold">Invoice ID</p>
+                        <p className="font-medium">{selectedInvoiceForPayment.id}</p>
+                      </div>
+                      <div className="space-y-1 text-right">
+                        <p className="text-muted-foreground uppercase text-[10px] font-bold">Total Bill</p>
+                        <p className="font-medium">₹{selectedInvoiceForPayment.total.toLocaleString()}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-emerald-600 uppercase text-[10px] font-bold">Already Paid</p>
+                        <p className="font-medium text-emerald-600">₹{(selectedInvoiceForPayment.paidAmount || 0).toLocaleString()}</p>
+                      </div>
+                      <div className="space-y-1 text-right">
+                        <p className="text-destructive uppercase text-[10px] font-bold">Balance Due</p>
+                        <p className="font-medium text-destructive">₹{(selectedInvoiceForPayment.total - (selectedInvoiceForPayment.paidAmount || 0)).toLocaleString()}</p>
+                      </div>
+                    </div>
 
-              <div className="space-y-2 pt-2 border-t border-border/50">
-                <Label htmlFor="amount" className="text-sm font-bold">Additional Amount to Pay (₹)</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₹</span>
-                  <Input
-                    id="amount"
-                    type="number"
-                    className="pl-7 text-lg font-bold"
-                    placeholder="Enter amount..."
-                    value={additionalPayment}
-                    onChange={(e) => setAdditionalPayment(e.target.value)}
-                    autoFocus
-                  />
-                </div>
-                {additionalPayment && !isNaN(Number(additionalPayment)) && (
-                  <p className="text-xs text-muted-foreground italic">
-                    New Balance will be: <span className="font-bold text-primary">₹{(selectedInvoiceForPayment.total - (selectedInvoiceForPayment.paidAmount || 0) - Number(additionalPayment)).toLocaleString()}</span>
-                  </p>
+                    <div className="space-y-2 pt-2 border-t border-border/50">
+                      <Label htmlFor="amount" className="text-sm font-bold">Additional Amount to Pay (₹)</Label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₹</span>
+                        <Input
+                          id="amount"
+                          type="number"
+                          className="pl-7 text-lg font-bold"
+                          placeholder="Enter amount..."
+                          value={additionalPayment}
+                          onChange={(e) => setAdditionalPayment(e.target.value)}
+                          autoFocus
+                        />
+                      </div>
+                      {additionalPayment && !isNaN(Number(additionalPayment)) && (
+                        <p className="text-xs text-muted-foreground italic">
+                          New Balance will be: <span className="font-bold text-primary">₹{(selectedInvoiceForPayment.total - (selectedInvoiceForPayment.paidAmount || 0) - Number(additionalPayment)).toLocaleString()}</span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 )}
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsPartialPaymentOpen(false)}>Cancel</Button>
-            <Button 
-              className="bg-emerald-600 hover:bg-emerald-700"
-              onClick={() => {
-                if (!additionalPayment || isNaN(Number(additionalPayment))) {
-                  toast.error("Please enter a valid amount");
-                  return;
-                }
-                const newPaid = (selectedInvoiceForPayment.paidAmount || 0) + Number(additionalPayment);
-                const newStatus = newPaid >= selectedInvoiceForPayment.total ? "Paid" : "Partially Paid";
-                
-                const newPayments = [
-                  ...(selectedInvoiceForPayment.payments || []),
-                  { date: new Date().toLocaleDateString('en-CA'), amount: Number(additionalPayment) }
-                ];
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsPartialPaymentOpen(false)}>Cancel</Button>
+                  <Button
+                    className="bg-emerald-600 hover:bg-emerald-700"
+                    onClick={() => {
+                      if (!additionalPayment || isNaN(Number(additionalPayment))) {
+                        toast.error("Please enter a valid amount");
+                        return;
+                      }
+                      const newPaid = (selectedInvoiceForPayment.paidAmount || 0) + Number(additionalPayment);
+                      const newStatus = newPaid >= selectedInvoiceForPayment.total ? "Paid" : "Partially Paid";
 
-                updateInvoice.mutate({ 
-                  id: selectedInvoiceForPayment.id, 
-                  payload: { 
-                    paidAmount: newPaid, 
-                    status: newStatus,
-                    payments: newPayments
-                  } 
-                }, {
-                  onSuccess: () => {
-                    setIsPartialPaymentOpen(false);
-                    setAdditionalPayment("");
-                  }
-                });
-              }}
-              disabled={updateInvoice.isPending}
-            >
-              Confirm Payment
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+                      const newPayments = [
+                        ...(selectedInvoiceForPayment.payments || []),
+                        { date: new Date().toLocaleDateString('en-CA'), amount: Number(additionalPayment) }
+                      ];
+
+                      updateInvoice.mutate({
+                        id: selectedInvoiceForPayment.id,
+                        payload: {
+                          paidAmount: newPaid,
+                          status: newStatus,
+                          payments: newPayments
+                        }
+                      }, {
+                        onSuccess: () => {
+                          setIsPartialPaymentOpen(false);
+                          setAdditionalPayment("");
+                        }
+                      });
+                    }}
+                    disabled={updateInvoice.isPending}
+                  >
+                    Confirm Payment
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
         )}
       </div>
     </motion.div>
