@@ -1,4 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
+declare global {
+  interface Window {
+    google: any;
+  }
+}
+declare const google: any;
 import { motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -17,7 +23,7 @@ const PatientRegistration: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const addressInputRef = useRef<HTMLInputElement>(null);
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const autocompleteRef = useRef<any>(null);
 
   useEffect(() => {
     document.title = "Register Patient | Siara Dental";
