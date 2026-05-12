@@ -138,7 +138,11 @@ const PatientRegistration: React.FC = () => {
 
         autocompleteRef.current = new window.google.maps.places.Autocomplete(addressInputRef.current, {
           types: ["address"],
-          componentRestrictions: { country: "in" }, // Restrict to India as per clinic context
+          componentRestrictions: { country: "in" },
+          bounds: new window.google.maps.LatLngBounds(
+            { lat: 16.9, lng: 78.1 },
+            { lat: 17.8, lng: 79.1 }
+          ),
         });
 
         autocompleteRef.current.addListener("place_changed", () => {
