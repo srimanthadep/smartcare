@@ -78,6 +78,13 @@ export const api = {
   me() {
     return apiFetch<{ user: User }>("/api/auth/me");
   },
+  
+  updateProfile(payload: { name?: string; email?: string; avatar?: string }) {
+    return apiFetch<{ message: string; user: User }>("/api/auth/profile", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  },
 
   getDashboard(period?: string) {
     return apiFetch<DashboardResponse>(`/api/dashboard${buildQuery({ period })}`);

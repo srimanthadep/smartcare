@@ -7,6 +7,7 @@ const router = Router();
 router.post('/login', authController.login);
 router.post('/register', authController.register);
 router.get('/me', auth, authController.getMe);
+router.patch('/profile', auth, authController.updateProfile);
 router.post('/logout', auth, (req, res) => {
   res.clearCookie('AuthToken', { httpOnly: true, sameSite: 'strict' });
   res.json({ message: 'Logged out successfully' });
