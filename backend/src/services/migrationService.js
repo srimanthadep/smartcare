@@ -20,6 +20,17 @@ export const runMigrations = async () => {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS doctors (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        specialization TEXT,
+        department TEXT,
+        phone TEXT,
+        email TEXT,
+        is_deleted BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
     ALTER TABLE patients ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;
     ALTER TABLE patients ADD COLUMN IF NOT EXISTS chief_complaint TEXT;
     ALTER TABLE patients ADD COLUMN IF NOT EXISTS dental_history JSONB;

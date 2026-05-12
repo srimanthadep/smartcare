@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Loader2, Mail, MessageCircle, Plug, ShieldCheck, User, Camera, Upload, Type } from 'lucide-react';
+import { Loader2, Mail, MessageCircle, Plug, ShieldCheck, User, Camera, Upload, Type, Stethoscope, Plus, Trash2, Pencil } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -36,6 +36,17 @@ const Settings: React.FC = () => {
   const [isWaModalOpen, setIsWaModalOpen] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   
+  const [doctors, setDoctors] = useState<any[]>([]);
+  const [isDoctorDialogOpen, setIsDoctorDialogOpen] = useState(false);
+  const [editingDoctor, setEditingDoctor] = useState<any>(null);
+  const [doctorForm, setDoctorForm] = useState({
+    name: '',
+    specialization: '',
+    department: '',
+    phone: '',
+    email: ''
+  });
+  
   const [typingSettings, setTypingSettings] = useState(() => {
     const saved = localStorage.getItem('smartcare_settings');
     return saved ? JSON.parse(saved) : { autocorrectEnabled: true };
@@ -49,7 +60,50 @@ const Settings: React.FC = () => {
     document.title = 'Settings | Siara Dental';
     fetchWaStatus();
     fetchEmailStatus();
+    fetchDoctors();
   }, []);
+
+  const fetchDoctors = async () => {
+    try {
+      const data = await api.getDoctors();
+      setDoctors(data);
+    } catch (err) {
+      console.error('Failed to fetch doctors', err);
+    }
+  };
+
+  const handleDoctorSave = async () => {
+    if (!doctorForm.name) {
+      toast.error('Doctor name is required');
+      return;
+    }
+    try {
+      if (editingDoctor) {
+        await api.updateDoctor(editingDoctor.id, doctorForm);
+        toast.success('Doctor updated');
+      } else {
+        await api.createDoctor(doctorForm);
+        toast.success('Doctor added');
+      }
+      setIsDoctorDialogOpen(false);
+      setEditingDoctor(null);
+      setDoctorForm({ name: '', specialization: '', department: '', phone: '', email: '' });
+      fetchDoctors();
+    } catch (err) {
+      toast.error('Failed to save doctor');
+    }
+  };
+
+  const handleDoctorDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this doctor?')) return;
+    try {
+      await api.deleteDoctor(id);
+      toast.success('Doctor deleted');
+      fetchDoctors();
+    } catch (err) {
+      toast.error('Failed to delete doctor');
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -208,6 +262,7 @@ const Settings: React.FC = () => {
           <TabsTrigger value="abha">ABHA</TabsTrigger>
           <TabsTrigger value="external">External systems</TabsTrigger>
           <TabsTrigger value="typing">Typing</TabsTrigger>
+          <TabsTrigger value="doctors">Doctors</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="mt-4">
@@ -454,7 +509,125 @@ const Settings: React.FC = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="doctors" className="mt-4">
+          <Card className="border-border/50">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-base font-heading flex items-center gap-2">
+                <Stethoscope className="h-4 w-4 text-primary" /> Manage Doctors
+              </CardTitle>
+              <Button size="sm" onClick={() => {
+                setEditingDoctor(null);
+                setDoctorForm({ name: '', specialization: '', department: '', phone: '', email: '' });
+                setIsDoctorDialogOpen(true);
+              }}>
+                <Plus className="h-4 w-4 mr-1" /> Add Doctor
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {doctors.length === 0 ? (
+                  <div className="text-center py-8 border border-dashed rounded-lg text-muted-foreground text-sm">
+                    No doctors added yet.
+                  </div>
+                ) : (
+                  doctors.map((doc) => (
+                    <div key={doc.id} className="flex items-center justify-between p-4 rounded-lg border border-border/50 bg-secondary/15">
+                      <div>
+                        <p className="font-medium">{doc.name}</p>
+                        <p className="text-xs text-muted-foreground">{doc.specialization} • {doc.department}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => {
+                          setEditingDoctor(doc);
+                          setDoctorForm({
+                            name: doc.name,
+                            specialization: doc.specialization,
+                            department: doc.department,
+                            phone: doc.phone || '',
+                            email: doc.email || ''
+                          });
+                          setIsDoctorDialogOpen(true);
+                        }}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDoctorDelete(doc.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+
+      <Dialog open={isDoctorDialogOpen} onOpenChange={setIsDoctorDialogOpen}>
+        <DialogContent className="sm:max-w-md rounded-[30px] border-white/60 bg-white/95 shadow-[0_20px_60px_rgba(26,18,14,0.16)] backdrop-blur-xl overflow-hidden p-0">
+          <div className="flex items-center justify-between border-b border-border/60 bg-gradient-to-r from-secondary/50 via-white to-secondary/30 px-6 py-4">
+            <DialogHeader className="space-y-1">
+              <DialogTitle className="font-heading text-xl font-semibold">{editingDoctor ? 'Edit Doctor' : 'Add New Doctor'}</DialogTitle>
+            </DialogHeader>
+          </div>
+          <div className="space-y-4 p-6">
+            <div className="grid gap-2">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Full Name</Label>
+              <Input 
+                value={doctorForm.name} 
+                onChange={e => setDoctorForm({...doctorForm, name: e.target.value})}
+                placeholder="Dr. John Doe"
+                className="rounded-xl border-border/60 bg-muted/30 focus:bg-background transition-colors"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Specialization</Label>
+                <Input 
+                  value={doctorForm.specialization} 
+                  onChange={e => setDoctorForm({...doctorForm, specialization: e.target.value})}
+                  placeholder="Dentist"
+                  className="rounded-xl border-border/60 bg-muted/30 focus:bg-background transition-colors"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Department</Label>
+                <Input 
+                  value={doctorForm.department} 
+                  onChange={e => setDoctorForm({...doctorForm, department: e.target.value})}
+                  placeholder="Orthodontics"
+                  className="rounded-xl border-border/60 bg-muted/30 focus:bg-background transition-colors"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Phone</Label>
+                <Input 
+                  value={doctorForm.phone} 
+                  onChange={e => setDoctorForm({...doctorForm, phone: e.target.value})}
+                  placeholder="9876543210"
+                  className="rounded-xl border-border/60 bg-muted/30 focus:bg-background transition-colors"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Email</Label>
+                <Input 
+                  value={doctorForm.email} 
+                  onChange={e => setDoctorForm({...doctorForm, email: e.target.value})}
+                  placeholder="doctor@example.com"
+                  className="rounded-xl border-border/60 bg-muted/30 focus:bg-background transition-colors"
+                />
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 bg-secondary/15 px-6 py-4 border-t border-border/60">
+            <Button variant="outline" onClick={() => setIsDoctorDialogOpen(false)} className="rounded-xl">Cancel</Button>
+            <Button onClick={handleDoctorSave} className="rounded-xl shadow-sm shadow-primary/20">Save Doctor</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isWaModalOpen} onOpenChange={(open) => {
         if (!open) {

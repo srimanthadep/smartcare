@@ -389,7 +389,6 @@ const PatientProfile: React.FC = () => {
                     placeholder="Enter conditions separated by commas..."
                     className="h-8 text-xs"
                     autoFocus
-                    onBlur={() => setEditingConditions(false)}
                   />
                 ) : patient.conditions.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
@@ -444,7 +443,6 @@ const PatientProfile: React.FC = () => {
                     placeholder="Enter allergies separated by commas..."
                     className="h-8 text-xs"
                     autoFocus
-                    onBlur={() => setEditingAllergies(false)}
                   />
                 ) : patient.allergies.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
@@ -464,47 +462,10 @@ const PatientProfile: React.FC = () => {
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2 text-base font-heading"><ClipboardList className="h-4 w-4 text-primary" /> Dental History</CardTitle>
-                  {!editingDentalHistory ? null : (
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingDentalHistory(false)}>
-                        <X className="h-3 w-3" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" onClick={() => {
-                        updatePatient.mutate({ dentalHistory: { ...patient.dentalHistory, history: dentalHistoryDraft } as any });
-                        setEditingDentalHistory(false);
-                      }}>
-                        <CheckCircle className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  )}
                 </div>
               </CardHeader>
-              <CardContent 
-                className={!editingDentalHistory ? "cursor-pointer hover:bg-secondary/10 transition-colors rounded-b-lg" : ""}
-                onClick={() => !editingDentalHistory && setEditingDentalHistory(true)}
-              >
-                {editingDentalHistory ? (
-                  <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
-                    <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-wider">Relevant History/Complaints:</span>
-                    <AutocorrectTextarea 
-                      value={dentalHistoryDraft}
-                      onChange={(e) => {
-                        const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
-                        let val = e.target.value;
-                        val = val.split(' ').map((word, index) => {
-                          if (index > 0 && minorWords.includes(word.toLowerCase())) {
-                            return word.toLowerCase();
-                          }
-                          return word.charAt(0).toUpperCase() + word.slice(1);
-                        }).join(' ');
-                        setDentalHistoryDraft(val);
-                      }}
-                      className="min-h-[80px] text-xs"
-                      autoFocus
-                      onBlur={() => setEditingDentalHistory(false)}
-                    />
-                  </div>
-                ) : patient.dentalHistory ? (
+              <CardContent>
+                {patient.dentalHistory ? (
                   <>
                     <div className="flex justify-between border-b border-border/50 pb-1">
                       <span className="text-muted-foreground text-xs uppercase font-semibold">Oral Hygiene:</span>
@@ -516,11 +477,11 @@ const PatientProfile: React.FC = () => {
                     </div>
                     <div className="flex flex-col gap-1 mt-2">
                       <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-wider">Relevant History/Complaints:</span>
-                      <p className="rounded-md bg-secondary/30 p-2 italic text-xs leading-relaxed">{patient.dentalHistory.history || "No notes provided. Click to add."}</p>
+                      <p className="rounded-md bg-secondary/30 p-2 italic text-xs leading-relaxed">{patient.dentalHistory.history || "No notes provided."}</p>
                     </div>
                   </>
                 ) : (
-                  <p className="py-4 text-center text-sm text-muted-foreground italic">No dental history recorded. Click to add.</p>
+                  <p className="py-4 text-center text-sm text-muted-foreground italic">No dental history recorded.</p>
                 )}
               </CardContent>
             </Card>
@@ -587,7 +548,6 @@ const PatientProfile: React.FC = () => {
                     className="min-h-[100px] text-sm"
                     autoFocus
                     onClick={(e) => e.stopPropagation()}
-                    onBlur={() => setEditingNotes(false)}
                   />
                 ) : (
                   <p className="text-sm text-muted-foreground whitespace-pre-wrap">{patient.notes || "No additional notes recorded. Click to edit."}</p>
@@ -1074,6 +1034,8 @@ const PatientProfile: React.FC = () => {
                   toast.success("Payment recorded");
                   setIsPartialPaymentOpen(false);
                   setAdditionalPayment("");
+                }).catch((err) => {
+                  toast.error(err instanceof Error ? err.message : "Failed to record payment");
                 });
               }}
             >

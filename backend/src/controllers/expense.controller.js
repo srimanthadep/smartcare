@@ -29,6 +29,39 @@ export const createExpense = async (req, res, next) => {
   }
 };
 
+export const updateExpense = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { description, amount, date, category } = req.body;
+    
+    const updates = [];
+    const params = [id];
+    let i = 2;
+    
+    if (description !== undefined) { updates.push(`description = $${i}`); params.push(description); i++; }
+    if (amount !== undefined) { updates.push(`amount = $${i}`); params.push(amount); i++; }
+    if (date !== undefined) { updates.push(`date = $${i}`); params.push(date); i++; }
+    if (category !== undefined) { updates.push(`category = $${i}`); params.push(category); i++; }
+    
+    if (updates.length === 0) {
+      return res.status(400).json({ message: 'No fields to update' });
+    }
+    
+    const result = await dbService.query(
+      `UPDATE expenses SET ${updates.join(', ')} WHERE id = $1 RETURNING *`,
+      params
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Expense not found' });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const deleteExpense = async (req, res, next) => {
   try {
     const { id } = req.params;

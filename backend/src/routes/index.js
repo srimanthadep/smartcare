@@ -11,6 +11,7 @@ import backupRoutes from './backup.js';
 import whatsappRoutes from './whatsapp.routes.js';
 import emailRoutes from './email.routes.js';
 import expenseRoutes from './expense.routes.js';
+import doctorRoutes from './doctor.routes.js';
 import * as dashboardController from '../controllers/dashboard.controller.js';
 import * as appointmentController from '../controllers/appointment.controller.js';
 import * as invoiceController from '../controllers/invoice.controller.js';
@@ -103,6 +104,7 @@ router.use('/treatment-plans', treatmentPlanRoutes);
 router.use('/procedures', procedureRoutes);
 router.use('/backup', authorize('admin'), backupRoutes);
 router.use('/expenses', expenseRoutes);
+router.use('/doctors', doctorRoutes);
 
 // Appointments
 router.get('/appointments', appointmentController.getAppointments);
