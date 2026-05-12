@@ -409,8 +409,8 @@ const Billing: React.FC = () => {
                     <Input
                       type="number"
                       className="pl-7 bg-emerald-50/30 border-emerald-100"
-                      value={paidAmount}
-                      onChange={(e) => setPaidAmount(Number(e.target.value))}
+                      value={paidAmount || ""}
+                      onChange={(e) => setPaidAmount(Number(e.target.value) || 0)}
                     />
                   </div>
                 </div>

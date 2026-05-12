@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, IndianRupee, Tag, Filter, Search } from "lucide-react";
+import { Plus, Trash2, IndianRupee, Tag, Search, Pencil } from "lucide-react";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +38,8 @@ const CATEGORIES = [
 const Expenses: React.FC = () => {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
 
@@ -65,6 +67,18 @@ const Expenses: React.FC = () => {
       toast.success("Expense deleted");
     },
     onError: () => toast.error("Failed to delete expense"),
+  });
+
+  const updateExpenseMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: any }) => api.updateExpense(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      toast.success("Expense updated successfully");
+      setIsEditOpen(false);
+      setEditingExpense(null);
+    },
+    onError: () => toast.error("Failed to update expense"),
   });
 
   const filteredExpenses = expenses?.filter((exp: any) => {
@@ -105,12 +119,14 @@ const Expenses: React.FC = () => {
               <Plus className="mr-2 h-4 w-4" /> Record Expense
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-[425px] rounded-[30px] border-white/60 bg-white/95 shadow-[0_20px_60px_rgba(26,18,14,0.16)] backdrop-blur-xl overflow-hidden p-0">
             <form onSubmit={handleSubmit}>
-              <DialogHeader>
-                <DialogTitle>Record New Expense</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
+              <div className="flex items-center justify-between border-b border-border/60 bg-gradient-to-r from-secondary/50 via-white to-secondary/30 px-6 py-4">
+                <DialogHeader className="space-y-1">
+                  <DialogTitle className="font-heading text-xl font-semibold">Record New Expense</DialogTitle>
+                </DialogHeader>
+              </div>
+              <div className="grid gap-4 p-6">
                 <div className="grid gap-2">
                   <Label htmlFor="description">Expense Name</Label>
                   <Input 
@@ -156,8 +172,9 @@ const Expenses: React.FC = () => {
                   </Select>
                 </div>
               </div>
-              <DialogFooter>
-                <Button type="submit" disabled={createExpense.isPending}>
+              <DialogFooter className="bg-secondary/15 px-6 py-4 border-t border-border/60">
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="rounded-xl">Cancel</Button>
+                <Button type="submit" disabled={createExpense.isPending} className="rounded-xl shadow-sm shadow-primary/20">
                   {createExpense.isPending ? "Recording..." : "Save Expense"}
                 </Button>
               </DialogFooter>
@@ -264,16 +281,29 @@ const Expenses: React.FC = () => {
                           - ₹{Number(exp.amount).toLocaleString()}
                         </td>
                         <td className="px-4 py-4 text-right">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all"
-                            onClick={() => {
-                              if(window.confirm("Are you sure you want to delete this expense record?")) deleteExpense.mutate(exp.id);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-muted-foreground/50 hover:text-primary hover:bg-primary/10 opacity-0 group-hover:opacity-100 transition-all"
+                              onClick={() => {
+                                setEditingExpense(exp);
+                                setIsEditOpen(true);
+                              }}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all"
+                              onClick={() => {
+                                if(window.confirm("Are you sure you want to delete this expense record?")) deleteExpense.mutate(exp.id);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </td>
                       </motion.tr>
                     ))}
@@ -284,6 +314,71 @@ const Expenses: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Expense Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={(open) => { setIsEditOpen(open); if (!open) setEditingExpense(null); }}>
+        <DialogContent className="sm:max-w-[425px] rounded-[30px] border-white/60 bg-white/95 shadow-[0_20px_60px_rgba(26,18,14,0.16)] backdrop-blur-xl overflow-hidden p-0">
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            if (!editingExpense) return;
+            const formData = new FormData(e.currentTarget);
+            const payload = {
+              description: formData.get("edit-description"),
+              amount: Number(formData.get("edit-amount")),
+              category: formData.get("edit-category"),
+              date: formData.get("edit-date"),
+            };
+            updateExpenseMutation.mutate({ id: editingExpense.id, payload });
+          }}>
+            <div className="flex items-center justify-between border-b border-border/60 bg-gradient-to-r from-secondary/50 via-white to-secondary/30 px-6 py-4">
+              <DialogHeader className="space-y-1">
+                <DialogTitle className="font-heading text-xl font-semibold">Update Expense</DialogTitle>
+              </DialogHeader>
+            </div>
+            <div className="grid gap-4 p-6">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-description" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Expense Name</Label>
+                <Input 
+                  id="edit-description" 
+                  name="edit-description" 
+                  defaultValue={editingExpense?.description || ""}
+                  required 
+                  className="rounded-xl border-border/60 bg-muted/30 focus:bg-background transition-colors"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-amount" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Amount (₹)</Label>
+                  <Input id="edit-amount" name="edit-amount" type="number" defaultValue={editingExpense?.amount || ""} required className="rounded-xl border-border/60 bg-muted/30 focus:bg-background transition-colors" />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-date" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Date</Label>
+                  <Input id="edit-date" name="edit-date" type="date" defaultValue={editingExpense?.date ? new Date(editingExpense.date).toISOString().split("T")[0] : ""} required className="rounded-xl border-border/60 bg-muted/30 focus:bg-background transition-colors" />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-category" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Category</Label>
+                <Select name="edit-category" defaultValue={editingExpense?.category || "Other"}>
+                  <SelectTrigger className="rounded-xl border-border/60 bg-muted/30 focus:bg-background transition-colors">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    {CATEGORIES.map((cat) => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter className="bg-secondary/15 px-6 py-4 border-t border-border/60">
+              <Button variant="outline" type="button" onClick={() => setIsEditOpen(false)} className="rounded-xl">Cancel</Button>
+              <Button type="submit" disabled={updateExpenseMutation.isPending} className="rounded-xl shadow-sm shadow-primary/20">
+                {updateExpenseMutation.isPending ? "Updating..." : "Update Expense"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 };

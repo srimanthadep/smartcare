@@ -33,7 +33,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl rounded-[30px] border-white/60 bg-white/95 p-0 shadow-[0_20px_60px_rgba(26,18,14,0.16)] backdrop-blur-xl">
+      <DialogContent className="max-w-2xl max-h-[85vh] rounded-[30px] border-white/60 bg-white/95 p-0 shadow-[0_20px_60px_rgba(26,18,14,0.16)] backdrop-blur-xl overflow-hidden flex flex-col">
         <div className="flex items-center justify-between border-b border-border/60 bg-gradient-to-r from-secondary/50 via-white to-secondary/30 px-6 py-4">
           <DialogHeader className="space-y-1">
             <DialogTitle className="font-heading text-3xl font-semibold">

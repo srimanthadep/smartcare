@@ -392,8 +392,39 @@ export const api = {
     });
   },
 
+  updateExpense(id: string, payload: any) {
+    return apiFetch<any>(`/api/expenses/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  },
+
   deleteExpense(id: string) {
     return apiFetch<{ message: string }>(`/api/expenses/${id}`, {
+      method: "DELETE",
+    });
+  },
+
+  getDoctors() {
+    return apiFetch<any[]>("/api/doctors");
+  },
+
+  createDoctor(payload: any) {
+    return apiFetch<any>("/api/doctors", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  updateDoctor(id: string, payload: any) {
+    return apiFetch<any>(`/api/doctors/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  deleteDoctor(id: string) {
+    return apiFetch<{ message: string }>(`/api/doctors/${id}`, {
       method: "DELETE",
     });
   },

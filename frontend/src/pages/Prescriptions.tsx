@@ -3,7 +3,10 @@ import { Medication } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FileText, MessageCircle, Plus, Printer, Share2, Trash2, Sparkles, Calendar } from "lucide-react";
+import { FileText, MessageCircle, Plus, Printer, Share2, Trash2, Sparkles, Calendar as CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
@@ -550,14 +553,29 @@ const Prescriptions: React.FC = () => {
                 <div className="sm:col-span-4">
                   <div className="space-y-2">
                     <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Schedule Follow-up</Label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-600" />
-                      <Input
-                        type="date"
-                        value={nextVisitDate}
-                        onChange={(e) => setNextVisitDate(e.target.value)}
-                        className="pl-10 border-amber-200 bg-amber-50/30 focus:ring-amber-500"
-                      />
+                    <div className="relative mt-2">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal rounded-xl border-amber-200 bg-amber-50/30 hover:bg-amber-50/50 transition-colors pl-10",
+                              !nextVisitDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-600" />
+                            {nextVisitDate ? format(new Date(nextVisitDate), "PPP") : <span>Pick a follow-up date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0 rounded-2xl shadow-2xl border-white/60" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={nextVisitDate ? new Date(nextVisitDate) : undefined}
+                            onSelect={(date) => setNextVisitDate(date ? format(date, "yyyy-MM-dd") : "")}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   </div>
                 </div>

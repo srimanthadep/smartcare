@@ -28,9 +28,12 @@ const defaultMessages: Message[] = [
 function loadMessages(): Message[] {
   try {
     const stored = localStorage.getItem(CHAT_STORAGE_KEY);
-    if (stored) return JSON.parse(stored) as Message[];
-  } catch {
-    // ignore
+    if (stored && stored !== "undefined") {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) {
+    console.error("Failed to load AI messages", e);
   }
   return defaultMessages;
 }
