@@ -9,9 +9,11 @@ export const transcribeAudio = async (audioBlob: Blob): Promise<string> => {
   formData.append("file", audioBlob, "recording.m4a");
   formData.append("model", "whisper-large-v3");
   formData.append("response_format", "json");
+  // Add prompt to enforce strict English translation and handle Indian context
+  formData.append("prompt", "Strictly translate all spoken audio to English. If the user speaks in Hinglish, Telugu, or Hindi, provide only the English translation. Preserve medical terms and Indian names accurately.");
 
   try {
-    const response = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+    const response = await fetch("https://api.groq.com/openai/v1/audio/translations", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
