@@ -149,7 +149,7 @@ const Pharmacy: React.FC = () => {
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 max-w-7xl mx-auto p-6">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mx-auto max-w-7xl space-y-3 p-3 md:space-y-6 md:p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           <h1 className="text-3xl font-heading font-bold tracking-tight">Pharmacy & Stock</h1>
@@ -161,7 +161,7 @@ const Pharmacy: React.FC = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 md:gap-6 lg:grid-cols-2">
         <Card className="rounded-[32px] border-border/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-secondary/50 to-white border-b border-border/40 pb-4">
             <CardTitle className="text-lg font-heading flex items-center gap-2">
@@ -205,7 +205,7 @@ const Pharmacy: React.FC = () => {
             <p className="mt-1 text-sm text-muted-foreground">Editable stock workspace for in-clinic tracking.</p>
           </div>
 
-          <div className="flex w-full max-w-md items-center gap-3">
+          <div className="sticky top-16 z-20 flex w-full max-w-md items-center gap-3 md:static">
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -236,7 +236,19 @@ const Pharmacy: React.FC = () => {
             </div>
           </div>
 
-          <div className="overflow-x-auto rounded-[24px] border border-border/60">
+          <div className="grid grid-cols-2 gap-3 md:hidden">
+            {filteredInventory.map((item) => (
+              <Card key={item.id} className="border-border/50">
+                <CardContent className="p-3">
+                  <p className="text-sm font-medium">{item.name}</p>
+                  <p className="text-xs text-muted-foreground">{item.strength || item.form}</p>
+                  <p className="mt-1 text-xs">Stock: {item.stock}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <div className="hidden overflow-x-auto rounded-[24px] border border-border/60 md:block">
             <Table>
               <TableHeader className="bg-secondary/15">
                 <TableRow>

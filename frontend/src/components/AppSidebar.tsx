@@ -36,7 +36,7 @@ export const AppSidebar: React.FC = () => {
   const role = user?.role || 'doctor';
 
   return (
-    <Sidebar collapsible="icon" className="border-r-0">
+    <Sidebar collapsible="icon" className="hidden border-r-0 md:flex">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
           <img src={logo} alt="Siara Dental" className="h-9 w-9 shrink-0" />

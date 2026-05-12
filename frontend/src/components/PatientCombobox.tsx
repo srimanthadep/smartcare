@@ -72,7 +72,7 @@ export function PatientCombobox({ value, onSelect, placeholder = "Search patient
                 <li
                   key={patient.id}
                   onClick={() => handleSelect(patient)}
-                  className="relative flex cursor-pointer select-none items-start flex-col gap-0.5 rounded-sm px-2 py-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                  className="relative flex min-h-[52px] cursor-pointer select-none flex-col items-start gap-0.5 rounded-sm px-4 py-3 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
                 >
                   <div className="font-medium">{patient.name}</div>
                   <div className="text-[10px] text-muted-foreground">

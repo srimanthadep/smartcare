@@ -74,7 +74,7 @@ export function MedicineCombobox({ value, onChange, placeholder = "Search or typ
                 <li
                   key={medicine.id}
                   onClick={() => handleSelect(medicine)}
-                  className="relative flex cursor-pointer select-none items-start flex-col gap-1 rounded-sm px-2 py-2.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                  className="relative flex min-h-[52px] cursor-pointer select-none flex-col items-start gap-1 rounded-sm px-4 py-3 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
                 >
                   <div className="flex w-full items-center justify-between">
                     <div className="flex items-center gap-2">
