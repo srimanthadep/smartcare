@@ -352,12 +352,12 @@ const PatientList: React.FC = () => {
             <Table>
               <TableHeader className="bg-muted/40">
                 <TableRow>
-                  <TableHead className="w-[280px]">Patient Information</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Contact Details</TableHead>
-                  <TableHead>Medical Info</TableHead>
-                  <TableHead className="text-right">Last Interaction</TableHead>
-                  <TableHead className="w-[100px] text-right">Actions</TableHead>
+                  <TableHead className="whitespace-nowrap">Patient Information</TableHead>
+                  <TableHead className="whitespace-nowrap">Status</TableHead>
+                  <TableHead className="whitespace-nowrap">Contact Details</TableHead>
+                  <TableHead className="whitespace-nowrap">Medical Info</TableHead>
+                  <TableHead className="text-right whitespace-nowrap">Last Interaction</TableHead>
+                  <TableHead className="w-[100px] text-right whitespace-nowrap">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

@@ -396,14 +396,14 @@ const Pharmacy: React.FC = () => {
             <Table>
               <TableHeader className="bg-secondary/15">
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Strength</TableHead>
-                  <TableHead>Form</TableHead>
-                  <TableHead>Stock</TableHead>
-                  <TableHead>Min</TableHead>
-                  <TableHead>Expiry</TableHead>
-                  <TableHead>Supplier</TableHead>
-                  <TableHead className="text-right">Remove</TableHead>
+                  <TableHead className="whitespace-nowrap">Name</TableHead>
+                  <TableHead className="whitespace-nowrap">Strength</TableHead>
+                  <TableHead className="whitespace-nowrap">Form</TableHead>
+                  <TableHead className="whitespace-nowrap">Stock</TableHead>
+                  <TableHead className="whitespace-nowrap">Min</TableHead>
+                  <TableHead className="whitespace-nowrap">Expiry</TableHead>
+                  <TableHead className="whitespace-nowrap">Supplier</TableHead>
+                  <TableHead className="text-right whitespace-nowrap">Remove</TableHead>
                 </TableRow>
               </TableHeader>
 
