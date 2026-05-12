@@ -238,17 +238,17 @@ const PatientList: React.FC = () => {
   }
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3 md:space-y-6">
       {/* Header Section */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 md:gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-heading font-bold text-foreground">Patient Directory</h1>
+          <h1 className="text-lg font-heading font-bold text-foreground md:text-3xl">Patient Directory</h1>
           <p className="text-muted-foreground flex items-center gap-2 mt-1">
             <User className="h-4 w-4" />
             {data.length} Total Patients
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="hidden gap-2 md:flex">
           <Button variant="outline" onClick={() => setShowFilters(!showFilters)} className={showFilters ? "bg-accent" : ""}>
             <Filter className="mr-2 h-4 w-4" /> Filters
           </Button>
@@ -274,8 +274,8 @@ const PatientList: React.FC = () => {
       </div>
 
       {/* Search & Filters Section */}
-      <Card className="luxury-panel overflow-hidden border-none shadow-lg">
-        <CardContent className="p-5">
+      <Card className="sticky top-16 z-20 luxury-panel overflow-hidden border-none shadow-lg md:static md:z-auto">
+        <CardContent className="p-3 md:p-5">
           <div className="flex flex-col gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -346,7 +346,36 @@ const PatientList: React.FC = () => {
       </Card>
 
       {/* Data Table Section */}
-      <Card className="luxury-card overflow-hidden">
+      <div className="space-y-3 md:hidden">
+        {pageItems.length > 0 ? (
+          pageItems.map((patient) => (
+            <Card key={patient.id} className="overflow-hidden border-border/50">
+              <CardContent className="space-y-2 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="font-semibold">{patient.name}</p>
+                    <Badge variant="outline" className="mt-1 h-5 border-muted-foreground/30 px-1.5 py-0 text-[10px] uppercase text-muted-foreground">
+                      {patient.id}
+                    </Badge>
+                  </div>
+                  <StatusBadge status={patient.status} />
+                </div>
+                <p className="text-xs text-muted-foreground">{patient.phone}</p>
+                <p className="text-xs text-muted-foreground">Last visit: {patient.lastVisit || "N/A"}</p>
+                <Button size="sm" variant="outline" className="w-full" onClick={() => navigate(`/patients/${patient.id}`)}>
+                  View
+                </Button>
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <Card>
+            <CardContent className="p-4 text-center text-sm text-muted-foreground">No patients found</CardContent>
+          </Card>
+        )}
+      </div>
+
+      <Card className="hidden overflow-hidden md:block luxury-card">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
@@ -513,6 +542,14 @@ const PatientList: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      <Button
+        onClick={() => navigate("/patients/new")}
+        size="icon"
+        className="fixed bottom-20 right-4 z-40 h-12 w-12 rounded-full shadow-lg md:hidden"
+      >
+        <UserPlus className="h-5 w-5" />
+      </Button>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!patientToDelete} onOpenChange={(open) => !open && setPatientToDelete(null)}>

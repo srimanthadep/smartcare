@@ -113,7 +113,7 @@ const InvoiceEditModal: React.FC<InvoiceEditModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-screen h-screen max-w-none overflow-y-auto rounded-none md:max-h-[90vh] md:max-w-2xl md:rounded-xl">
         <DialogHeader>
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -219,7 +219,7 @@ const InvoiceEditModal: React.FC<InvoiceEditModalProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center justify-between border-t border-border/50 pt-4">
+          <div className="sticky bottom-0 flex items-center justify-between border-t border-border/50 bg-background pt-4">
             <div>
               <p className="text-xs text-muted-foreground uppercase font-bold">Total Amount</p>
               <p className="text-2xl font-heading font-bold text-primary">₹{total.toLocaleString()}</p>

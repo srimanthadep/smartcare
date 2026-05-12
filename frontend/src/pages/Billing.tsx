@@ -102,6 +102,17 @@ const Billing: React.FC = () => {
     if (!patientId) return sortedAll.slice(0, 15);
     return sortedAll.filter(i => i.patientId === patientId);
   }, [patientId, allInvoices]);
+  const invoiceSummary = useMemo(
+    () => ({
+      total: patientInvoices.reduce((sum, item) => sum + Number(item.total || 0), 0),
+      pending: patientInvoices
+        .filter((item) => item.status === "Pending" || item.status === "Partially Paid")
+        .reduce((sum, item) => sum + Number((item.total || 0) - (item.paidAmount || 0)), 0),
+      paid: patientInvoices.reduce((sum, item) => sum + Number(item.paidAmount || 0), 0),
+      overdue: patientInvoices.filter((item) => item.status === "Overdue").length,
+    }),
+    [patientInvoices],
+  );
 
   const createInvoice = useMutation({
     mutationFn: (payload: any) => api.createInvoice(payload),
@@ -252,8 +263,34 @@ const Billing: React.FC = () => {
         </div>
       </div>
 
+      <div className="grid grid-cols-2 gap-3 md:hidden">
+        <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Total</p><p className="text-lg font-semibold">₹{invoiceSummary.total.toLocaleString()}</p></CardContent></Card>
+        <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Pending</p><p className="text-lg font-semibold">₹{invoiceSummary.pending.toLocaleString()}</p></CardContent></Card>
+        <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Paid</p><p className="text-lg font-semibold">₹{invoiceSummary.paid.toLocaleString()}</p></CardContent></Card>
+        <Card><CardContent className="p-3"><p className="text-xs text-muted-foreground">Overdue</p><p className="text-lg font-semibold">{invoiceSummary.overdue}</p></CardContent></Card>
+      </div>
+
+      <div className="space-y-3 md:hidden">
+        {patientInvoices.map((invoice) => (
+          <Card key={invoice.id} className="border-border/50">
+            <CardContent className="space-y-2 p-3">
+              <p className="font-medium">{invoice.patientName || "Patient"}</p>
+              <p className="text-xs text-muted-foreground">{invoice.id}</p>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold">₹{invoice.total.toLocaleString()}</p>
+                <StatusBadge status={invoice.status} />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button size="sm" variant="outline" onClick={() => window.location.assign(`/billing?patientId=${invoice.patientId}&editId=${invoice.id}`)}>View</Button>
+                <Button size="sm" variant="outline" onClick={() => window.location.assign(`/billing?patientId=${invoice.patientId}&editId=${invoice.id}`)}>Edit</Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
       {/* Main Split View */}
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <div className="hidden grid-cols-1 gap-4 xl:grid xl:grid-cols-2">
         {/* Editor (Left) */}
         <Card className="border-border/50">
           <CardContent className="space-y-5 p-5">
@@ -520,7 +557,7 @@ const Billing: React.FC = () => {
       </div>
 
       {/* History (Bottom) */}
-      <div className="pt-6">
+      <div className="hidden pt-6 md:block">
         <h2 className="text-xl font-heading font-bold mb-4">
           {patient ? `Billing History for ${patient.name}` : "Recent Invoices"}
         </h2>

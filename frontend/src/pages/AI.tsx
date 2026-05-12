@@ -100,8 +100,8 @@ const AI: React.FC = () => {
   ];
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col h-[calc(100vh-10rem)] space-y-4">
-      <div className="flex items-center justify-between">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex h-[calc(100vh-9rem)] flex-col space-y-3 md:h-[calc(100vh-10rem)] md:space-y-4">
+      <div className="hidden items-center justify-between md:flex">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 shadow-inner">
             <BrainCircuit className="h-6 w-6 text-primary" />
@@ -161,7 +161,7 @@ const AI: React.FC = () => {
 
         {/* Chat Interface */}
         <Card className="lg:col-span-3 border-border/40 flex flex-col shadow-2xl shadow-primary/5 bg-background/50 backdrop-blur-sm overflow-hidden">
-          <ScrollArea className="flex-1 p-4 lg:p-6" ref={scrollRef}>
+          <ScrollArea className="flex-1 p-3 pb-24 md:p-4 lg:p-6" ref={scrollRef}>
             <div className="space-y-6">
               <AnimatePresence initial={false}>
                 {messages.map((m, i) => (
@@ -212,7 +212,7 @@ const AI: React.FC = () => {
             </div>
           </ScrollArea>
 
-          <div className="p-4 border-t border-border/40 bg-muted/20 backdrop-blur-md">
+          <div className="fixed bottom-16 left-0 right-0 border-t border-border/40 bg-background p-3 backdrop-blur-md md:static md:bg-muted/20 md:p-4">
             <div className="relative flex items-center gap-2">
               <Input
                 placeholder="Ask Siara AI anything about your clinic..."

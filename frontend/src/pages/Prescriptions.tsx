@@ -3,7 +3,7 @@ import { Medication } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FileText, MessageCircle, Plus, Printer, Share2, Trash2, Sparkles, Calendar as CalendarIcon } from "lucide-react";
+import { FileText, MessageCircle, Plus, Printer, Search, Share2, Trash2, Sparkles, Calendar as CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -99,6 +99,7 @@ const Prescriptions: React.FC = () => {
   const savedPrescriptions = prescriptionsQuery.data || [];
 
   const [doctorName, setDoctorName] = useState("");
+  const [listQuery, setListQuery] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [templateId, setTemplateId] = useState("none");
   const [notes, setNotes] = useState("");
@@ -107,6 +108,15 @@ const Prescriptions: React.FC = () => {
   const [nextVisitDate, setNextVisitDate] = useState("");
   const [treatmentPlan, setTreatmentPlan] = useState<any[]>([]);
   const [medicines, setMedicines] = useState<Medication[]>([{ name: "", dosage: "", frequency: "", duration: "" }]);
+  const filteredPrescriptions = useMemo(
+    () =>
+      savedPrescriptions.filter(
+        (item) =>
+          item.patientName.toLowerCase().includes(listQuery.toLowerCase()) ||
+          item.id.toLowerCase().includes(listQuery.toLowerCase()),
+      ),
+    [savedPrescriptions, listQuery],
+  );
 
 
   useEffect(() => {
@@ -250,7 +260,50 @@ const Prescriptions: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <div className="sticky top-16 z-20 md:hidden">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={listQuery}
+            onChange={(e) => setListQuery(e.target.value)}
+            placeholder="Search prescriptions..."
+            className="pl-9"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-3 md:hidden">
+        {filteredPrescriptions.map((item) => (
+          <Card key={item.id} className="border-border/50">
+            <CardContent className="space-y-2 p-3">
+              <p className="font-medium">{item.patientName}</p>
+              <p className="text-xs text-muted-foreground">{item.date}</p>
+              <p className="text-xs text-muted-foreground">{item.medicines.length} medicines</p>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" className="flex-1" onClick={() => navigate(`/prescriptions?editId=${item.id}`)}>
+                  View
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() =>
+                    toast.promise(api.sendPrescriptionWhatsapp(item.id), {
+                      loading: "Sending prescription via WhatsApp...",
+                      success: "Prescription sent successfully!",
+                      error: "Failed to send WhatsApp message",
+                    })
+                  }
+                >
+                  WhatsApp
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="hidden grid-cols-1 gap-4 xl:grid xl:grid-cols-2">
         <Card className={cn("border-border/50 transition-colors duration-300", generateAI.isSuccess && "border-amber-500/50")}>
           {generateAI.isSuccess && (
             <div className="bg-amber-500/10 text-amber-600 px-5 py-3 text-sm font-medium border-b border-amber-500/20 flex items-center justify-center">
@@ -714,6 +767,14 @@ const Prescriptions: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      <Button
+        size="icon"
+        className="fixed bottom-20 right-4 z-40 h-12 w-12 rounded-full shadow-lg md:hidden"
+        onClick={() => navigate("/prescriptions")}
+      >
+        <Plus className="h-5 w-5" />
+      </Button>
     </motion.div>
   );
 };
