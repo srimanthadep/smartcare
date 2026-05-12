@@ -259,7 +259,7 @@ const Billing: React.FC = () => {
             onClick={handleSave}
             disabled={createInvoice.isPending || updateInvoice.isPending}
           >
-            <Plus className="mr-1 h-4 w-4" /> {(createInvoice.isPending || updateInvoice.isPending) ? "Saving..." : (editId ? "Update" : "Save")}
+            <Plus className="mr-1 h-4 w-4" /> {(createInvoice.isPending || updateInvoice.isPending) ? "Saving..." : (editId ? "Update Bill" : "Create Bill")}
           </Button>
         </div>
       </div>
@@ -291,7 +291,7 @@ const Billing: React.FC = () => {
       </div>
 
       {/* Main Split View */}
-      <div className="hidden grid-cols-1 gap-4 xl:grid xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         {/* Editor (Left) */}
         <Card className="border-border/50">
           <CardContent className="space-y-5 p-5">

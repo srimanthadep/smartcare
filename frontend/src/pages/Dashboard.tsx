@@ -172,6 +172,9 @@ const Dashboard: React.FC = () => {
         <Button size="sm" variant="outline" onClick={() => navigate("/prescriptions")}>
           <FileText className="mr-1 h-4 w-4" /> Create Prescription
         </Button>
+        <Button size="sm" variant="outline" onClick={() => navigate("/billing")}>
+          <Receipt className="mr-1 h-4 w-4" /> Create Bill
+        </Button>
         <Button
           size="sm"
           onClick={handleBackup}
