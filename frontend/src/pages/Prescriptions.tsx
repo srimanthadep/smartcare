@@ -30,6 +30,7 @@ const Prescriptions: React.FC = () => {
   const urlPatientId = searchParams.get("patientId");
   const editId = searchParams.get("editId");
   const printRef = useRef<HTMLDivElement | null>(null);
+  const editorSectionRef = useRef<HTMLDivElement | null>(null);
   const nextVisitInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
@@ -273,37 +274,45 @@ const Prescriptions: React.FC = () => {
       </div>
 
       <div className="space-y-3 md:hidden">
-        {filteredPrescriptions.map((item) => (
-          <Card key={item.id} className="border-border/50">
-            <CardContent className="space-y-2 p-3">
-              <p className="font-medium">{item.patientName}</p>
-              <p className="text-xs text-muted-foreground">{item.date}</p>
-              <p className="text-xs text-muted-foreground">{item.medicines.length} medicines</p>
-              <div className="flex items-center gap-2">
-                <Button size="sm" variant="outline" className="flex-1" onClick={() => navigate(`/prescriptions?editId=${item.id}`)}>
-                  View
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() =>
-                    toast.promise(api.sendPrescriptionWhatsapp(item.id), {
-                      loading: "Sending prescription via WhatsApp...",
-                      success: "Prescription sent successfully!",
-                      error: "Failed to send WhatsApp message",
-                    })
-                  }
-                >
-                  WhatsApp
-                </Button>
-              </div>
+        {filteredPrescriptions.length === 0 ? (
+          <Card className="border-border/50">
+            <CardContent className="p-4 text-sm text-muted-foreground">
+              No prescriptions found. Use the form below to create a new prescription.
             </CardContent>
           </Card>
-        ))}
+        ) : (
+          filteredPrescriptions.map((item) => (
+            <Card key={item.id} className="border-border/50">
+              <CardContent className="space-y-2 p-3">
+                <p className="font-medium">{item.patientName}</p>
+                <p className="text-xs text-muted-foreground">{item.date}</p>
+                <p className="text-xs text-muted-foreground">{item.medicines.length} medicines</p>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" className="flex-1" onClick={() => navigate(`/prescriptions?editId=${item.id}`)}>
+                    View
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() =>
+                      toast.promise(api.sendPrescriptionWhatsapp(item.id), {
+                        loading: "Sending prescription via WhatsApp...",
+                        success: "Prescription sent successfully!",
+                        error: "Failed to send WhatsApp message",
+                      })
+                    }
+                  >
+                    WhatsApp
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
 
-      <div className="hidden grid-cols-1 gap-4 xl:grid xl:grid-cols-2">
+      <div ref={editorSectionRef} className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <Card className={cn("border-border/50 transition-colors duration-300", generateAI.isSuccess && "border-amber-500/50")}>
           {generateAI.isSuccess && (
             <div className="bg-amber-500/10 text-amber-600 px-5 py-3 text-sm font-medium border-b border-amber-500/20 flex items-center justify-center">
@@ -771,7 +780,7 @@ const Prescriptions: React.FC = () => {
       <Button
         size="icon"
         className="fixed bottom-20 right-4 z-40 h-12 w-12 rounded-full shadow-lg md:hidden"
-        onClick={() => navigate("/prescriptions")}
+        onClick={() => editorSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
       >
         <Plus className="h-5 w-5" />
       </Button>
