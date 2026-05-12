@@ -21,6 +21,8 @@ export const runMigrations = async () => {
     );
 
     ALTER TABLE patients ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;
+    ALTER TABLE patients ADD COLUMN IF NOT EXISTS chief_complaint TEXT;
+    ALTER TABLE patients ADD COLUMN IF NOT EXISTS dental_history JSONB;
     ALTER TABLE appointments ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;
     ALTER TABLE invoices ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;
     ALTER TABLE prescriptions ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;
