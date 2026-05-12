@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Receipt, Plus, Printer, Trash2, Calendar, FileDown, Check, ChevronsUpDown, Undo2, CheckCircle, MoreHorizontal, Eye, MessageCircle, Mail, Edit3, ChevronDown, CreditCard } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -31,6 +31,7 @@ import { ProcedureSettingsModal } from "@/components/ProcedureSettingsModal";
 
 const Billing: React.FC = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const urlPatientId = searchParams.get("patientId");
   const [isPartialPaymentOpen, setIsPartialPaymentOpen] = useState(false);
   const [selectedInvoiceForPayment, setSelectedInvoiceForPayment] = useState<any>(null);
@@ -281,8 +282,8 @@ const Billing: React.FC = () => {
                 <StatusBadge status={invoice.status} />
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <Button size="sm" variant="outline" onClick={() => window.location.assign(`/billing?patientId=${invoice.patientId}&editId=${invoice.id}`)}>View</Button>
-                <Button size="sm" variant="outline" onClick={() => window.location.assign(`/billing?patientId=${invoice.patientId}&editId=${invoice.id}`)}>Edit</Button>
+                <Button size="sm" variant="outline" onClick={() => navigate(`/billing?patientId=${invoice.patientId}`)}>View</Button>
+                <Button size="sm" variant="outline" onClick={() => navigate(`/billing?patientId=${invoice.patientId}&editId=${invoice.id}`)}>Edit</Button>
               </div>
             </CardContent>
           </Card>
