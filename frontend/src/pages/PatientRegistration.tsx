@@ -25,6 +25,7 @@ const PatientRegistration: React.FC = () => {
   const queryClient = useQueryClient();
   const addressInputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<any>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     document.title = "Register Patient | Siara Dental";
@@ -193,7 +194,7 @@ const PatientRegistration: React.FC = () => {
         ))}
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <form ref={formRef} onSubmit={handleSubmit}>
         {step === 1 && (
           <Card className="border-border/50">
             <CardHeader><CardTitle className="font-heading text-lg">Demographics & Contact</CardTitle></CardHeader>
@@ -393,7 +394,7 @@ const PatientRegistration: React.FC = () => {
       {step === 3 && (
         <div className="fixed bottom-16 left-0 right-0 z-40 flex gap-2 border-t border-border bg-background p-3 md:hidden">
           <Button type="button" variant="outline" className="flex-1" onClick={() => setStep(2)}>Previous</Button>
-          <Button type="button" className="flex-1" onClick={() => createPatient.mutate()} disabled={createPatient.isPending}>
+          <Button type="button" className="flex-1" onClick={() => formRef.current?.requestSubmit()} disabled={createPatient.isPending}>
             <Save className="mr-1 h-4 w-4" /> {createPatient.isPending ? "Saving..." : "Register"}
           </Button>
         </div>
