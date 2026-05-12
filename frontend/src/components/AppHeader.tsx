@@ -21,7 +21,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export const AppHeader: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
@@ -99,7 +99,8 @@ export const AppHeader: React.FC = () => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-2.5 rounded-xl border border-border/40 bg-card py-1.5 pl-2 pr-3 shadow-sm transition-all hover:border-primary/30 hover:shadow-md">
-                <Avatar className="h-9 w-9 border border-primary/20">
+                <Avatar className="h-9 w-9 border border-primary/20 ring-1 ring-primary/10">
+                  <AvatarImage src={user?.avatar} className="object-cover" />
                   <AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary text-sm font-semibold text-primary-foreground">
                     {initials}
                   </AvatarFallback>

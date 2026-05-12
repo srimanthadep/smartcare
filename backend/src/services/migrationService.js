@@ -35,6 +35,10 @@ export const runMigrations = async () => {
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='dental_charts' AND column_name='is_deleted' AND table_schema='${SCHEMA}') THEN
             ALTER TABLE dental_charts ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
         END IF;
+
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='avatar_url' AND table_schema='${SCHEMA}') THEN
+            ALTER TABLE users ADD COLUMN avatar_url TEXT;
+        END IF;
     END $$;
   `;
 

@@ -96,11 +96,34 @@ export const register = async (req, res, next) => {
 
 export const getMe = async (req, res, next) => {
   try {
-    const userRes = await dbService.query('SELECT id, name, username, role, avatar FROM users WHERE id = $1 AND is_deleted = FALSE', [req.user.sub]);
+    const userRes = await dbService.query('SELECT id, name, username, email, role, avatar, avatar_url FROM users WHERE id = $1 AND is_deleted = FALSE', [req.user.sub]);
     const user = userRes.rows[0];
     if (!user) return res.status(404).json({ message: 'User not found' });
     
+    // Normalize avatar field
+    user.avatar = user.avatar || user.avatar_url || "";
+    
     res.json({ user });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateProfile = async (req, res, next) => {
+  try {
+    const { name, email, avatar } = req.body;
+    const userId = req.user.sub;
+
+    await dbService.query(
+      'UPDATE users SET name = COALESCE($1, name), email = COALESCE($2, email), avatar = COALESCE($3, avatar), avatar_url = COALESCE($3, avatar_url) WHERE id = $4',
+      [name, email, avatar, userId]
+    );
+
+    const userRes = await dbService.query('SELECT id, name, username, email, role, avatar, avatar_url FROM users WHERE id = $1', [userId]);
+    const user = userRes.rows[0];
+    user.avatar = user.avatar || user.avatar_url || "";
+
+    res.json({ message: 'Profile updated successfully', user });
   } catch (error) {
     next(error);
   }
