@@ -1,7 +1,7 @@
 import { config } from '../config/env.js';
 
 export const errorHandler = (err, req, res, next) => {
-  console.error(`[ERROR] ${err.message}`);
+  console.error('[ERROR]', err);
   
   const statusCode = err.statusCode || 500;
   const message = statusCode === 500 && config.NODE_ENV === 'production' 
