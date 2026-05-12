@@ -135,11 +135,11 @@ const Analytics: React.FC = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28 }}
     >
-      <section className="luxury-panel p-6 sm:p-8">
+      <section className="luxury-panel p-3 md:p-6 sm:p-8">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="luxury-subtitle mb-2">Performance intelligence</p>
-            <h1 className="luxury-title text-4xl font-semibold sm:text-5xl">
+            <h1 className="luxury-title text-lg font-semibold md:text-4xl sm:text-5xl">
               Revenue, visits and operational trend lines
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground">
@@ -147,7 +147,7 @@ const Analytics: React.FC = () => {
             </p>
           </div>
 
-          <div className="w-full max-w-[180px]">
+          <div className="w-full max-w-[180px] hidden md:block">
             <Select value={period} onValueChange={setPeriod}>
               <SelectTrigger className="rounded-2xl">
                 <SelectValue />
@@ -160,6 +160,17 @@ const Analytics: React.FC = () => {
               </SelectContent>
             </Select>
           </div>
+        </div>
+        <div className="mt-3 flex gap-2 overflow-x-auto md:hidden">
+          {["daily", "weekly", "monthly", "yearly"].map((value) => (
+            <button
+              key={value}
+              onClick={() => setPeriod(value)}
+              className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs ${period === value ? "border-primary text-primary" : "border-border/50"}`}
+            >
+              {value}
+            </button>
+          ))}
         </div>
       </section>
 
@@ -205,7 +216,7 @@ const Analytics: React.FC = () => {
                 No revenue data available.
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={280}>
+               <ResponsiveContainer width="100%" height={208}>
                 <LineChart data={revenueSeries}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="date" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
@@ -245,7 +256,7 @@ const Analytics: React.FC = () => {
                 No visit data available.
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={280}>
+               <ResponsiveContainer width="100%" height={208}>
                 <BarChart data={visitSeries}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="date" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
@@ -277,7 +288,7 @@ const Analytics: React.FC = () => {
                 No department data available.
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={280}>
+               <ResponsiveContainer width="100%" height={208}>
                 <PieChart>
                   <Pie
                     data={departmentSeries}

@@ -176,13 +176,13 @@ const PatientRegistration: React.FC = () => {
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mx-auto max-w-2xl space-y-6">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mx-auto max-w-2xl space-y-3 pb-20 md:space-y-6 md:pb-0">
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => navigate("/patients")}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-heading font-bold">Register Patient</h1>
+            <h1 className="text-lg font-heading font-bold md:text-2xl">Register Patient</h1>
           <p className="text-sm text-muted-foreground">Step {step} of 3</p>
         </div>
       </div>
@@ -378,7 +378,7 @@ const PatientRegistration: React.FC = () => {
                   />
                   <Label htmlFor="book-appointment" className="cursor-pointer">Book appointment after registration</Label>
                 </div>
-                <div className="flex gap-2">
+                <div className="hidden gap-2 md:flex">
                   <Button type="button" variant="outline" onClick={() => setStep(2)}>Previous</Button>
                   <Button type="submit" disabled={createPatient.isPending}>
                     <Save className="mr-1 h-4 w-4" /> {createPatient.isPending ? "Saving..." : "Register Patient"}
@@ -390,6 +390,14 @@ const PatientRegistration: React.FC = () => {
         )}
 
       </form>
+      {step === 3 && (
+        <div className="fixed bottom-16 left-0 right-0 z-40 flex gap-2 border-t border-border bg-background p-3 md:hidden">
+          <Button type="button" variant="outline" className="flex-1" onClick={() => setStep(2)}>Previous</Button>
+          <Button type="button" className="flex-1" onClick={() => createPatient.mutate()} disabled={createPatient.isPending}>
+            <Save className="mr-1 h-4 w-4" /> {createPatient.isPending ? "Saving..." : "Register"}
+          </Button>
+        </div>
+      )}
     </motion.div>
   );
 };

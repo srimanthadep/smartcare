@@ -96,6 +96,15 @@ const Appointments: React.FC = () => {
     () => filteredAppointments.filter((item) => item.date >= todayIso).sort((left, right) => `${left.date}${left.time}`.localeCompare(`${right.date}${right.time}`)),
     [filteredAppointments, todayIso],
   );
+  const dateStrip = useMemo(
+    () =>
+      Array.from({ length: 10 }).map((_, index) => {
+        const next = new Date();
+        next.setDate(next.getDate() + index);
+        return next;
+      }),
+    [],
+  );
 
 
 
@@ -158,7 +167,7 @@ const Appointments: React.FC = () => {
         }
       }}>
         <DialogTrigger asChild>
-          <Button onClick={() => setIsBookOpen(true)}><CalendarPlus className="mr-1 h-4 w-4" /> Book</Button>
+          <Button onClick={() => setIsBookOpen(true)} className="hidden md:inline-flex"><CalendarPlus className="mr-1 h-4 w-4" /> Book</Button>
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
@@ -278,7 +287,48 @@ const Appointments: React.FC = () => {
         </div>
       </div>
 
-      <div className="mt-4 space-y-4">
+      <div className="md:hidden">
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          {dateStrip.map((day) => {
+            const iso = format(day, "yyyy-MM-dd");
+            const active = iso === selectedIso;
+            return (
+              <button
+                key={iso}
+                onClick={() => setSelectedDay(day)}
+                className={`min-w-[70px] rounded-lg border px-2 py-2 text-center ${
+                  active ? "border-primary bg-primary/10 text-primary" : "border-border/50"
+                }`}
+              >
+                <p className="text-[10px] uppercase">{format(day, "EEE")}</p>
+                <p className="text-sm font-semibold">{format(day, "d")}</p>
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-3 space-y-3">
+          {dayAppointments.length === 0 ? (
+            <Card className="border-border/50">
+              <CardContent className="p-4 text-sm text-muted-foreground">No appointments on this day</CardContent>
+            </Card>
+          ) : (
+            dayAppointments.map((appointment) => (
+              <Card key={appointment.id} className="border-border/50">
+                <CardContent className="space-y-2 p-3">
+                  <p className="font-medium">{appointment.patientName}</p>
+                  <p className="text-xs text-muted-foreground">{appointment.time} · {appointment.doctorName}</p>
+                  <div className="flex items-center gap-2">
+                    <StatusBadge status={appointment.type} />
+                    <StatusBadge status={appointment.status} />
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+      </div>
+
+      <div className="mt-4 hidden space-y-4 md:block">
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
           <Card className="border-border/50">
             <CardHeader className="pb-2">
@@ -317,6 +367,11 @@ const Appointments: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      <Button size="icon" className="fixed bottom-20 right-4 z-40 h-12 w-12 rounded-full shadow-lg md:hidden" onClick={() => setIsBookOpen(true)}>
+        <CalendarPlus className="h-5 w-5" />
+      </Button>
+
     </motion.div>
   );
 };

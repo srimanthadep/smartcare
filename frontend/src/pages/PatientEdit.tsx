@@ -142,7 +142,7 @@ const PatientEdit: React.FC = () => {
             <p className="text-sm text-muted-foreground uppercase tracking-wider">{id}</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="hidden gap-2 md:flex">
           <Button variant="outline" onClick={() => navigate(-1)}>Cancel</Button>
           <Button onClick={handleSubmit} disabled={updatePatient.isPending}>
             <Save className="mr-2 h-4 w-4" /> {updatePatient.isPending ? "Saving..." : "Save Changes"}
@@ -151,7 +151,7 @@ const PatientEdit: React.FC = () => {
       </div>
 
       <Tabs defaultValue="general" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 h-12 bg-muted/50 p-1">
+        <TabsList className="grid h-12 w-full grid-cols-3 overflow-x-auto bg-muted/50 p-1">
           <TabsTrigger value="general" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">
             <User className="h-4 w-4 mr-2" /> General
           </TabsTrigger>
@@ -324,6 +324,12 @@ const PatientEdit: React.FC = () => {
           </TabsContent>
         </form>
       </Tabs>
+      <div className="fixed bottom-16 left-0 right-0 z-40 flex gap-2 border-t border-border bg-background p-3 md:hidden">
+        <Button variant="outline" className="flex-1" onClick={() => navigate(-1)}>Cancel</Button>
+        <Button className="flex-1" onClick={handleSubmit} disabled={updatePatient.isPending}>
+          <Save className="mr-2 h-4 w-4" /> {updatePatient.isPending ? "Saving..." : "Save"}
+        </Button>
+      </div>
     </motion.div>
   );
 };

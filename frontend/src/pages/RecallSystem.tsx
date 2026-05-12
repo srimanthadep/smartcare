@@ -248,7 +248,26 @@ const RecallSystem: React.FC = () => {
         </CardHeader>
 
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          <div className="space-y-3 p-3 md:hidden">
+            {filtered.map((item) => (
+              <Card key={item.id} className="border-border/50">
+                <CardContent className="space-y-2 p-3">
+                  <div className="flex items-center justify-between">
+                    <p className="font-medium">{item.patientName}</p>
+                    <Badge variant="outline" className="text-xs">{item.type}</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Recall: {item.recallDate}</p>
+                  <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${statusTone[item.status]}`}>{item.status}</span>
+                  <div className="flex flex-wrap items-center gap-1">
+                    <Button size="sm" variant="outline" onClick={() => sendReminder(item.patientName, "SMS")}>SMS</Button>
+                    <Button size="sm" variant="outline" onClick={() => sendReminder(item.patientName, "WhatsApp")}>WhatsApp</Button>
+                    {(item.status === "Due" || item.status === "Overdue") ? <Button size="sm" onClick={() => markScheduled(item.id)}>Book</Button> : null}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <div className="hidden overflow-x-auto md:block">
             <Table>
               <TableHeader className="bg-secondary/15">
                 <TableRow>

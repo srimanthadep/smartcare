@@ -71,7 +71,19 @@ const ActivityLogs = () => {
               <p>No activity logs found</p>
             </div>
           ) : (
-            <div className="rounded-md border border-border/50 overflow-hidden">
+            <div className="space-y-2 md:hidden">
+              {filteredLogs.map((log) => (
+                <Card key={log.id} className="border-border/50">
+                  <CardContent className="space-y-1 p-3">
+                    <p className="text-xs text-muted-foreground">{format(new Date(log.timestamp), "MMM d, HH:mm:ss")}</p>
+                    <p className="text-sm font-medium">{log.userName}</p>
+                    <p className="text-xs">{log.action}</p>
+                    <p className="text-xs text-muted-foreground">{log.details}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            <div className="hidden overflow-hidden rounded-md border border-border/50 md:block">
               <Table>
                 <TableHeader className="bg-muted/50">
                   <TableRow>
