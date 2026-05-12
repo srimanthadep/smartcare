@@ -156,9 +156,9 @@ const Dashboard: React.FC = () => {
   const revenueChangeType = calcRevenueChangeType(data.revenueTrend);
 
   return (
-    <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
+    <motion.div variants={container} initial="hidden" animate="show" className="space-y-3 md:space-y-6">
       <motion.div variants={item}>
-        <h1 className="text-2xl font-heading font-bold">Good {getGreeting()}, {user?.name?.replace("Dr. ", "")}</h1>
+        <h1 className="text-lg font-heading font-bold md:text-2xl">Good {getGreeting()}, {user?.name?.replace("Dr. ", "")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">Here&apos;s what&apos;s happening at your clinic today.</p>
       </motion.div>
 
@@ -192,7 +192,7 @@ const Dashboard: React.FC = () => {
           </Tabs>
         </div>
       </motion.div>
-      <motion.div variants={item} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <motion.div variants={item} className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-5">
         <StatsCard title="Total Patients" value={data.stats.totalPatients} change="Lifetime" changeType="neutral" icon={Users} />
         <StatsCard title="Total Revenue" value={`₹${data.stats.totalRevenue.toLocaleString()}`} change="Gross Billing" changeType="neutral" icon={Banknote} />
         <StatsCard title="Total Paid" value={`₹${data.stats.totalPaid.toLocaleString()}`} change="Collected Cash" changeType="positive" icon={TrendingUp} />
@@ -200,21 +200,23 @@ const Dashboard: React.FC = () => {
         <StatsCard title="Total Expenses" value={`₹${data.stats.totalExpenses.toLocaleString()}`} change="Outflow" changeType="negative" icon={Receipt} />
       </motion.div>
 
-      <motion.div variants={item} className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <motion.div variants={item} className="grid grid-cols-1 gap-3 md:gap-4 lg:grid-cols-3">
         <Card className="border-border/50 lg:col-span-2">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-heading">Revenue Trend</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={data.revenueTrend}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis dataKey="month" className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                <YAxis className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} tickFormatter={(value) => `₹${Math.round(value / 1000)}k`} />
-                <Tooltip formatter={(value: number) => [`₹${value.toLocaleString()}`, "Revenue"]} contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))" }} />
-                <Line type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={{ r: 4, fill: "hsl(var(--primary))" }} />
-              </LineChart>
-            </ResponsiveContainer>
+            <div className="h-48 md:h-[260px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={data.revenueTrend}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="month" className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                  <YAxis className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} tickFormatter={(value) => `₹${Math.round(value / 1000)}k`} />
+                  <Tooltip formatter={(value: number) => [`₹${value.toLocaleString()}`, "Revenue"]} contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))" }} />
+                  <Line type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={{ r: 4, fill: "hsl(var(--primary))" }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
 
@@ -223,36 +225,40 @@ const Dashboard: React.FC = () => {
             <CardTitle className="text-base font-heading">Specializations</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={260}>
-              <PieChart>
-                <Pie data={data.departmentBreakdown} cx="50%" cy="50%" innerRadius={50} outerRadius={85} paddingAngle={3} dataKey="value">
-                  {data.departmentBreakdown.map((entry) => (
-                    <Cell key={entry.name} fill={entry.fill} />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))" }} />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: "12px" }} />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="h-48 md:h-[260px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={data.departmentBreakdown} cx="50%" cy="50%" innerRadius={50} outerRadius={85} paddingAngle={3} dataKey="value">
+                    {data.departmentBreakdown.map((entry) => (
+                      <Cell key={entry.name} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))" }} />
+                  <Legend iconType="circle" wrapperStyle={{ fontSize: "12px" }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
       </motion.div>
 
-      <motion.div variants={item} className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <motion.div variants={item} className="grid grid-cols-1 gap-3 md:gap-4 lg:grid-cols-2">
         <Card className="border-border/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-heading">Weekly Patient Visits</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={data.patientVisits}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis dataKey="day" className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                <YAxis className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                <Tooltip contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))" }} />
-                <Bar dataKey="visits" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="h-48 md:h-[220px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data.patientVisits}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="day" className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                  <YAxis className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                  <Tooltip contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))" }} />
+                  <Bar dataKey="visits" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
 
@@ -260,22 +266,24 @@ const Dashboard: React.FC = () => {
           <CardHeader className="pb-2">
             <CardTitle className="text-base font-heading">Today's Appointments</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-3 md:space-y-3">
             {data.appointmentsToday.length === 0 ? (
               <div className="rounded-lg bg-secondary/30 p-4 text-sm text-muted-foreground">No appointments scheduled for today.</div>
             ) : (
-              data.appointmentsToday.map((appointment) => (
-                <div key={appointment.id} className="flex items-center justify-between rounded-lg bg-secondary/40 p-3">
-                  <div>
-                    <p className="text-sm font-medium">{appointment.patientName}</p>
-                    <p className="text-xs text-muted-foreground">{appointment.time} · {appointment.reason || "Consultation"}</p>
+              <div className="flex gap-3 overflow-x-auto md:block md:space-y-3">
+                {data.appointmentsToday.map((appointment) => (
+                  <div key={appointment.id} className="min-w-[240px] rounded-lg bg-secondary/40 p-3 md:min-w-0 md:flex md:items-center md:justify-between">
+                    <div>
+                      <p className="text-sm font-medium">{appointment.patientName}</p>
+                      <p className="text-xs text-muted-foreground">{appointment.time} · {appointment.reason || "Consultation"}</p>
+                    </div>
+                    <div className="mt-2 flex items-center gap-2 md:mt-0">
+                      <StatusBadge status={appointment.type} />
+                      <StatusBadge status={appointment.status} />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <StatusBadge status={appointment.type} />
-                    <StatusBadge status={appointment.status} />
-                  </div>
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </CardContent>
         </Card>

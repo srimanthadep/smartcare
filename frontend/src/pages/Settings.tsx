@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Loader2, Mail, MessageCircle, Plug, ShieldCheck, User, Camera, Upload, Type, Stethoscope, Plus, Trash2, Pencil } from 'lucide-react';
+import { Loader2, Mail, MessageCircle, Plug, ShieldCheck, User, Camera, Type, Stethoscope, Plus, Trash2, Pencil } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -256,13 +256,13 @@ const Settings: React.FC = () => {
       </div>
 
       <Tabs defaultValue="profile">
-        <TabsList>
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="integrations">Integrations</TabsTrigger>
-          <TabsTrigger value="abha">ABHA</TabsTrigger>
-          <TabsTrigger value="external">External systems</TabsTrigger>
-          <TabsTrigger value="typing">Typing</TabsTrigger>
-          <TabsTrigger value="doctors">Doctors</TabsTrigger>
+        <TabsList className="w-full justify-start gap-1 overflow-x-auto whitespace-nowrap md:w-auto">
+          <TabsTrigger value="profile" className="shrink-0">Profile</TabsTrigger>
+          <TabsTrigger value="integrations" className="shrink-0">Integrations</TabsTrigger>
+          <TabsTrigger value="abha" className="shrink-0">ABHA</TabsTrigger>
+          <TabsTrigger value="external" className="shrink-0">External systems</TabsTrigger>
+          <TabsTrigger value="typing" className="shrink-0">Typing</TabsTrigger>
+          <TabsTrigger value="doctors" className="shrink-0">Doctors</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="mt-4">
@@ -565,7 +565,7 @@ const Settings: React.FC = () => {
       </Tabs>
 
       <Dialog open={isDoctorDialogOpen} onOpenChange={setIsDoctorDialogOpen}>
-        <DialogContent className="sm:max-w-md rounded-[30px] border-white/60 bg-white/95 shadow-[0_20px_60px_rgba(26,18,14,0.16)] backdrop-blur-xl overflow-hidden p-0">
+        <DialogContent className="h-screen w-full rounded-none border-white/60 bg-white/95 p-0 shadow-[0_20px_60px_rgba(26,18,14,0.16)] backdrop-blur-xl sm:h-auto sm:max-w-md sm:rounded-[30px]">
           <div className="flex items-center justify-between border-b border-border/60 bg-gradient-to-r from-secondary/50 via-white to-secondary/30 px-6 py-4">
             <DialogHeader className="space-y-1">
               <DialogTitle className="font-heading text-xl font-semibold">{editingDoctor ? 'Edit Doctor' : 'Add New Doctor'}</DialogTitle>
@@ -636,7 +636,7 @@ const Settings: React.FC = () => {
           setIsConnecting(false);
         }
       }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="h-screen w-full rounded-none sm:h-auto sm:max-w-md sm:rounded-xl">
           <DialogHeader>
             <DialogTitle>Scan QR Code</DialogTitle>
             <DialogDescription>

@@ -36,7 +36,7 @@ export const CommandPalette: React.FC<Props> = ({ open, onOpenChange }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="overflow-hidden p-0">
+      <DialogContent className="fixed bottom-0 left-0 right-0 w-full overflow-hidden rounded-t-2xl p-0 md:static md:w-auto md:rounded-xl">
         <Command>
           <CommandInput placeholder="Search patients or jump to..." value={query} onValueChange={setQuery} />
           <CommandList>

@@ -158,8 +158,8 @@ const DentalChart: React.FC<DentalChartProps> = ({ teeth, onTeethChange, readOnl
   return (
     <div className="space-y-4">
       {/* SVG Chart */}
-      <div className="overflow-x-auto rounded-lg border border-border/50 bg-card p-4">
-        <svg viewBox="0 0 830 280" className="w-full max-w-3xl mx-auto" style={{ minWidth: 600 }}>
+      <div className="overflow-x-auto rounded-lg border border-border/50 bg-card p-3 md:p-4" style={{ touchAction: "pan-x pinch-zoom" }}>
+        <svg viewBox="0 0 830 280" className="mx-auto w-full max-w-3xl" style={{ minWidth: 520 }}>
           {/* Labels */}
           <text x="415" y="20" textAnchor="middle" fontSize="12" fill="hsl(var(--muted-foreground))" fontFamily="var(--font-heading)" fontWeight="600">UPPER ARCH</text>
           <text x="415" y="270" textAnchor="middle" fontSize="12" fill="hsl(var(--muted-foreground))" fontFamily="var(--font-heading)" fontWeight="600">LOWER ARCH</text>

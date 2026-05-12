@@ -115,7 +115,7 @@ const Expenses: React.FC = () => {
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-primary hover:bg-primary/90">
+            <Button className="hidden bg-primary hover:bg-primary/90 md:inline-flex">
               <Plus className="mr-2 h-4 w-4" /> Record Expense
             </Button>
           </DialogTrigger>
@@ -183,7 +183,7 @@ const Expenses: React.FC = () => {
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-1 lg:grid-cols-4">
         <Card className="border-primary/20 bg-primary/5">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-bold text-primary uppercase tracking-widest">Total Outflow (Filtered)</CardTitle>
@@ -193,6 +193,12 @@ const Expenses: React.FC = () => {
               <IndianRupee className="h-6 w-6 text-primary/60" />
               {totalAmount.toLocaleString()}
             </div>
+          </CardContent>
+        </Card>
+        <Card className="md:hidden">
+          <CardContent className="p-3">
+            <p className="text-xs text-muted-foreground">Entries</p>
+            <p className="text-2xl font-bold">{filteredExpenses?.length || 0}</p>
           </CardContent>
         </Card>
       </div>
@@ -247,8 +253,26 @@ const Expenses: React.FC = () => {
               </Button>
             </div>
           ) : (
+            <div className="space-y-3 md:hidden">
+              {filteredExpenses?.map((exp: any) => (
+                <Card key={exp.id} className="border-border/50">
+                  <CardContent className="space-y-1 p-3">
+                    <p className="font-medium">{exp.description}</p>
+                    <div className="flex items-center justify-between">
+                      <span className="rounded-full bg-secondary/60 px-2 py-1 text-[10px] font-bold uppercase tracking-tighter text-muted-foreground">
+                        {exp.category}
+                      </span>
+                      <p className="font-bold text-destructive">₹{Number(exp.amount).toLocaleString()}</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{new Date(exp.date).toLocaleDateString("en-IN")}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+          {!isLoading && filteredExpenses?.length !== 0 ? (
             <div className="rounded-xl border border-border/50 overflow-hidden bg-card">
-              <div className="overflow-x-auto">
+              <div className="hidden overflow-x-auto md:block">
                 <table className="w-full text-sm">
                   <thead className="bg-muted/30 border-b border-border/50">
                     <tr>
@@ -311,7 +335,7 @@ const Expenses: React.FC = () => {
                 </table>
               </div>
             </div>
-          )}
+          ) : null}
         </CardContent>
       </Card>
 
@@ -379,6 +403,10 @@ const Expenses: React.FC = () => {
           </form>
         </DialogContent>
       </Dialog>
+
+      <Button size="icon" className="fixed bottom-20 right-4 z-40 h-12 w-12 rounded-full shadow-lg md:hidden" onClick={() => setIsDialogOpen(true)}>
+        <Plus className="h-5 w-5" />
+      </Button>
     </motion.div>
   );
 };

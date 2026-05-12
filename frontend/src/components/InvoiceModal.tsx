@@ -33,7 +33,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] rounded-[30px] border-white/60 bg-white/95 p-0 shadow-[0_20px_60px_rgba(26,18,14,0.16)] backdrop-blur-xl overflow-hidden flex flex-col">
+      <DialogContent className="flex h-screen max-h-screen flex-col overflow-hidden rounded-none border-white/60 bg-white/95 p-0 shadow-[0_20px_60px_rgba(26,18,14,0.16)] backdrop-blur-xl md:max-h-[85vh] md:max-w-2xl md:rounded-[30px]">
         <div className="flex items-center justify-between border-b border-border/60 bg-gradient-to-r from-secondary/50 via-white to-secondary/30 px-6 py-4">
           <DialogHeader className="space-y-1">
             <DialogTitle className="font-heading text-3xl font-semibold">
@@ -49,7 +49,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
           </Button>
         </div>
 
-        <div className="max-h-[80vh] overflow-y-auto px-6 py-6">
+        <div className="max-h-[80vh] flex-1 overflow-y-auto px-3 py-3 md:px-6 md:py-6">
           <div className="rounded-[32px] border border-border/60 bg-gradient-to-br from-white to-secondary/10 p-8 shadow-sm">
             <div className="flex flex-col gap-5 border-b border-border/60 pb-6 md:flex-row md:items-start md:justify-between">
               <div>
@@ -159,7 +159,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border/60 px-6 py-4">
+        <div className="fixed bottom-0 left-0 right-0 flex flex-wrap items-center justify-end gap-2 border-t border-border/60 bg-background px-3 py-3 md:static md:px-6 md:py-4">
           <Button
             variant="outline"
             onClick={() => {
