@@ -252,12 +252,12 @@ const RecallSystem: React.FC = () => {
             <Table>
               <TableHeader className="bg-secondary/15">
                 <TableRow>
-                  <TableHead>Patient</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Last Visit</TableHead>
-                  <TableHead>Recall Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="whitespace-nowrap">Patient</TableHead>
+                  <TableHead className="whitespace-nowrap">Type</TableHead>
+                  <TableHead className="whitespace-nowrap">Last Visit</TableHead>
+                  <TableHead className="whitespace-nowrap">Recall Date</TableHead>
+                  <TableHead className="whitespace-nowrap">Status</TableHead>
+                  <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
                 </TableRow>
               </TableHeader>
 

@@ -75,11 +75,11 @@ const ActivityLogs = () => {
               <Table>
                 <TableHeader className="bg-muted/50">
                   <TableRow>
-                    <TableHead className="w-[180px]">Timestamp</TableHead>
-                    <TableHead>User</TableHead>
-                    <TableHead>Action</TableHead>
-                    <TableHead>Details</TableHead>
-                    <TableHead className="text-right">IP Address</TableHead>
+                    <TableHead className="w-[180px] whitespace-nowrap">Timestamp</TableHead>
+                    <TableHead className="whitespace-nowrap">User</TableHead>
+                    <TableHead className="whitespace-nowrap">Action</TableHead>
+                    <TableHead className="whitespace-nowrap">Details</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">IP Address</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
