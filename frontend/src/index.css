@@ -145,6 +145,35 @@
     background: rgba(255, 122, 26, 0.18);
     color: inherit;
   }
+
+  /* Custom Scrollbar Styles */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--sidebar-primary) / 0.2);
+    border-radius: 20px;
+    border: 1px solid transparent;
+    background-clip: content-box;
+    transition: all 0.3s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--sidebar-primary) / 0.8);
+    background-clip: content-box;
+  }
+
+  /* Support for Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--sidebar-primary) / 0.2) transparent;
+  }
 }
 
 @layer utilities {

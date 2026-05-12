@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -16,6 +16,8 @@ import { toast } from "sonner";
 const PatientRegistration: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const addressInputRef = useRef<HTMLInputElement>(null);
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
   useEffect(() => {
     document.title = "Register Patient | Siara Dental";
@@ -125,6 +127,38 @@ const PatientRegistration: React.FC = () => {
     setForm((current) => ({ ...current, [key]: finalValue }));
   };
 
+  useEffect(() => {
+    if (step === 1 && addressInputRef.current && !autocompleteRef.current) {
+      // Small delay to ensure the DOM is ready and google script is loaded
+      const timer = setTimeout(() => {
+        if (!window.google || !window.google.maps || !window.google.maps.places) {
+          console.warn("Google Maps API not loaded yet");
+          return;
+        }
+
+        autocompleteRef.current = new window.google.maps.places.Autocomplete(addressInputRef.current, {
+          types: ["address"],
+          componentRestrictions: { country: "in" }, // Restrict to India as per clinic context
+        });
+
+        autocompleteRef.current.addListener("place_changed", () => {
+          const place = autocompleteRef.current?.getPlace();
+          if (place && place.formatted_address) {
+            updateField("address", place.formatted_address);
+          }
+        });
+      }, 500);
+
+      return () => {
+        clearTimeout(timer);
+        if (autocompleteRef.current) {
+          window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+          autocompleteRef.current = null;
+        }
+      };
+    }
+  }, [step]);
+
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     createPatient.mutate();
@@ -226,7 +260,12 @@ const PatientRegistration: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <Label>Address</Label>
-                <Textarea value={form.address} onChange={(event) => updateField("address", event.target.value)} placeholder="Full address" rows={2} />
+                <Input 
+                  ref={addressInputRef}
+                  value={form.address} 
+                  onChange={(event) => updateField("address", event.target.value)} 
+                  placeholder="Start typing your address..." 
+                />
               </div>
               <div className="space-y-2">
                 <Label className="text-destructive font-bold">Chief Complaint</Label>
