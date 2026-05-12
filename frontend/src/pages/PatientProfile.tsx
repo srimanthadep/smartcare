@@ -30,6 +30,7 @@ import EditableField from "@/components/EditableField";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { AutocorrectTextarea } from "@/components/AutocorrectTextarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import StatusBadge from "@/components/StatusBadge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -485,7 +486,7 @@ const PatientProfile: React.FC = () => {
                 {editingDentalHistory ? (
                   <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
                     <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-wider">Relevant History/Complaints:</span>
-                    <Textarea 
+                    <AutocorrectTextarea 
                       value={dentalHistoryDraft}
                       onChange={(e) => {
                         const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
@@ -570,7 +571,7 @@ const PatientProfile: React.FC = () => {
                 onClick={() => !editingNotes && setEditingNotes(true)}
               >
                 {editingNotes ? (
-                  <Textarea 
+                  <AutocorrectTextarea 
                     value={notesDraft}
                     onChange={(e) => {
                       const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];

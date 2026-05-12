@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { AutocorrectTextarea } from "@/components/AutocorrectTextarea";
 import { MedicineCombobox } from "@/components/MedicineCombobox";
 import { PatientCombobox } from "@/components/PatientCombobox";
 import PrescriptionTemplateModal from "@/components/PrescriptionTemplateModal";
@@ -299,7 +300,7 @@ const Prescriptions: React.FC = () => {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label className="text-primary font-bold">1. Chief Complaint</Label>
-                <Textarea
+                <AutocorrectTextarea
                   value={chiefComplaint}
                   onChange={(e) => {
                     const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
@@ -343,7 +344,7 @@ const Prescriptions: React.FC = () => {
                     </Button>
                   </div>
                 </div>
-                <Textarea
+                <AutocorrectTextarea
                   value={diagnosis}
                   onChange={(e) => {
                     const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
@@ -563,7 +564,7 @@ const Prescriptions: React.FC = () => {
                 <div className="sm:col-span-8">
                   <div className="space-y-2">
                     <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Clinical Advice</Label>
-                    <Textarea
+                    <AutocorrectTextarea
                       value={notes}
                       onChange={(event) => {
                         const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];

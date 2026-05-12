@@ -70,7 +70,7 @@ export const getPatient = async (req, res, next) => {
 export const createPatient = async (req, res, next) => {
   try {
     const id = await dbService.generateId('P', 'patients');
-    const { name, age, gender, phone, email, bloodGroup, status, address, allergies, conditions, medications, notes, consultationFee, chiefComplaint } = req.body;
+    const { name, age, gender, phone, email, bloodGroup, status, address, allergies, conditions, medications, notes, consultationFee, chiefComplaint, dentalHistory } = req.body;
     
     const registeredOn = req.body.registeredOn || new Date().toISOString().slice(0, 10);
 
@@ -78,15 +78,15 @@ export const createPatient = async (req, res, next) => {
       INSERT INTO patients (
         id, name, age, gender, phone, email, blood_group, status, registered_on, 
         address, allergies, conditions, medications, notes, 
-        consultation_fee, chief_complaint
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+        consultation_fee, chief_complaint, dental_history
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
       RETURNING *
     `;
 
     const params = [
       id, name, age, gender, phone, email, bloodGroup, status || 'Active', registeredOn,
       address, allergies || [], conditions || [], JSON.stringify(medications || []), notes,
-      consultationFee || 300, chiefComplaint
+      consultationFee || 300, chiefComplaint, JSON.stringify(dentalHistory || {})
     ];
 
     const result = await dbService.query(query, params);
@@ -106,11 +106,11 @@ export const createPatient = async (req, res, next) => {
     const fee = consultationFee || 300;
     const invId = await dbService.generateId('INV', 'invoices');
     const invQuery = `
-      INSERT INTO invoices (id, patient_id, date, items, total, status)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO invoices (id, patient_id, date, items, total, status, paid_amount)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `;
-    const invParams = [invId, patient.id, registeredOn, JSON.stringify([{ description: "Consultation Fee", amount: fee }]), fee, "Pending"];
+    const invParams = [invId, patient.id, registeredOn, JSON.stringify([{ description: "Consultation Fee", amount: fee }]), fee, "Pending", 0];
     const invRes = await dbService.query(invQuery, invParams);
     const invoice = dbService.mapRows('invoices', invRes.rows)[0];
 

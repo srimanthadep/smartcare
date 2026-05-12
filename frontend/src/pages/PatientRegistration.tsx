@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { AutocorrectTextarea } from "@/components/AutocorrectTextarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
@@ -279,7 +280,7 @@ const PatientRegistration: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <Label className="text-destructive font-bold">Chief Complaint</Label>
-                <Textarea
+                <AutocorrectTextarea
                   value={form.chiefComplaint}
                   onChange={(event) => updateField("chiefComplaint", event.target.value)}
                   placeholder="Why is the patient visiting the clinic? (e.g., Severe toothache, Bleeding gums)"
@@ -318,7 +319,7 @@ const PatientRegistration: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <Label>Notes</Label>
-                <Textarea value={form.notes} onChange={(event) => updateField("notes", event.target.value)} placeholder="Additional notes" />
+                <AutocorrectTextarea value={form.notes} onChange={(event) => updateField("notes", event.target.value)} placeholder="Additional notes" />
               </div>
               <div className="flex justify-between">
                 <Button type="button" variant="outline" onClick={() => setStep(1)}>Previous</Button>
@@ -352,7 +353,7 @@ const PatientRegistration: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <Label>Dental History</Label>
-                <Textarea value={form.dentalHistory} onChange={(event) => updateField("dentalHistory", event.target.value)} placeholder="Previous procedures: Root canals, extractions, braces, etc." />
+                <AutocorrectTextarea value={form.dentalHistory} onChange={(event) => updateField("dentalHistory", event.target.value)} placeholder="Previous procedures: Root canals, extractions, braces, etc." />
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">

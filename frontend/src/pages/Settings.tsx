@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Loader2, Mail, MessageCircle, Plug, ShieldCheck, User, Camera, Upload } from 'lucide-react';
+import { Loader2, Mail, MessageCircle, Plug, ShieldCheck, User, Camera, Upload, Type } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -35,6 +35,15 @@ const Settings: React.FC = () => {
   const [waStatus, setWaStatus] = useState<{ status: string; qr: string | null }>({ status: 'disconnected', qr: null });
   const [isWaModalOpen, setIsWaModalOpen] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  
+  const [typingSettings, setTypingSettings] = useState(() => {
+    const saved = localStorage.getItem('smartcare_settings');
+    return saved ? JSON.parse(saved) : { autocorrectEnabled: true };
+  });
+
+  useEffect(() => {
+    localStorage.setItem('smartcare_settings', JSON.stringify(typingSettings));
+  }, [typingSettings]);
 
   useEffect(() => {
     document.title = 'Settings | Siara Dental';
@@ -198,6 +207,7 @@ const Settings: React.FC = () => {
           <TabsTrigger value="integrations">Integrations</TabsTrigger>
           <TabsTrigger value="abha">ABHA</TabsTrigger>
           <TabsTrigger value="external">External systems</TabsTrigger>
+          <TabsTrigger value="typing">Typing</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="mt-4">
@@ -404,6 +414,43 @@ const Settings: React.FC = () => {
                   </div>
                 </div>
               ))}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="typing" className="mt-4">
+          <Card className="border-border/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-heading flex items-center gap-2">
+                <Type className="h-4 w-4" /> Typing & Documentation
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-start justify-between gap-4 rounded-lg border border-border/50 bg-secondary/15 p-4">
+                <div className="flex gap-3">
+                  <div className="mt-1 h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    <ShieldCheck className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Intelligent Clinical Autocorrect</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Automatically fix spelling errors for medical and dental terms. 
+                      High-confidence matches are corrected silently, while others show suggestions.
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={typingSettings.autocorrectEnabled}
+                  onCheckedChange={(v) => setTypingSettings((prev: any) => ({ ...prev, autocorrectEnabled: v }))}
+                />
+              </div>
+
+              <div className="rounded-lg border border-border/50 bg-muted/20 p-4">
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  <strong>How it works:</strong> Our spellchecker uses a local Web Worker and a custom medical dictionary 
+                  (200+ specialized terms) to provide instant corrections without any data leaving your browser. 
+                  Offline-ready and privacy-compliant.
+                </p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
