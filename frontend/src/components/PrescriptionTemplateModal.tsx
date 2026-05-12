@@ -90,16 +90,16 @@ const PrescriptionTemplateModal: React.FC = () => {
           <ClipboardList className="mr-2 h-4 w-4" /> Manage Templates
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+      <DialogContent className="flex h-screen max-h-screen max-w-none flex-col rounded-none md:max-h-[90vh] md:max-w-4xl md:rounded-xl">
         <DialogHeader>
           <DialogTitle className="font-heading flex items-center gap-2">
             <ClipboardList className="h-5 w-5 text-primary" /> Prescription Templates
           </DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 min-h-0 overflow-hidden">
+        <div className="grid flex-1 min-h-0 grid-cols-1 gap-3 overflow-hidden md:grid-cols-2 md:gap-6">
           {/* List Section */}
-          <div className="flex flex-col gap-4 border-r pr-6 overflow-hidden">
+          <div className="flex flex-col gap-4 overflow-hidden md:border-r md:pr-6">
             <p className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Saved Templates</p>
             <ScrollArea className="flex-1">
               <div className="space-y-2">
