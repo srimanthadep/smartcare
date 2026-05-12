@@ -43,22 +43,21 @@ const StatsCard: React.FC<StatsCardProps> = ({
     >
       <Card
         className={cn(
-          "luxury-card luxury-hover relative overflow-hidden border-white/60 bg-gradient-to-br from-white via-white to-[#fbf4ee]",
+          "relative overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
           className
         )}
       >
-        <div className="surface-noise absolute inset-0" />
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-        <CardContent className="relative p-5 sm:p-6">
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary/70 via-primary/40 to-primary/10" />
+        <CardContent className="relative p-5">
           <div className="mb-4 flex items-start justify-between gap-4">
             <div className="space-y-2">
-              <p className="luxury-subtitle whitespace-nowrap">{title}</p>
-              <h3 className="luxury-title text-2xl font-semibold text-foreground sm:text-3xl">
+              <p className="whitespace-nowrap text-xs font-medium uppercase tracking-wide text-muted-foreground">{title}</p>
+              <h3 className="text-2xl font-semibold text-foreground">
                 {value}
               </h3>
             </div>
 
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] border border-primary/15 bg-gradient-to-br from-primary/15 via-primary/10 to-white text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
               <Icon className="h-5 w-5" />
             </div>
           </div>
@@ -67,7 +66,7 @@ const StatsCard: React.FC<StatsCardProps> = ({
             {change ? (
               <div
                 className={cn(
-                  "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium whitespace-nowrap",
+                  "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap",
                   changeMap[changeType]
                 )}
               >
@@ -78,7 +77,7 @@ const StatsCard: React.FC<StatsCardProps> = ({
               <div className="h-5" />
             )}
 
-            <span className="text-[9px] text-muted-foreground whitespace-nowrap shrink-0">
+            <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0">
               Updated just now
             </span>
           </div>
