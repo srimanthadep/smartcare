@@ -43,6 +43,18 @@ class DbService {
     return db;
   }
 
+  // Safe JSON parsing helper
+  safeJsonParse(data, fallback = []) {
+    if (typeof data === 'object' && data !== null) return data;
+    if (typeof data !== 'string') return fallback;
+    try {
+      return JSON.parse(data);
+    } catch (e) {
+      console.error('JSON Parse Error:', e.message, 'Data:', data);
+      return fallback;
+    }
+  }
+
   // Mapping helper to maintain compatibility with the frontend/controllers
   mapRows(table, rows) {
     if (!rows || !Array.isArray(rows)) return [];
@@ -54,8 +66,8 @@ class DbService {
         registeredOn: r.registered_on ? new Date(r.registered_on).toLocaleDateString('en-CA') : null,
         consultationFee: r.consultation_fee,
         chiefComplaint: r.chief_complaint,
-        medications: Array.isArray(r.medications) ? r.medications : (typeof r.medications === 'string' ? JSON.parse(r.medications) : []),
-        dentalHistory: (typeof r.dental_history === 'object' && r.dental_history !== null) ? r.dental_history : (typeof r.dental_history === 'string' ? JSON.parse(r.dental_history) : {})
+        medications: this.safeJsonParse(r.medications, []),
+        dentalHistory: this.safeJsonParse(r.dental_history, {})
       }));
     }
     if (table === 'appointments') {
@@ -74,8 +86,8 @@ class DbService {
         patientName: r.patient_name,
         patientPhone: r.patient_phone,
         paidAmount: r.paid_amount,
-        items: Array.isArray(r.items) ? r.items : (typeof r.items === 'string' ? JSON.parse(r.items) : []),
-        payments: Array.isArray(r.payments) ? r.payments : (typeof r.payments === 'string' ? JSON.parse(r.payments) : []),
+        items: this.safeJsonParse(r.items, []),
+        payments: this.safeJsonParse(r.payments, []),
         date: r.date ? new Date(r.date).toLocaleDateString('en-CA') : null
       }));
     }
@@ -88,8 +100,8 @@ class DbService {
         chiefComplaint: r.chief_complaint,
         diagnosis: r.diagnosis,
         nextVisitDate: r.next_visit_date ? new Date(r.next_visit_date).toLocaleDateString('en-CA') : null,
-        medicines: Array.isArray(r.medicines) ? r.medicines : (typeof r.medicines === 'string' ? JSON.parse(r.medicines) : []),
-        treatmentPlan: Array.isArray(r.treatment_plan) ? r.treatment_plan : (typeof r.treatment_plan === 'string' ? JSON.parse(r.treatment_plan) : [])
+        medicines: this.safeJsonParse(r.medicines, []),
+        treatmentPlan: this.safeJsonParse(r.treatment_plan, [])
       }));
     }
 
@@ -98,7 +110,7 @@ class DbService {
         ...r,
         patientId: r.patient_id,
         lastUpdated: r.last_updated,
-        chartData: typeof r.chart_data === 'string' ? JSON.parse(r.chart_data) : r.chart_data
+        chartData: this.safeJsonParse(r.chart_data, {})
       }));
     }
     if (table === 'treatment_plans') {
@@ -108,7 +120,7 @@ class DbService {
         dentistName: r.dentist_name,
         createdDate: r.created_date ? new Date(r.created_date).toLocaleDateString('en-CA') : null,
         totalCost: Number(r.total_cost) || 0,
-        phases: Array.isArray(r.phases) ? r.phases : (typeof r.phases === 'string' ? JSON.parse(r.phases) : [])
+        phases: this.safeJsonParse(r.phases, [])
       }));
     }
     if (table === 'activity_logs') {

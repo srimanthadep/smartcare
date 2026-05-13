@@ -8,6 +8,7 @@ export const runMigrations = async () => {
   
   const sql = `
     -- Migration for ${SCHEMA}
+    CREATE SCHEMA IF NOT EXISTS ${SCHEMA};
     SET search_path TO ${SCHEMA};
     
     CREATE TABLE IF NOT EXISTS expenses (
@@ -30,6 +31,12 @@ export const runMigrations = async () => {
         is_deleted BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
+
+    ALTER TABLE doctors ADD COLUMN IF NOT EXISTS specialization TEXT;
+    ALTER TABLE doctors ADD COLUMN IF NOT EXISTS department TEXT;
+    ALTER TABLE doctors ADD COLUMN IF NOT EXISTS phone TEXT;
+    ALTER TABLE doctors ADD COLUMN IF NOT EXISTS email TEXT;
+    ALTER TABLE doctors ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;
 
     ALTER TABLE patients ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;
     ALTER TABLE patients ADD COLUMN IF NOT EXISTS chief_complaint TEXT;

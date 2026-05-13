@@ -9,7 +9,7 @@ import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -172,6 +172,7 @@ const Appointments: React.FC = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="font-heading">Book appointment</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground sr-only">Schedule a new dental appointment for a patient.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">

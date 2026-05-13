@@ -612,65 +612,82 @@ const Prescriptions: React.FC = () => {
             </div>
 
             <div className="pt-2">
-              <Label className="text-primary font-bold block mb-3">5. Next Visit & Notes</Label>
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
-                <div className="sm:col-span-4">
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Schedule Follow-up</Label>
-                    <div className="relative mt-2">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full justify-start text-left font-normal rounded-xl border-amber-200 bg-amber-50/30 hover:bg-amber-50/50 transition-colors pl-10",
-                              !nextVisitDate && "text-muted-foreground"
-                            )}
-                          >
-                            <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-600" />
-                            {nextVisitDate ? format(new Date(nextVisitDate), "PPP") : <span>Pick a follow-up date</span>}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0 rounded-2xl shadow-2xl border-white/60" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={nextVisitDate ? new Date(nextVisitDate) : undefined}
-                            onSelect={(date) => setNextVisitDate(date ? format(date, "yyyy-MM-dd") : "")}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  </div>
-                </div>
-                <div className="sm:col-span-8">
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Clinical Advice</Label>
-                    <AutocorrectTextarea
-                      value={notes}
-                      onChange={(event) => {
-                        const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
-                        let val = event.target.value;
-                        val = val.split(' ').map((word, index) => {
-                          if (index > 0 && minorWords.includes(word.toLowerCase())) {
-                            return word.toLowerCase();
-                          }
-                          return word.charAt(0).toUpperCase() + word.slice(1);
-                        }).join(' ');
-                        setNotes(val);
-                      }}
-                      placeholder="Advice, follow-up, warnings..."
-                      className="min-h-[80px]"
-                    />
-                  </div>
-                </div>
+              <Label className="text-primary font-bold block mb-3">5. Clinical Advice</Label>
+              <div className="space-y-2">
+                <AutocorrectTextarea
+                  value={notes}
+                  onChange={(event) => {
+                    const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
+                    let val = event.target.value;
+                    val = val.split(' ').map((word, index) => {
+                      if (index > 0 && minorWords.includes(word.toLowerCase())) {
+                        return word.toLowerCase();
+                      }
+                      return word.charAt(0).toUpperCase() + word.slice(1);
+                    }).join(' ');
+                    setNotes(val);
+                  }}
+                  placeholder="General clinical advice, follow-up instructions, warnings..."
+                  className="min-h-[100px]"
+                />
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <Button variant="outline" onClick={() => toast.message("Share flow would generate a secure PDF link.")}>
-                <Share2 className="mr-1 h-4 w-4" /> Share
-              </Button>
+            <div className="pt-4">
+              <Label className="text-primary font-bold block mb-3">6. Next Visit</Label>
+              <div className="flex items-center gap-4">
+                <div className="group relative flex items-center h-14 w-full max-w-md rounded-2xl border-2 border-primary/10 bg-primary/5 p-1 transition-all duration-300 focus-within:border-primary/40 focus-within:ring-4 focus-within:ring-primary/5 focus-within:bg-white shadow-sm hover:shadow-md">
+                  <div className="flex items-center flex-1 px-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary group-focus-within:bg-primary group-focus-within:text-white transition-all duration-300">
+                      <CalendarIcon className="h-5 w-5" />
+                    </div>
+                    <div className="ml-3 flex-1 flex flex-col items-start">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-primary/60">Manual Entry / Pick Date</span>
+                      <input
+                        type="date"
+                        value={nextVisitDate}
+                        onChange={(e) => setNextVisitDate(e.target.value)}
+                        className="w-full bg-transparent border-none outline-none text-base font-bold text-foreground placeholder:text-muted-foreground/40"
+                      />
+                    </div>
+                  </div>
+
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="flex h-full items-center justify-center px-4 border-l border-primary/10 hover:bg-primary/5 transition-all text-primary/60 hover:text-primary">
+                        <div className="flex flex-col items-center">
+                          <span className="text-[10px] font-black uppercase mb-0.5">Picker</span>
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs font-bold">Open</span>
+                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
+                        </div>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 rounded-2xl shadow-2xl border-white/60" align="end">
+                      <Calendar
+                        mode="single"
+                        selected={nextVisitDate ? new Date(nextVisitDate) : undefined}
+                        onSelect={(date) => setNextVisitDate(date ? format(date, "yyyy-MM-dd") : "")}
+                        initialFocus
+                        className="rounded-2xl border-none p-3"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {nextVisitDate && (
+                  <div className="hidden md:flex flex-col items-center justify-center h-14 px-4 rounded-2xl border-2 border-green-100 bg-green-50 text-green-600 animate-in fade-in zoom-in duration-300">
+                    <span className="text-[10px] font-black uppercase leading-none mb-1">Status</span>
+                    <span className="text-xs font-bold whitespace-nowrap">DATE SECURED</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end">
               <p className="text-xs text-muted-foreground">{savedPrescriptions.length} prescriptions saved</p>
             </div>
           </CardContent>
@@ -769,8 +786,8 @@ const Prescriptions: React.FC = () => {
                     <Plus className="h-4 w-4" />
                   </div>
                   <div>
-                    <p className="text-[10px] uppercase tracking-wider text-amber-600/70 font-bold">Next Visit Schedule</p>
-                    <p className="text-sm font-semibold text-amber-700">{new Date(nextVisitDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                    <p className="text-[10px] uppercase tracking-wider text-amber-600/70 font-bold text-center sm:text-left">6. Next Visit Schedule</p>
+                    <p className="text-base font-bold text-amber-700">{new Date(nextVisitDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
                   </div>
                 </div>
               )}

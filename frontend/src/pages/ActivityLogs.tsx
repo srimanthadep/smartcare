@@ -24,11 +24,14 @@ const ActivityLogs = () => {
 
   const filteredLogs = React.useMemo(() => {
     if (!data) return [];
-    return data.filter((log) => 
-      log.userName.toLowerCase().includes(query.toLowerCase()) ||
-      log.action.toLowerCase().includes(query.toLowerCase()) ||
-      log.details.toLowerCase().includes(query.toLowerCase())
-    );
+    return data.filter((log) => {
+      const searchStr = query.toLowerCase();
+      return (
+        (log.userName?.toLowerCase() || "").includes(searchStr) ||
+        (log.action?.toLowerCase() || "").includes(searchStr) ||
+        (log.details?.toLowerCase() || "").includes(searchStr)
+      );
+    });
   }, [data, query]);
 
   return (

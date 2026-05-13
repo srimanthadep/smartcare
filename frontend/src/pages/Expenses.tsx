@@ -12,6 +12,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog";
@@ -124,6 +125,7 @@ const Expenses: React.FC = () => {
               <div className="flex items-center justify-between border-b border-border/60 bg-gradient-to-r from-secondary/50 via-white to-secondary/30 px-6 py-4">
                 <DialogHeader className="space-y-1">
                   <DialogTitle className="font-heading text-xl font-semibold">Record New Expense</DialogTitle>
+                  <DialogDescription className="text-xs text-muted-foreground sr-only">Enter the details of the clinic expenditure.</DialogDescription>
                 </DialogHeader>
               </div>
               <div className="grid gap-4 p-6">
@@ -357,6 +359,7 @@ const Expenses: React.FC = () => {
             <div className="flex items-center justify-between border-b border-border/60 bg-gradient-to-r from-secondary/50 via-white to-secondary/30 px-6 py-4">
               <DialogHeader className="space-y-1">
                 <DialogTitle className="font-heading text-xl font-semibold">Update Expense</DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground sr-only">Modify the recorded expense details.</DialogDescription>
               </DialogHeader>
             </div>
             <div className="grid gap-4 p-6">

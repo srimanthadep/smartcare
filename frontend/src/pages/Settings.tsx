@@ -565,10 +565,13 @@ const Settings: React.FC = () => {
       </Tabs>
 
       <Dialog open={isDoctorDialogOpen} onOpenChange={setIsDoctorDialogOpen}>
-        <DialogContent className="h-screen w-full rounded-none border-white/60 bg-white/95 p-0 shadow-[0_20px_60px_rgba(26,18,14,0.16)] backdrop-blur-xl sm:h-auto sm:max-w-md sm:rounded-[30px]">
+        <DialogContent className="h-screen w-full overflow-hidden rounded-none border-white/60 bg-white/95 p-0 shadow-[0_20px_60px_rgba(26,18,14,0.16)] backdrop-blur-xl sm:h-auto sm:max-w-md sm:rounded-[30px]">
           <div className="flex items-center justify-between border-b border-border/60 bg-gradient-to-r from-secondary/50 via-white to-secondary/30 px-6 py-4">
             <DialogHeader className="space-y-1">
               <DialogTitle className="font-heading text-xl font-semibold">{editingDoctor ? 'Edit Doctor' : 'Add New Doctor'}</DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                {editingDoctor ? 'Update professional information for the doctor.' : 'Register a new doctor for clinical operations.'}
+              </DialogDescription>
             </DialogHeader>
           </div>
           <div className="space-y-4 p-6">
