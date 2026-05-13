@@ -109,15 +109,17 @@ const Prescriptions: React.FC = () => {
   const [nextVisitDate, setNextVisitDate] = useState("");
   const [treatmentPlan, setTreatmentPlan] = useState<any[]>([]);
   const [medicines, setMedicines] = useState<Medication[]>([{ name: "", dosage: "", frequency: "", duration: "" }]);
-  const filteredPrescriptions = useMemo(
-    () =>
-      savedPrescriptions.filter(
-        (item) =>
-          item.patientName.toLowerCase().includes(listQuery.toLowerCase()) ||
-          item.id.toLowerCase().includes(listQuery.toLowerCase()),
-      ),
-    [savedPrescriptions, listQuery],
-  );
+  const filteredPrescriptions = useMemo(() => {
+    const query = listQuery.trim().toLowerCase();
+    if (!query) {
+      return savedPrescriptions;
+    }
+    return savedPrescriptions.filter((item) => {
+      const patientName = (item.patientName ?? "").toLowerCase();
+      const id = (item.id ?? "").toLowerCase();
+      return patientName.includes(query) || id.includes(query);
+    });
+  }, [savedPrescriptions, listQuery]);
 
 
   useEffect(() => {

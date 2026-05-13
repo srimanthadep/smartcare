@@ -35,3 +35,8 @@ backend/data/whatsapp_auth/
 *.sqlite-shm
 *.sqlite-wal
 dev-dist/
+
+# Local analysis reports
+CODEBASE_BUGS.md
+FIX_PLAN.md
+SANDBOX_ERRORS_REPORT.md
