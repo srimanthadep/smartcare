@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 type ChangeType = "positive" | "negative" | "neutral";
 
 interface StatsCardProps {
-  title: string;
+  title: React.ReactNode;
   value: string | number;
   change?: string;
   changeType?: ChangeType;
@@ -43,43 +43,41 @@ const StatsCard: React.FC<StatsCardProps> = ({
     >
       <Card
         className={cn(
-          "relative overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
+          "relative h-full overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
           className
         )}
       >
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary/70 via-primary/40 to-primary/10" />
-        <CardContent className="relative p-5">
-          <div className="mb-4 flex items-start justify-between gap-4">
-            <div className="space-y-2">
-              <p className="whitespace-nowrap text-xs font-medium uppercase tracking-wide text-muted-foreground">{title}</p>
-              <h3 className="text-2xl font-semibold text-foreground">
+        <CardContent className="relative flex h-full min-h-[132px] flex-col p-5">
+          <div className="mb-4 pr-14 flex-1">
+            <div className="min-h-[60px] space-y-2">
+              <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground leading-tight">
+                {title}
+              </p>
+              <h3 className="text-[clamp(18px,2.1vw,24px)] font-semibold leading-tight text-foreground">
                 {value}
               </h3>
             </div>
-
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
-              <Icon className="h-5 w-5" />
-            </div>
           </div>
 
-          <div className="flex items-center justify-between gap-1 overflow-hidden">
+          <div className="absolute right-5 top-5 flex h-9 w-9 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary">
+            <Icon className="h-4 w-4" />
+          </div>
+
+          <div className="flex min-h-[20px] items-center gap-2 overflow-hidden">
             {change ? (
               <div
                 className={cn(
-                  "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap",
+                  "inline-flex max-w-[65%] items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold",
                   changeMap[changeType]
                 )}
               >
                 {iconMap[changeType]}
-                <span>{change}</span>
+                <span className="truncate">{change}</span>
               </div>
             ) : (
               <div className="h-5" />
             )}
-
-            <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0">
-              Updated just now
-            </span>
           </div>
         </CardContent>
       </Card>

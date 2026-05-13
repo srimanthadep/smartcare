@@ -162,18 +162,18 @@ const Dashboard: React.FC = () => {
         <p className="mt-1 text-sm text-muted-foreground">Here&apos;s what&apos;s happening at your clinic today.</p>
       </motion.div>
 
-      <motion.div variants={item} className="flex flex-wrap gap-2">
-        <Button size="sm" onClick={() => navigate("/patients/new")}>
+      <motion.div variants={item} className="flex flex-wrap gap-2 [&>button]:px-3">
+        <Button size="sm" onClick={() => navigate("/patients/new")}> 
           <UserPlus className="mr-1 h-4 w-4" /> New Patient
         </Button>
-        <Button size="sm" variant="outline" onClick={() => navigate("/appointments")}>
-          <CalendarPlus className="mr-1 h-4 w-4" /> Book Appointment
+        <Button size="sm" variant="outline" onClick={() => navigate("/appointments")}> 
+          <CalendarPlus className="mr-1 h-4 w-4" /> Appointment
         </Button>
-        <Button size="sm" variant="outline" onClick={() => navigate("/prescriptions")}>
-          <FileText className="mr-1 h-4 w-4" /> Create Prescription
+        <Button size="sm" variant="outline" onClick={() => navigate("/prescriptions")}> 
+          <FileText className="mr-1 h-4 w-4" /> Prescription
         </Button>
-        <Button size="sm" variant="outline" onClick={() => navigate("/billing")}>
-          <Receipt className="mr-1 h-4 w-4" /> Create Bill
+        <Button size="sm" variant="outline" onClick={() => navigate("/billing")}> 
+          <Receipt className="mr-1 h-4 w-4" /> Bill
         </Button>
         <Button
           size="sm"
@@ -198,7 +198,7 @@ const Dashboard: React.FC = () => {
       <motion.div variants={item} className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-5">
         <StatsCard title="Total Patients" value={data.stats.totalPatients} change="Lifetime" changeType="neutral" icon={Users} />
         <StatsCard title="Total Revenue" value={`₹${data.stats.totalRevenue.toLocaleString()}`} change="Gross Billing" changeType="neutral" icon={Banknote} />
-        <StatsCard title="Total Paid" value={`₹${data.stats.totalPaid.toLocaleString()}`} change="Collected Cash" changeType="positive" icon={TrendingUp} />
+        <StatsCard title={<>Total<br />Paid</>} value={`₹${data.stats.totalPaid.toLocaleString()}`} change="Collected Cash" changeType="positive" icon={TrendingUp} />
         <StatsCard title="Total Pending" value={`₹${data.stats.totalPending.toLocaleString()}`} change="Outstanding" changeType="negative" icon={CalendarClock} />
         <StatsCard title="Total Expenses" value={`₹${data.stats.totalExpenses.toLocaleString()}`} change="Outflow" changeType="negative" icon={Receipt} />
       </motion.div>
