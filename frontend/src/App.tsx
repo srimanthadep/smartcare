@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { SocketProvider } from "@/contexts/SocketContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AppLayout from "@/components/AppLayout";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import Dashboard from "@/pages/Dashboard";
@@ -26,6 +27,7 @@ import Notifications from "@/pages/Notifications";
 import Settings from "@/pages/Settings";
 import RecallSystem from "@/pages/RecallSystem";
 import ActivityLogs from "@/pages/ActivityLogs";
+import BullDashboard from "@/pages/BullDashboard";
 import NotFound from "@/pages/NotFound";
 import PublicLayout from "@/components/PublicLayout";
 import PublicBooking from "@/pages/PublicBooking";
@@ -44,7 +46,8 @@ const queryClient = new QueryClient({
 });
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <AuthProvider>
         <SocketProvider>
@@ -75,6 +78,7 @@ const App = () => (
                 <Route path="ai" element={<AI />} />
                 <Route path="notifications" element={<Notifications />} />
                 <Route path="logs" element={<ActivityLogs />} />
+                <Route path="bull-dashboard" element={<BullDashboard />} />
                 <Route path="settings" element={<Settings />} />
               </Route>
               <Route path="*" element={<NotFound />} />
@@ -86,6 +90,7 @@ const App = () => (
     </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

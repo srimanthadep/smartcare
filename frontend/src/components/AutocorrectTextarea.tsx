@@ -22,11 +22,11 @@ export const AutocorrectTextarea = React.forwardRef<HTMLTextAreaElement, Textare
 
     React.useEffect(() => {
       const init = async () => {
-        console.log("AutocorrectTextarea: Initializing spellchecker...");
+        if (import.meta.env.DEV) console.log("AutocorrectTextarea: Initializing spellchecker...");
         const instance = await getSpellchecker();
-        console.log("AutocorrectTextarea: Checker methods:", Object.keys(instance));
+        if (import.meta.env.DEV) console.log("AutocorrectTextarea: Checker methods:", Object.keys(instance));
         setChecker(() => instance);
-        console.log("AutocorrectTextarea: Spellchecker ready.");
+        if (import.meta.env.DEV) console.log("AutocorrectTextarea: Spellchecker ready.");
       };
       init();
 
@@ -41,9 +41,9 @@ export const AutocorrectTextarea = React.forwardRef<HTMLTextAreaElement, Textare
     const handleSpellCheck = async (text: string, cursorPosition: number) => {
       if (!checker || !isEnabled) return;
       
-      console.log("AutocorrectTextarea: checker state is present");
+      if (import.meta.env.DEV) console.log("AutocorrectTextarea: checker state is present");
       if (typeof checker.check !== 'function') {
-        console.error("AutocorrectTextarea: checker.check is NOT a function!", checker);
+        if (import.meta.env.DEV) console.error("AutocorrectTextarea: checker.check is NOT a function!", checker);
       }
 
       const beforeCursor = text.substring(0, cursorPosition);
@@ -51,23 +51,23 @@ export const AutocorrectTextarea = React.forwardRef<HTMLTextAreaElement, Textare
       const words = beforeCursor.split(/[\s,.;:!?\n\r]+/);
       const lastWord = words.filter(w => w.length > 0).pop() || "";
       
-      console.log(`AutocorrectTextarea: Identified word to check: "${lastWord}"`);
+      if (import.meta.env.DEV) console.log(`AutocorrectTextarea: Identified word to check: "${lastWord}"`);
 
       if (!lastWord || lastWord.length < 2) {
-        console.log("AutocorrectTextarea: Word too short or empty, skipping.");
+        if (import.meta.env.DEV) console.log("AutocorrectTextarea: Word too short or empty, skipping.");
         return;
       }
 
       try {
         const isCorrect = await checker.check(lastWord);
-        console.log(`AutocorrectTextarea: Result for "${lastWord}": ${isCorrect}`);
+        if (import.meta.env.DEV) console.log(`AutocorrectTextarea: Result for "${lastWord}": ${isCorrect}`);
         
         if (!isCorrect) {
           const results = await checker.suggest(lastWord);
-          console.log(`AutocorrectTextarea: "${lastWord}" is misspelled. Suggestions:`, results);
+          if (import.meta.env.DEV) console.log(`AutocorrectTextarea: "${lastWord}" is misspelled. Suggestions:`, results);
           
           if (results.length === 1) {
-            console.log(`AutocorrectTextarea: Auto-correcting "${lastWord}" to "${results[0]}"`);
+            if (import.meta.env.DEV) console.log(`AutocorrectTextarea: Auto-correcting "${lastWord}" to "${results[0]}"`);
             // Silent autocorrect
             const start = beforeCursor.lastIndexOf(lastWord);
             const newValue = text.substring(0, start) + results[0] + text.substring(cursorPosition - 1);
@@ -106,13 +106,13 @@ export const AutocorrectTextarea = React.forwardRef<HTMLTextAreaElement, Textare
       const cursor = e.target.selectionStart || 0;
       const lastChar = val[cursor - 1];
 
-      console.log(`AutocorrectTextarea: Input changed. Last char: "${lastChar}"`);
+      if (import.meta.env.DEV) console.log(`AutocorrectTextarea: Input changed. Last char: "${lastChar}"`);
 
       if (onChange) onChange(e);
 
       // Check boundary characters (space, punctuation, newline)
       if (/[\s,.;:!?\n\r]/.test(lastChar)) {
-        console.log("AutocorrectTextarea: Boundary detected, triggering check...");
+        if (import.meta.env.DEV) console.log("AutocorrectTextarea: Boundary detected, triggering check...");
         handleSpellCheck(val, cursor);
       }
     };

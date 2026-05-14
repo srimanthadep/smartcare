@@ -29,7 +29,7 @@ window.addEventListener('beforeinstallprompt', (e: Event) => {
 
 // ─── App Installed ──────────────────────────────────────────────────────────
 window.addEventListener('appinstalled', () => {
-    console.log('PWA was installed to home screen');
+    if (import.meta.env.DEV) console.log('PWA was installed to home screen');
     _deferredPrompt = null;
     _subscribers.forEach(fn => fn());
 });

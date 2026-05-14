@@ -4,7 +4,13 @@ import { config } from '../config/env.js';
 export const runMigrations = async () => {
   console.log('🚀 Checking for database migrations...');
   
+  // L5: Validate schema name against explicit allowlist
   const SCHEMA = config.NODE_ENV === 'production' ? 'smartcare_prod' : 'smartcare_dev';
+  const ALLOWED_SCHEMAS = ['smartcare_dev', 'smartcare_prod'];
+  if (!ALLOWED_SCHEMAS.includes(SCHEMA)) {
+    console.error(`❌ Invalid schema: ${SCHEMA}. Aborting migrations.`);
+    return;
+  }
   
   const sql = `
     -- Migration for ${SCHEMA}
@@ -21,6 +27,20 @@ export const runMigrations = async () => {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS recalls (
+        id TEXT PRIMARY KEY,
+        patient_id TEXT,
+        patient_name TEXT,
+        last_visit DATE,
+        recall_date DATE,
+        status TEXT DEFAULT 'Scheduled',
+        type TEXT DEFAULT 'Follow-up',
+        notes TEXT,
+        source_prescription_id TEXT,
+        is_deleted BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE TABLE IF NOT EXISTS doctors (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -31,6 +51,26 @@ export const runMigrations = async () => {
         is_deleted BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS app_settings (
+        key TEXT PRIMARY KEY,
+        value JSONB NOT NULL DEFAULT '{}'::jsonb,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS treatment_plan_templates (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        notes TEXT,
+        phases JSONB DEFAULT '[]'::jsonb,
+        is_deleted BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
+    ALTER TABLE invoices ADD COLUMN IF NOT EXISTS payments JSONB DEFAULT '[]'::jsonb;
+    ALTER TABLE treatment_plan_templates ADD COLUMN IF NOT EXISTS notes TEXT;
+    ALTER TABLE treatment_plan_templates ADD COLUMN IF NOT EXISTS phases JSONB DEFAULT '[]'::jsonb;
 
     ALTER TABLE doctors ADD COLUMN IF NOT EXISTS specialization TEXT;
     ALTER TABLE doctors ADD COLUMN IF NOT EXISTS department TEXT;
@@ -48,7 +88,12 @@ export const runMigrations = async () => {
     ALTER TABLE treatment_plans ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;
     ALTER TABLE treatment_plan_templates ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;
     ALTER TABLE clinical_procedures ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;
+    ALTER TABLE diagnoses ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;
+    ALTER TABLE reports ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;
     
+    -- L6: Add source_prescription_id column for reliable recall-prescription linking
+    ALTER TABLE recalls ADD COLUMN IF NOT EXISTS source_prescription_id TEXT;
+
     -- Ensure other tables also have is_deleted if not present
     DO $$ 
     BEGIN 
@@ -58,6 +103,11 @@ export const runMigrations = async () => {
 
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='avatar_url' AND table_schema='${SCHEMA}') THEN
             ALTER TABLE users ADD COLUMN avatar_url TEXT;
+        END IF;
+
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='whatsapp_sessions' AND column_name='created_at' AND table_schema='${SCHEMA}') THEN
+            ALTER TABLE whatsapp_sessions ADD COLUMN created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+            ALTER TABLE whatsapp_sessions ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
         END IF;
     END $$;
   `;

@@ -11,6 +11,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -29,6 +30,7 @@ export const AppHeader: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const isOnline = useOnlineStatus();
 
   const today = format(new Date(), "EEEE, d MMMM yyyy");
   const initials =
@@ -116,11 +118,18 @@ export const AppHeader: React.FC = () => {
             <span className="text-sm font-medium text-foreground">{today}</span>
           </div>
 
-          {/* Status badge – softer green */}
-          <div className="hidden items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-emerald-700 shadow-sm dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400 sm:flex">
-            <Wifi className="h-3.5 w-3.5" />
-            <span className="text-xs font-medium">Online</span>
-          </div>
+          {/* Status badge */}
+          {isOnline ? (
+            <div className="hidden items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-emerald-700 shadow-sm dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-400 sm:flex">
+              <Wifi className="h-3.5 w-3.5" />
+              <span className="text-xs font-medium">Online</span>
+            </div>
+          ) : (
+            <div className="hidden items-center gap-1.5 rounded-xl border border-destructive/20 bg-destructive/10 px-3 py-1.5 text-destructive shadow-sm sm:flex">
+              <Wifi className="h-3.5 w-3.5 opacity-50" />
+              <span className="text-xs font-medium">Offline</span>
+            </div>
+          )}
 
           {/* Theme toggle – consistent styling */}
           <Button

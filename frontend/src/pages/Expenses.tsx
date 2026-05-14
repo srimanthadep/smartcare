@@ -17,6 +17,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -41,6 +51,7 @@ const Expenses: React.FC = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<any>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
 
@@ -66,6 +77,7 @@ const Expenses: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       toast.success("Expense deleted");
+      setDeleteId(null);
     },
     onError: () => toast.error("Failed to delete expense"),
   });
@@ -152,7 +164,7 @@ const Expenses: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="amount">Amount (₹)</Label>
-                    <Input id="amount" name="amount" type="number" placeholder="0.00" required />
+                    <Input id="amount" name="amount" type="number" autoComplete="off" placeholder="0.00" required />
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="date">Date</Label>
@@ -323,9 +335,7 @@ const Expenses: React.FC = () => {
                               variant="ghost" 
                               size="icon" 
                               className="h-8 w-8 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all"
-                              onClick={() => {
-                                if(window.confirm("Are you sure you want to delete this expense record?")) deleteExpense.mutate(exp.id);
-                              }}
+                              onClick={() => setDeleteId(exp.id)}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -376,7 +386,7 @@ const Expenses: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="edit-amount" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Amount (₹)</Label>
-                  <Input id="edit-amount" name="edit-amount" type="number" defaultValue={editingExpense?.amount || ""} required className="rounded-xl border-border/60 bg-muted/30 focus:bg-background transition-colors" />
+                  <Input id="edit-amount" name="edit-amount" type="number" autoComplete="off" defaultValue={editingExpense?.amount || ""} required className="rounded-xl border-border/60 bg-muted/30 focus:bg-background transition-colors" />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="edit-date" className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Date</Label>
@@ -410,6 +420,30 @@ const Expenses: React.FC = () => {
       <Button size="icon" className="fixed bottom-20 right-4 z-40 h-12 w-12 rounded-full shadow-lg md:hidden" onClick={() => setIsDialogOpen(true)}>
         <Plus className="h-5 w-5" />
       </Button>
+
+      {/* Delete Expense Dialog */}
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent className="rounded-[30px] border-white/60 bg-white/95 shadow-[0_20px_60px_rgba(26,18,14,0.16)] backdrop-blur-xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-heading">Delete Expense?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this expense record? This action cannot be undone and will affect your financial reports.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl border-border/60 hover:bg-secondary/20 hover:text-foreground transition-colors">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="rounded-xl bg-destructive hover:bg-destructive/90 text-white shadow-sm shadow-destructive/20"
+              onClick={() => {
+                if (deleteId) deleteExpense.mutate(deleteId);
+              }}
+              disabled={deleteExpense.isPending}
+            >
+              {deleteExpense.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 };

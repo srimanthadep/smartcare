@@ -2,7 +2,7 @@ import React from 'react';
 import {
   LayoutDashboard, Users, CalendarDays, FileText, Receipt,
   Pill, Bot, Settings, Bell, Activity,
-  CalendarClock, History, Wallet
+  CalendarClock, History, Wallet, Server, CalendarPlus
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,16 +15,18 @@ import logo from "@/assets/logo.png";
 
 const allNavItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard, roles: ['doctor', 'admin'] },
-  { title: 'Patients', url: '/patients', icon: Users, roles: ['doctor'] },
-  { title: 'Appointments', url: '/appointments', icon: CalendarDays, roles: ['doctor'] },
-  { title: 'Prescriptions', url: '/prescriptions', icon: FileText, roles: ['doctor'] },
+  { title: 'Patients', url: '/patients', icon: Users, roles: ['doctor', 'admin'] },
+  { title: 'Appointments', url: '/appointments', icon: CalendarDays, roles: ['doctor', 'admin'] },
+  { title: 'Prescriptions', url: '/prescriptions', icon: FileText, roles: ['doctor', 'admin'] },
   { title: 'Billing', url: '/billing', icon: Receipt, roles: ['doctor', 'admin'] },
   { title: 'Expenses', url: '/expenses', icon: Wallet, roles: ['doctor', 'admin'] },
-  { title: 'Dental Supplies', url: '/pharmacy', icon: Pill, roles: ['doctor'] },
-  { title: 'Recall System', url: '/recalls', icon: CalendarClock, roles: ['doctor'] },
-  { title: 'AI Assistant', url: '/ai', icon: Bot, roles: ['doctor'] },
+  { title: 'Dental Supplies', url: '/pharmacy', icon: Pill, roles: ['doctor', 'admin'] },
+  { title: 'Recall System', url: '/recalls', icon: CalendarClock, roles: ['doctor', 'admin'] },
+  { title: 'AI Assistant', url: '/ai', icon: Bot, roles: ['doctor', 'admin'] },
   { title: 'Analytics', url: '/analytics', icon: Activity, roles: ['doctor', 'admin'] },
   { title: 'Activity Logs', url: '/logs', icon: History, roles: ['admin'] },
+  { title: 'Bull Dashboard', url: '/bull-dashboard', icon: Server, roles: ['admin'] },
+  { title: 'Public Booking', url: '/book', icon: CalendarPlus, roles: ['doctor', 'admin'] },
   { title: 'Notifications', url: '/notifications', icon: Bell, roles: ['doctor', 'admin'] },
   { title: 'Settings', url: '/settings', icon: Settings, roles: ['doctor', 'admin'] },
 ];

@@ -2,7 +2,8 @@ import React from "react";
 import { Download, Printer, Receipt, X } from "lucide-react";
 
 import type { Invoice, Patient } from "@/types";
-import { pdfService } from "@/lib/pdfService";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -163,8 +164,11 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
           <Button
             variant="outline"
             onClick={() => {
-              if (!patient) return;
-              pdfService.generateInvoicePDF(patient, invoice as any);
+              toast.promise(api.downloadInvoice(invoice.id), {
+                loading: 'Preparing PDF...',
+                success: 'Downloaded!',
+                error: 'Failed to download'
+              });
             }}
           >
             <Download className="h-4 w-4" />
@@ -173,8 +177,11 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({
 
           <Button
             onClick={() => {
-              if (!patient) return;
-              pdfService.generateInvoicePDF(patient, invoice as any);
+              toast.promise(api.downloadInvoice(invoice.id), {
+                loading: 'Preparing PDF...',
+                success: 'Downloaded!',
+                error: 'Failed to download'
+              });
             }}
           >
             <Printer className="h-4 w-4" />

@@ -153,6 +153,9 @@ const PatientList: React.FC = () => {
     mutationFn: (id: string) => api.deletePatient(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["patients"] });
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["prescriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
       toast.success("Patient deleted successfully");
       setPatientToDelete(null);
     },
@@ -555,7 +558,7 @@ const PatientList: React.FC = () => {
       <AlertDialog open={!!patientToDelete} onOpenChange={(open) => !open && setPatientToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogTitle>Delete Patient Profile?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This will permanently delete the patient
               and all associated data (appointments, prescriptions, and invoices).

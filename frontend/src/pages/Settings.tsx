@@ -7,17 +7,28 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { api } from '@/lib/api';
+import { api, BackupSettings } from '@/lib/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Loader2, Mail, MessageCircle, Plug, ShieldCheck, User, Camera, Type, Stethoscope, Plus, Trash2, Pencil } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { DatabaseBackup, Loader2, Mail, MessageCircle, Plug, ShieldCheck, User, Camera, Type, Stethoscope, Plus, Trash2, Pencil } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
 const Settings: React.FC = () => {
-  const { user, setUser } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [profileData, setProfileData] = useState({
     name: user?.name || '',
     email: user?.email || '',
@@ -35,6 +46,13 @@ const Settings: React.FC = () => {
   const [waStatus, setWaStatus] = useState<{ status: string; qr: string | null }>({ status: 'disconnected', qr: null });
   const [isWaModalOpen, setIsWaModalOpen] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [backupSettings, setBackupSettings] = useState<BackupSettings>({
+    enabled: true,
+    intervalDays: 1,
+    startDate: null,
+    lastBackupAt: null,
+  });
+  const [isBackupSaving, setIsBackupSaving] = useState(false);
   
   const [doctors, setDoctors] = useState<any[]>([]);
   const [isDoctorDialogOpen, setIsDoctorDialogOpen] = useState(false);
@@ -46,6 +64,8 @@ const Settings: React.FC = () => {
     phone: '',
     email: ''
   });
+  const [deleteDoctorId, setDeleteDoctorId] = useState<string | null>(null);
+  const [isDeletingDoctor, setIsDeletingDoctor] = useState(false);
   
   const [typingSettings, setTypingSettings] = useState(() => {
     const saved = localStorage.getItem('smartcare_settings');
@@ -60,6 +80,7 @@ const Settings: React.FC = () => {
     document.title = 'Settings | Siara Dental';
     fetchWaStatus();
     fetchEmailStatus();
+    fetchBackupSettings();
     fetchDoctors();
   }, []);
 
@@ -95,13 +116,16 @@ const Settings: React.FC = () => {
   };
 
   const handleDoctorDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this doctor?')) return;
+    setIsDeletingDoctor(true);
     try {
       await api.deleteDoctor(id);
       toast.success('Doctor deleted');
       fetchDoctors();
+      setDeleteDoctorId(null);
     } catch (err) {
       toast.error('Failed to delete doctor');
+    } finally {
+      setIsDeletingDoctor(false);
     }
   };
 
@@ -121,6 +145,15 @@ const Settings: React.FC = () => {
       setEmailStatus(res);
     } catch (err) {
       console.error('Failed to fetch Email status', err);
+    }
+  };
+
+  const fetchBackupSettings = async () => {
+    try {
+      const res = await api.getBackupSettings();
+      setBackupSettings(res);
+    } catch (err) {
+      console.error('Failed to fetch backup settings', err);
     }
   };
 
@@ -160,7 +193,7 @@ const Settings: React.FC = () => {
 
       const res = await api.updateProfile({ avatar: publicUrl });
       setProfileData(prev => ({ ...prev, avatar: publicUrl }));
-      if (setUser) setUser(res.user);
+      await refreshUser();
       toast.success('Profile picture updated');
     } catch (err: any) {
       console.error('Upload failed', err);
@@ -176,7 +209,7 @@ const Settings: React.FC = () => {
         name: profileData.name,
         email: profileData.email
       });
-      if (setUser) setUser(res.user);
+      await refreshUser();
       toast.success('Profile updated');
     } catch (err) {
       toast.error('Failed to update profile');
@@ -242,6 +275,37 @@ const Settings: React.FC = () => {
     }
   };
 
+  const saveBackupSettings = async (
+    updates: Partial<Pick<BackupSettings, 'enabled' | 'intervalDays' | 'startDate'>>,
+    successMessage: string
+  ) => {
+    const nextInterval = updates.intervalDays ?? backupSettings.intervalDays;
+    if (nextInterval < 1 || nextInterval > 365) {
+      toast.error('Backup interval must be between 1 and 365 days');
+      return;
+    }
+
+    setIsBackupSaving(true);
+    try {
+      const res = await api.updateBackupSettings(updates);
+      setBackupSettings(res);
+      toast.success(successMessage);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update backup settings');
+    } finally {
+      setIsBackupSaving(false);
+    }
+  };
+
+  const handleBackupPresetChange = (value: string) => {
+    if (value === 'custom') return;
+    setBackupSettings((prev) => ({ ...prev, intervalDays: Number(value) }));
+  };
+
+  const backupPresetValue = ['1', '2', '3', '5', '7', '10'].includes(String(backupSettings.intervalDays))
+    ? String(backupSettings.intervalDays)
+    : 'custom';
+
   const integrationRows: Array<{ key: string; label: string; desc: string }> = [
     { key: 'sms', label: 'SMS gateway', desc: 'Transactional SMS for reminders' },
     { key: 'payments', label: 'Payments', desc: 'UPI/card payment links for invoices' },
@@ -259,8 +323,6 @@ const Settings: React.FC = () => {
         <TabsList className="w-full justify-start gap-1 overflow-x-auto whitespace-nowrap md:w-auto">
           <TabsTrigger value="profile" className="shrink-0">Profile</TabsTrigger>
           <TabsTrigger value="integrations" className="shrink-0">Integrations</TabsTrigger>
-          <TabsTrigger value="abha" className="shrink-0">ABHA</TabsTrigger>
-          <TabsTrigger value="external" className="shrink-0">External systems</TabsTrigger>
           <TabsTrigger value="typing" className="shrink-0">Typing</TabsTrigger>
           <TabsTrigger value="doctors" className="shrink-0">Doctors</TabsTrigger>
         </TabsList>
@@ -357,7 +419,7 @@ const Settings: React.FC = () => {
                   <div>
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-primary">WhatsApp Automation</p>
-                      <Badge variant={waStatus.status === 'connected' ? 'success' : 'secondary'} className="text-[10px] h-4">
+                      <Badge variant={waStatus.status === 'connected' ? 'default' : 'secondary'} className={cn("text-[10px] h-4", waStatus.status === 'connected' && "bg-emerald-500 hover:bg-emerald-600 text-white")}>
                         {waStatus.status.replace('_', ' ')}
                       </Badge>
                     </div>
@@ -390,6 +452,110 @@ const Settings: React.FC = () => {
                 />
               </div>
 
+              <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex gap-3">
+                    <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-700">
+                      <DatabaseBackup className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-medium text-emerald-800">Automated data backup</p>
+                        <Badge variant={backupSettings.enabled ? 'default' : 'secondary'} className={cn("h-4 text-[10px]", backupSettings.enabled && "bg-emerald-500 hover:bg-emerald-600 text-white")}>
+                          {backupSettings.enabled ? 'enabled' : 'off'}
+                        </Badge>
+                      </div>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Email a full database backup at 2:00 AM IST on the selected schedule.
+                      </p>
+                      {backupSettings.lastBackupAt && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Last sent: {new Date(backupSettings.lastBackupAt).toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {isBackupSaving && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
+                    <Switch
+                      checked={backupSettings.enabled}
+                      disabled={isBackupSaving}
+                      onCheckedChange={(checked) => saveBackupSettings(
+                        { enabled: checked },
+                        `Automated backup ${checked ? 'enabled' : 'disabled'}`
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-[1fr_120px_1fr_auto] md:items-end">
+                  <div className="space-y-2">
+                    <Label htmlFor="backup-preset">Frequency</Label>
+                    <Select
+                      value={backupPresetValue}
+                      onValueChange={handleBackupPresetChange}
+                      disabled={!backupSettings.enabled || isBackupSaving}
+                    >
+                      <SelectTrigger id="backup-preset" className="bg-background">
+                        <SelectValue placeholder="Select frequency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">Every day</SelectItem>
+                        <SelectItem value="2">Every 2 days</SelectItem>
+                        <SelectItem value="3">Every 3 days</SelectItem>
+                        <SelectItem value="5">Every 5 days</SelectItem>
+                        <SelectItem value="7">Every 7 days</SelectItem>
+                        <SelectItem value="10">Every 10 days</SelectItem>
+                        <SelectItem value="custom">Custom</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="backup-interval">Days</Label>
+                    <Input
+                      id="backup-interval"
+                      type="number"
+                      autoComplete="off"
+                      min={1}
+                      max={365}
+                      value={backupSettings.intervalDays}
+                      disabled={!backupSettings.enabled || isBackupSaving}
+                      onChange={(e) => setBackupSettings((prev) => ({
+                        ...prev,
+                        intervalDays: Math.max(1, Number(e.target.value) || 1),
+                      }))}
+                      className="bg-background"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="backup-start-date">Start date</Label>
+                    <Input
+                      id="backup-start-date"
+                      type="date"
+                      value={backupSettings.startDate || ''}
+                      disabled={!backupSettings.enabled || isBackupSaving}
+                      onChange={(e) => setBackupSettings((prev) => ({
+                        ...prev,
+                        startDate: e.target.value || null,
+                      }))}
+                      className="bg-background"
+                    />
+                  </div>
+                  <Button
+                    disabled={!backupSettings.enabled || isBackupSaving}
+                    onClick={() => saveBackupSettings(
+                      {
+                        intervalDays: backupSettings.intervalDays,
+                        startDate: backupSettings.startDate,
+                      },
+                      'Backup schedule saved'
+                    )}
+                  >
+                    Save
+                  </Button>
+                </div>
+              </div>
+
               {integrationRows.map((i) => (
                 <div key={i.key} className="flex items-start justify-between gap-4 rounded-lg border border-border/50 bg-secondary/15 p-4">
                   <div>
@@ -409,69 +575,6 @@ const Settings: React.FC = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="abha" className="mt-4">
-          <Card className="border-border/50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-heading flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4" /> ABHA integration
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-lg border border-border/50 bg-secondary/15 p-4">
-                <p className="font-medium">Status</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  ABHA (Ayushman Bharat Health Account) workflows for ABDM compliance.
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Badge variant="secondary" className="text-xs">Consent</Badge>
-                  <Badge variant="secondary" className="text-xs">ABDM APIs</Badge>
-                  <Badge variant="outline" className="text-xs">Not configured</Badge>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>Client ID</Label>
-                  <Input placeholder="ABDM client id" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Client secret</Label>
-                  <Input placeholder="ABDM client secret" type="password" />
-                </div>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => toast.message('Connection test', { description: 'Validating ABDM credentials...' })}>
-                  Test connection
-                </Button>
-                <Button onClick={() => toast.success('ABHA settings saved')}>Save</Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="external" className="mt-4">
-          <Card className="border-border/50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-heading">External systems</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {[
-                { name: 'LIS (Lab Information System)', desc: 'Send orders, receive results' },
-                { name: 'PACS (Imaging)', desc: 'View imaging studies (DICOM) via links' },
-                { name: 'Accounting', desc: 'Export invoices to external accounting tools' },
-              ].map((x) => (
-                <div key={x.name} className="rounded-lg border border-border/50 bg-secondary/15 p-4">
-                  <p className="font-medium">{x.name}</p>
-                  <p className="text-sm text-muted-foreground mt-1">{x.desc}</p>
-                  <div className="mt-3 flex justify-end">
-                    <Button variant="outline" size="sm" onClick={() => toast.message('Configure', { description: x.name })}>
-                      Configure
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </TabsContent>
         <TabsContent value="typing" className="mt-4">
           <Card className="border-border/50">
             <CardHeader className="pb-2">
@@ -551,7 +654,7 @@ const Settings: React.FC = () => {
                         }}>
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDoctorDelete(doc.id)}>
+                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setDeleteDoctorId(doc.id)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -672,6 +775,26 @@ const Settings: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+      <AlertDialog open={!!deleteDoctorId} onOpenChange={(open) => !open && setDeleteDoctorId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Doctor?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this doctor? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeletingDoctor}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteDoctorId && handleDoctorDelete(deleteDoctorId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeletingDoctor}
+            >
+              {isDeletingDoctor ? "Deleting..." : "Delete Doctor"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 };

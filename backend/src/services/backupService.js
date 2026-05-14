@@ -1,5 +1,7 @@
 import cron from 'node-cron';
-import { ZipArchive } from 'archiver';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const archiver = require('archiver');
 import { Resend } from 'resend';
 import fs from 'fs';
 import path from 'path';
@@ -10,24 +12,106 @@ import { config } from '../config/env.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const BACKUP_SETTINGS_KEY = 'backup_schedule';
+const DEFAULT_BACKUP_SETTINGS = {
+    enabled: true,
+    intervalDays: 1,
+    startDate: null,
+    lastBackupAt: null,
+};
+
+const getIstDateString = (date = new Date()) => {
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    }).format(date);
+};
+
+const parseDateOnly = (dateString) => {
+    if (!dateString || !/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return null;
+    const [year, month, day] = dateString.split('-').map(Number);
+    return Date.UTC(year, month - 1, day);
+};
+
+export const normalizeBackupSettings = (settings = {}) => {
+    const intervalDays = Number.parseInt(settings.intervalDays, 10);
+    const startDate = typeof settings.startDate === 'string' && parseDateOnly(settings.startDate)
+        ? settings.startDate
+        : DEFAULT_BACKUP_SETTINGS.startDate;
+
+    return {
+        enabled: typeof settings.enabled === 'boolean' ? settings.enabled : DEFAULT_BACKUP_SETTINGS.enabled,
+        intervalDays: Number.isFinite(intervalDays) ? Math.min(Math.max(intervalDays, 1), 365) : DEFAULT_BACKUP_SETTINGS.intervalDays,
+        startDate,
+        lastBackupAt: typeof settings.lastBackupAt === 'string' ? settings.lastBackupAt : DEFAULT_BACKUP_SETTINGS.lastBackupAt,
+    };
+};
+
+export const getBackupSettings = async () => {
+    const result = await dbService.query('SELECT value FROM app_settings WHERE key = $1', [BACKUP_SETTINGS_KEY]);
+    if (result.rows.length === 0) {
+        return normalizeBackupSettings(DEFAULT_BACKUP_SETTINGS);
+    }
+
+    return normalizeBackupSettings(result.rows[0].value);
+};
+
+export const updateBackupSettings = async (updates = {}) => {
+    const current = await getBackupSettings();
+    const next = normalizeBackupSettings({ ...current, ...updates });
+    if (next.enabled && next.intervalDays > 1 && !next.startDate) {
+        next.startDate = getIstDateString();
+    }
+
+    const result = await dbService.query(
+        `INSERT INTO app_settings (key, value, updated_at)
+         VALUES ($1, $2::jsonb, CURRENT_TIMESTAMP)
+         ON CONFLICT (key)
+         DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP
+         RETURNING value`,
+        [BACKUP_SETTINGS_KEY, JSON.stringify(next)]
+    );
+
+    return normalizeBackupSettings(result.rows[0].value);
+};
+
+export const isBackupDue = (settings, date = new Date()) => {
+    const normalized = normalizeBackupSettings(settings);
+    if (!normalized.enabled) return false;
+
+    const today = getIstDateString(date);
+    const startDate = normalized.startDate || today;
+    const todayTime = parseDateOnly(today);
+    const startTime = parseDateOnly(startDate);
+
+    if (!todayTime || !startTime || todayTime < startTime) return false;
+
+    const daysSinceStart = Math.floor((todayTime - startTime) / (24 * 60 * 60 * 1000));
+    return daysSinceStart % normalized.intervalDays === 0;
+};
+
+export const runScheduledBackupIfDue = async () => {
+    const settings = await getBackupSettings();
+    if (!isBackupDue(settings)) {
+        console.log(`📦 Automated backup skipped. Enabled: ${settings.enabled}, interval: ${settings.intervalDays} day(s), start: ${settings.startDate || 'today'}`);
+        return;
+    }
+
+    console.log(`📦 Starting scheduled database backup. Interval: ${settings.intervalDays} day(s)`);
+    await performFullBackup();
+    await updateBackupSettings({ lastBackupAt: new Date().toISOString() });
+};
+
 export const initBackupService = () => {
-    console.log('🔧 Initializing daily backup service...');
-    console.log('⏰ Backups will run at 12:00 AM IST daily');
-
-    cron.schedule('0 0 * * *', async () => {
-        console.log('📦 Starting daily automated database backup...');
-        await performFullBackup();
-    }, {
-        timezone: 'Asia/Kolkata'
-    });
-
-    // Appointment reminders — 9 AM daily IST
-    cron.schedule('0 9 * * *', async () => {
-        console.log('📅 Sending appointment reminders for tomorrow...');
-        await sendAppointmentReminders();
-    }, {
-        timezone: 'Asia/Kolkata'
-    });
+    // ─────────────────────────────────────────────────────────────────────
+    // NOTE: Cron scheduling has been migrated to BullMQ repeatable jobs.
+    // - Daily backups (2 AM IST) → backup.queue.js + backup.worker.js
+    // - Appointment reminders (9 AM IST) → notification.queue.js + notification.worker.js
+    // This function now only logs startup confirmation.
+    // ─────────────────────────────────────────────────────────────────────
+    console.log('🔧 Backup service initialized (cron via BullMQ repeatables)');
 };
 
 export const sendAppointmentReminders = async () => {
@@ -82,14 +166,17 @@ export const performFullBackup = async () => {
             fs.mkdirSync(tempDir, { recursive: true });
         }
 
-        console.log('📋 Fetching all database tables...');
-        const dbData = await dbService.read(); // Fetches all tables via PG
-        const tables = Object.keys(dbData);
-        console.log(`✅ Found ${tables.length} tables`);
+        // H9: Process one table at a time to avoid loading entire DB into memory
+        const tables = [
+            'users', 'patients', 'doctors', 'appointments',
+            'invoices', 'prescriptions', 'medicines', 'prescription_templates',
+            'activity_logs', 'dental_charts', 'treatment_plans', 'diagnoses', 'reports', 'clinical_procedures'
+        ];
+        console.log(`✅ Processing ${tables.length} tables (streaming)`);
 
         for (const tableName of tables) {
             console.log(`  📄 Exporting ${tableName}...`);
-            const data = dbData[tableName];
+            const data = await dbService.streamTableRows(tableName);
             const filePath = path.join(tempDir, `${tableName}.json`);
             
             fs.writeFileSync(
@@ -105,7 +192,7 @@ export const performFullBackup = async () => {
         console.log(`📦 Creating ZIP archive: ${zipFile}`);
         
         const output = fs.createWriteStream(zipFile);
-        const archive = new ZipArchive({ zlib: { level: 9 } });
+        const archive = archiver('zip', { zlib: { level: 9 } });
 
         await new Promise((resolve, reject) => {
             output.on('finish', resolve);

@@ -217,22 +217,14 @@ const Prescriptions: React.FC = () => {
           <Button
             variant="outline"
             onClick={() => {
-              if (!patient) {
-                toast.error("Select a patient to generate PDF");
+              if (!patient || !editId) {
+                toast.error("Save the prescription before downloading PDF");
                 return;
               }
-              pdfService.generatePrescriptionPDF(patient, {
-                id: editId || "DRAFT",
-                patientId,
-                patientName: patient.name,
-                doctorName,
-                date,
-                medicines,
-                notes,
-                chiefComplaint,
-                diagnosis,
-                nextVisitDate,
-                treatmentPlan
+              toast.promise(api.downloadPrescription(editId), {
+                loading: 'Preparing PDF...',
+                success: 'Downloaded!',
+                error: 'Failed to download'
               });
             }}
           >
@@ -485,6 +477,7 @@ const Prescriptions: React.FC = () => {
                       <div className="col-span-12 sm:col-span-4">
                         <Input
                           type="number"
+                          autoComplete="off"
                           placeholder="Cost"
                           value={phase.estimatedCost || ""}
                           onChange={(e) => setTreatmentPlan(treatmentPlan.map((p, i) => i === idx ? { ...p, estimatedCost: Number(e.target.value) } : p))}

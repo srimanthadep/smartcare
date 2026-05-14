@@ -8,6 +8,7 @@ interface AuthContextType {
   login: (username: string, password: string, role: UserRole) => Promise<void>;
   signup: (name: string, email: string, username: string, password: string, role: UserRole) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const USER_STORAGE_KEY = "smartdental_user";
@@ -18,6 +19,7 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => {},
   signup: async () => {},
   logout: () => {},
+  refreshUser: async () => {},
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -42,6 +44,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (response.token) {
       localStorage.setItem("smartcare_token", response.token);
     }
+    // Show install prompt again on explicit new login
+    localStorage.removeItem("pwa-prompt-dismissed");
   };
 
   const logout = useCallback(async () => {
@@ -51,15 +55,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem("smartcare_token");
   }, []);
 
-  useEffect(() => {
-    api.me().then(({ user: updatedUser }) => {
+  const refreshUser = useCallback(async () => {
+    try {
+      const { user: updatedUser } = await api.me();
       setUser(updatedUser);
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
-    }).catch(() => {
+    } catch {
       setUser(null);
       localStorage.removeItem(USER_STORAGE_KEY);
-    });
+    }
   }, []);
+
+  useEffect(() => {
+    refreshUser();
+  }, [refreshUser]);
 
   const value = useMemo(
     () => ({
@@ -68,8 +77,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       login,
       signup,
       logout,
+      refreshUser,
     }),
-    [login, signup, logout, user],
+    [login, signup, logout, refreshUser, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -4,6 +4,7 @@ import {
   Bot,
   CalendarClock,
   CalendarDays,
+  CalendarPlus,
   FileText,
   LayoutDashboard,
   Menu,
@@ -26,20 +27,21 @@ import {
 
 const primaryTabs = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard, roles: ["doctor", "admin"] },
-  { title: "Patients", url: "/patients", icon: Users, roles: ["doctor"] },
-  { title: "Appointments", url: "/appointments", icon: CalendarDays, roles: ["doctor"] },
-  { title: "Prescriptions", url: "/prescriptions", icon: FileText, roles: ["doctor"] },
+  { title: "Patients", url: "/patients", icon: Users, roles: ["doctor", "admin"] },
+  { title: "Appointments", url: "/appointments", icon: CalendarDays, roles: ["doctor", "admin"] },
+  { title: "Prescriptions", url: "/prescriptions", icon: FileText, roles: ["doctor", "admin"] },
 ];
 
 const moreTabs = [
   { title: "Billing", url: "/billing", icon: Receipt, roles: ["doctor", "admin"] },
   { title: "Expenses", url: "/expenses", icon: Wallet, roles: ["doctor", "admin"] },
-  { title: "Pharmacy", url: "/pharmacy", icon: Pill, roles: ["doctor"] },
+  { title: "Pharmacy", url: "/pharmacy", icon: Pill, roles: ["doctor", "admin"] },
   { title: "Analytics", url: "/analytics", icon: Activity, roles: ["doctor", "admin"] },
-  { title: "AI Assistant", url: "/ai", icon: Bot, roles: ["doctor"] },
+  { title: "AI Assistant", url: "/ai", icon: Bot, roles: ["doctor", "admin"] },
   { title: "Settings", url: "/settings", icon: Settings, roles: ["doctor", "admin"] },
   { title: "Activity Logs", url: "/logs", icon: Activity, roles: ["admin"] },
-  { title: "Recall System", url: "/recalls", icon: CalendarClock, roles: ["doctor"] },
+  { title: "Recall System", url: "/recalls", icon: CalendarClock, roles: ["doctor", "admin"] },
+  { title: "Public Booking", url: "/book", icon: CalendarPlus, roles: ["doctor", "admin"] },
 ];
 
 const MobileBottomNav: React.FC = () => {

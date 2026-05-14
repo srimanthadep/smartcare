@@ -289,6 +289,7 @@ const Pharmacy: React.FC = () => {
                       <TableCell>
                         <Input
                           type="number"
+                          autoComplete="off"
                           value={item.stock}
                           onChange={(e) => patchInventory(item.id, "stock", Number(e.target.value))}
                           className={low ? "border-warning/50" : ""}
@@ -297,6 +298,7 @@ const Pharmacy: React.FC = () => {
                       <TableCell>
                         <Input
                           type="number"
+                          autoComplete="off"
                           value={item.minStock}
                           onChange={(e) =>
                             patchInventory(item.id, "minStock", Number(e.target.value))

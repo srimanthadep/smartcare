@@ -11,6 +11,9 @@ import { initBackupService } from './src/services/backupService.js';
 import { dbService } from './src/services/db.service.js';
 import { initSocket } from './src/services/socket.service.js';
 import { runMigrations } from './src/services/migrationService.js';
+import { verifyRedisConnection, closeRedisConnection } from './src/config/redis.js';
+import { initQueues } from './src/queues/index.js';
+import { startWorkers, stopWorkers } from './src/workers/index.js';
 
 import rateLimit from 'express-rate-limit';
 
@@ -36,7 +39,7 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "https:"],
       connectSrc: ["'self'", ...config.CORS_ORIGINS],
@@ -94,16 +97,18 @@ app.use((req, res) => {
 // Global Error Handler
 app.use(errorHandler);
 
-initBackupService();
-
-// DB health check with retry — if Supabase is briefly unavailable on startup, retry before crashing
+// ─────────────────────────────────────────────────────────────────────────────
+// Server Startup — DB → Redis → Queues → Workers → Listen
+// ─────────────────────────────────────────────────────────────────────────────
 const startServer = async () => {
+  // 1. Database connection with retry
   let retries = 5;
   while (retries--) {
     try {
       await dbService.query('SELECT 1');
       console.log('✅ Database connection verified');
       await runMigrations();
+      initBackupService();
       break;
     } catch (e) {
       if (!retries) {
@@ -115,14 +120,51 @@ const startServer = async () => {
     }
   }
 
+  // 2. Redis + BullMQ initialization (non-fatal if unavailable)
+  const redisOk = await verifyRedisConnection();
+  if (redisOk) {
+    await initQueues();
+    startWorkers();
+  }
+
+  // 3. Start HTTP server
   server.listen(config.PORT, () => {
     console.log(`🚀 Siara Dental SaaS Backend running in ${config.NODE_ENV} mode`);
     console.log(`🔗 API Endpoint: http://localhost:${config.PORT}/api`);
+    if (redisOk) {
+      console.log(`📊 Queue Dashboard: http://localhost:${config.PORT}/api/admin/queues`);
+    }
     console.log(`🛡️  Allowed CORS Origins: ${config.CORS_ORIGINS.join(', ')}`);
   });
 };
 
 startServer();
 
-// Keep the process alive
-setInterval(() => {}, 1000 * 60 * 60);
+// ─────────────────────────────────────────────────────────────────────────────
+// Graceful Shutdown — Stop workers → close Redis → close HTTP server
+// ─────────────────────────────────────────────────────────────────────────────
+const gracefulShutdown = async (signal) => {
+  console.log(`\n🛑 Received ${signal}. Starting graceful shutdown...`);
+
+  try {
+    await stopWorkers();
+    await closeRedisConnection();
+    server.close(() => {
+      console.log('✅ HTTP server closed');
+      process.exit(0);
+    });
+
+    // Force exit after 10 seconds if graceful shutdown hangs
+    setTimeout(() => {
+      console.error('⚠️  Forced exit after 10s timeout');
+      process.exit(1);
+    }, 10000);
+  } catch (err) {
+    console.error('Error during shutdown:', err);
+    process.exit(1);
+  }
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+

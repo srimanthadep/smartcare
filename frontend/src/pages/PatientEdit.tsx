@@ -13,11 +13,23 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Trash2 } from "lucide-react";
 
 const PatientEdit: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
   const [form, setForm] = useState({
     name: "",
@@ -90,6 +102,18 @@ const PatientEdit: React.FC = () => {
     },
   });
 
+  const deletePatient = useMutation({
+    mutationFn: (patientId: string) => api.deletePatient(patientId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["patients"] });
+      toast.success("Patient deleted successfully");
+      navigate("/patients");
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : "Failed to delete patient");
+    },
+  });
+
   const updateField = (key: string, value: any) => {
     setForm((current) => ({ ...current, [key]: value }));
   };
@@ -131,6 +155,7 @@ const PatientEdit: React.FC = () => {
   }
 
   return (
+    <>
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-4xl space-y-6 pb-12">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -143,6 +168,9 @@ const PatientEdit: React.FC = () => {
           </div>
         </div>
         <div className="hidden gap-2 md:flex">
+          <Button variant="destructive" onClick={() => setShowDeleteDialog(true)}>
+            <Trash2 className="mr-2 h-4 w-4" /> Delete
+          </Button>
           <Button variant="outline" onClick={() => navigate(-1)}>Cancel</Button>
           <Button onClick={handleSubmit} disabled={updatePatient.isPending}>
             <Save className="mr-2 h-4 w-4" /> {updatePatient.isPending ? "Saving..." : "Save Changes"}
@@ -177,11 +205,11 @@ const PatientEdit: React.FC = () => {
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="name">Full Name</Label>
-                    <Input id="name" value={form.name} onChange={(e) => updateField("name", e.target.value)} required />
+                    <Input id="name" name="name" autocomplete="name" value={form.name} onChange={(e) => updateField("name", e.target.value)} required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="age">Age</Label>
-                    <Input id="age" type="number" value={form.age} onChange={(e) => updateField("age", parseInt(e.target.value))} required />
+                    <Input id="age" name="age" type="number" autoComplete="off" value={form.age} onChange={(e) => updateField("age", parseInt(e.target.value))} required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="gender">Gender</Label>
@@ -210,17 +238,17 @@ const PatientEdit: React.FC = () => {
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="phone" className="flex items-center gap-2"><Phone className="h-3.5 w-3.5" /> Phone Number</Label>
-                    <Input id="phone" value={form.phone} onChange={(e) => updateField("phone", e.target.value)} required />
+                    <Input id="phone" name="phone" autocomplete="tel" value={form.phone} onChange={(e) => updateField("phone", e.target.value)} required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email" className="flex items-center gap-2"><Mail className="h-3.5 w-3.5" /> Email Address</Label>
-                    <Input id="email" type="email" value={form.email} onChange={(e) => updateField("email", e.target.value)} />
+                    <Input id="email" name="email" autocomplete="email" type="email" value={form.email} onChange={(e) => updateField("email", e.target.value)} />
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="address" className="flex items-center gap-2"><MapPin className="h-3.5 w-3.5" /> Residential Address</Label>
-                  <Textarea id="address" value={form.address} onChange={(e) => updateField("address", e.target.value)} rows={3} />
+                  <Textarea id="address" name="address" autocomplete="street-address" value={form.address} onChange={(e) => updateField("address", e.target.value)} rows={3} />
                 </div>
 
                 <div className="space-y-2">
@@ -325,12 +353,37 @@ const PatientEdit: React.FC = () => {
         </form>
       </Tabs>
       <div className="fixed bottom-16 left-0 right-0 z-40 flex gap-2 border-t border-border bg-background p-3 md:hidden">
+        <Button variant="destructive" size="icon" onClick={() => setShowDeleteDialog(true)}>
+          <Trash2 className="h-4 w-4" />
+        </Button>
         <Button variant="outline" className="flex-1" onClick={() => navigate(-1)}>Cancel</Button>
         <Button className="flex-1" onClick={handleSubmit} disabled={updatePatient.isPending}>
           <Save className="mr-2 h-4 w-4" /> {updatePatient.isPending ? "Saving..." : "Save"}
         </Button>
       </div>
     </motion.div>
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Patient Profile?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the patient profile
+              for <span className="font-bold text-foreground">{form.name}</span> and all associated clinical data, 
+              prescriptions, and billing history.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deletePatient.mutate(id!)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletePatient.isPending ? "Deleting..." : "Delete Patient"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 

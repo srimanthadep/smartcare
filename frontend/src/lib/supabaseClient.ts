@@ -4,13 +4,8 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  // In development we log a warning so you remember to configure env vars.
-  // The rest of the app will gracefully fall back to mock data.
-  console.warn("Supabase env vars are missing. Falling back to mock appointments.");
+  throw new Error("Supabase environment variables (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY) are missing. Check your .env file.");
 }
 
-export const supabase = createClient(
-  supabaseUrl ?? "https://example.supabase.co",
-  supabaseAnonKey ?? "anon-key-placeholder",
-);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 

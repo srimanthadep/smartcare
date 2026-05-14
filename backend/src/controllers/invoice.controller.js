@@ -1,7 +1,8 @@
 import { dbService } from '../services/db.service.js';
-import { emailService } from '../services/email.service.js';
-import { whatsappService } from '../services/whatsapp.service.js';
 import { emitEvent, SOCKET_EVENTS } from '../services/socket.service.js';
+import { addEmailJob, EMAIL_JOBS } from '../queues/email.queue.js';
+import { addWhatsAppJob, WHATSAPP_JOBS } from '../queues/whatsapp.queue.js';
+import { pdfService } from '../services/pdf.service.js';
 
 export const getInvoices = async (req, res, next) => {
   try {
@@ -19,7 +20,15 @@ export const getInvoices = async (req, res, next) => {
       query += ` AND i.patient_id = $${params.length}`;
     }
 
-    query += ' ORDER BY i.date DESC, i.id DESC';
+    // H4: Pagination
+    const limit = parseInt(req.query.limit) || 200;
+    const page = parseInt(req.query.page) || 1;
+    const offset = (page - 1) * limit;
+
+    params.push(limit);
+    query += ` ORDER BY i.date DESC, i.id DESC LIMIT $${params.length}`;
+    params.push(offset);
+    query += ` OFFSET $${params.length}`;
     const result = await dbService.query(query, params);
     res.json(dbService.mapRows('invoices', result.rows));
   } catch (error) {
@@ -42,17 +51,15 @@ export const createInvoice = async (req, res, next) => {
     const result = await dbService.query(query, params);
     const invoice = dbService.mapRows('invoices', result.rows)[0];
 
-    // Send invoice email
+    // Fetch patient and queue notifications
     const patientRes = await dbService.query('SELECT * FROM patients WHERE id = $1', [patientId]);
     const patient = dbService.mapRows('patients', patientRes.rows)[0];
 
     if (patient && patient.email) {
-      emailService.sendInvoiceEmail(patient, invoice).catch(err => console.error('Invoice email failed:', err));
+      addEmailJob(EMAIL_JOBS.INVOICE, { patient, invoice });
     }
-
-    // Send invoice WhatsApp
     if (patient) {
-      whatsappService.sendInvoice(patient, invoice).catch(err => console.error('WhatsApp failed:', err));
+      addWhatsAppJob(WHATSAPP_JOBS.INVOICE, { patient, invoice });
     }
 
     emitEvent(SOCKET_EVENTS.INVOICE_UPDATED, invoice);
@@ -76,15 +83,19 @@ export const updateInvoice = async (req, res, next) => {
     const params = [id];
     let i = 2;
 
-    const mapping = { patientId: 'patient_id', paidAmount: 'paid_amount' };
-
-    const ALLOWED_COLUMNS = ['patient_id', 'date', 'items', 'total', 'status', 'paid_amount', 'payments'];
+    // C4: Safe column mapping — only hardcoded strings ever reach SQL
+    const COLUMN_MAP = {
+      patientId: 'patient_id', patient_id: 'patient_id',
+      date: 'date', items: 'items', total: 'total',
+      status: 'status', paidAmount: 'paid_amount', paid_amount: 'paid_amount',
+      payments: 'payments',
+    };
 
     for (const [key, value] of Object.entries(fields)) {
-      const dbKey = mapping[key] || key;
-      if (!ALLOWED_COLUMNS.includes(dbKey)) continue;
+      const dbCol = COLUMN_MAP[key];
+      if (!dbCol) continue;
 
-      updates.push(`${dbKey} = $${i}`);
+      updates.push(`${dbCol} = $${i}`);
       params.push(['items', 'payments'].includes(key) ? JSON.stringify(value) : value);
       i++;
     }
@@ -93,16 +104,15 @@ export const updateInvoice = async (req, res, next) => {
     const result = await dbService.query(query, params);
     const invoice = dbService.mapRows('invoices', result.rows)[0];
 
-    // Send payment confirmation email if status changed to Paid
+    // Send payment confirmation if status changed to Paid (queued)
     if (oldInvoice.status !== 'Paid' && invoice.status === 'Paid') {
       const patientRes = await dbService.query('SELECT * FROM patients WHERE id = $1', [invoice.patientId]);
       const patient = dbService.mapRows('patients', patientRes.rows)[0];
       if (patient && patient.email) {
-        emailService.sendInvoiceEmail(patient, invoice).catch(err => console.error('Email error:', err));
+        addEmailJob(EMAIL_JOBS.INVOICE, { patient, invoice });
       }
-      // Send invoice/payment WhatsApp
       if (patient) {
-        whatsappService.sendInvoice(patient, invoice).catch(err => console.error('WhatsApp failed:', err));
+        addWhatsAppJob(WHATSAPP_JOBS.INVOICE, { patient, invoice });
       }
     }
 
@@ -119,6 +129,35 @@ export const deleteInvoice = async (req, res, next) => {
     await dbService.query('UPDATE invoices SET is_deleted = TRUE WHERE id = $1', [id]);
     emitEvent(SOCKET_EVENTS.INVOICE_UPDATED, { id, deleted: true });
     res.status(204).end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const downloadInvoice = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const invRes = await dbService.query(`
+      SELECT i.*, p.name as patient_name, p.phone as patient_phone, p.age, p.gender
+      FROM invoices i
+      JOIN patients p ON i.patient_id = p.id
+      WHERE i.id = $1
+    `, [id]);
+    
+    if (invRes.rows.length === 0) return res.status(404).json({ message: 'Invoice not found' });
+    const invoice = dbService.mapRows('invoices', invRes.rows)[0];
+    const patient = {
+      id: invoice.patientId,
+      name: invoice.patientName,
+      phone: invoice.patientPhone,
+      age: invoice.age,
+      gender: invoice.gender
+    };
+
+    const pdfBuffer = await pdfService.generateInvoicePDF(patient, invoice);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=Invoice_${id}.pdf`);
+    res.send(pdfBuffer);
   } catch (error) {
     next(error);
   }

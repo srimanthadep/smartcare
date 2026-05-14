@@ -10,10 +10,27 @@ import {
   UserRole,
   ActivityLog,
   ToothChart,
+  ToothChart,
   ToothRecord,
+  TreatmentPlanTemplate,
+  TreatmentPlan,
+  TreatmentPhase,
+  Expense,
+  Doctor,
+  RecallEntry,
+  Procedure,
+  PrescriptionTemplate,
+  QueueStatsResponse,
 } from "@/types";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
+export type BackupSettings = {
+  enabled: boolean;
+  intervalDays: number;
+  startDate: string | null;
+  lastBackupAt: string | null;
+};
+
 type RequestOptions = RequestInit & {
   skipAuth?: boolean;
 };
@@ -171,6 +188,25 @@ export const api = {
     });
   },
 
+  async downloadInvoice(id: string) {
+    const token = localStorage.getItem("smartcare_token");
+    const response = await fetch(`${API_BASE_URL}/api/invoices/${id}/download`, {
+      headers: {
+        "Authorization": `Bearer ${token}`
+      }
+    });
+    if (!response.ok) throw new Error("Failed to download invoice");
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Invoice_${id}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  },
+
   getPrescriptions(patientId?: string) {
     return apiFetch<Prescription[]>(`/api/prescriptions${buildQuery({ patientId })}`);
   },
@@ -194,6 +230,25 @@ export const api = {
       method: "DELETE",
     });
   },
+
+  async downloadPrescription(id: string) {
+    const token = localStorage.getItem("smartcare_token");
+    const response = await fetch(`${API_BASE_URL}/api/prescriptions/${id}/download`, {
+      headers: {
+        "Authorization": `Bearer ${token}`
+      }
+    });
+    if (!response.ok) throw new Error("Failed to download prescription");
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Prescription_${id}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  },
   
   getActivityLogs() {
     return apiFetch<ActivityLog[]>("/api/activity-logs");
@@ -214,7 +269,7 @@ export const api = {
     return apiFetch<import("@/types").MedicineSearchItem[]>(`/api/medicines/search${buildQuery({ q: query })}`);
   },
 
-  generateAIPrescription(payload: any) {
+  generateAIPrescription(payload: Partial<Prescription>) {
     return apiFetch<{ data: Prescription }>("/api/ai/generate-prescription", {
       method: "POST",
       body: JSON.stringify(payload),
@@ -241,7 +296,7 @@ export const api = {
   },
 
   generateAITreatmentPlan(findings: string) {
-    return apiFetch<{ data: any }>("/api/ai/generate-treatment-plan", {
+    return apiFetch<{ data: TreatmentPlanTemplate }>("/api/ai/generate-treatment-plan", {
       method: "POST",
       body: JSON.stringify({ findings }),
     });
@@ -255,18 +310,18 @@ export const api = {
   },
 
   getTemplates() {
-    return apiFetch<any[]>("/api/prescription-templates");
+    return apiFetch<PrescriptionTemplate[]>("/api/prescription-templates");
   },
 
-  createTemplate(payload: any) {
-    return apiFetch<any>("/api/prescription-templates", {
+  createTemplate(payload: Partial<PrescriptionTemplate>) {
+    return apiFetch<PrescriptionTemplate>("/api/prescription-templates", {
       method: "POST",
       body: JSON.stringify(payload),
     });
   },
 
-  updateTemplate(id: string, payload: any) {
-    return apiFetch<any>(`/api/prescription-templates/${id}`, {
+  updateTemplate(id: string, payload: Partial<PrescriptionTemplate>) {
+    return apiFetch<PrescriptionTemplate>(`/api/prescription-templates/${id}`, {
       method: "PATCH",
       body: JSON.stringify(payload),
     });
@@ -279,18 +334,18 @@ export const api = {
   },
 
   getTreatmentPlanTemplates() {
-    return apiFetch<any[]>("/api/treatment-plan-templates");
+    return apiFetch<TreatmentPlanTemplate[]>("/api/treatment-plan-templates");
   },
 
-  createTreatmentPlanTemplate(payload: any) {
-    return apiFetch<any>("/api/treatment-plan-templates", {
+  createTreatmentPlanTemplate(payload: Partial<TreatmentPlanTemplate>) {
+    return apiFetch<TreatmentPlanTemplate>("/api/treatment-plan-templates", {
       method: "POST",
       body: JSON.stringify(payload),
     });
   },
 
-  updateTreatmentPlanTemplate(id: string, payload: any) {
-    return apiFetch<any>(`/api/treatment-plan-templates/${id}`, {
+  updateTreatmentPlanTemplate(id: string, payload: Partial<TreatmentPlanTemplate>) {
+    return apiFetch<TreatmentPlanTemplate>(`/api/treatment-plan-templates/${id}`, {
       method: "PATCH",
       body: JSON.stringify(payload),
     });
@@ -303,18 +358,18 @@ export const api = {
   },
 
   getProcedures() {
-    return apiFetch<import("@/types").Procedure[]>("/api/procedures");
+    return apiFetch<Procedure[]>("/api/procedures");
   },
 
-  createProcedure(payload: any) {
-    return apiFetch<import("@/types").Procedure>("/api/procedures", {
+  createProcedure(payload: Partial<Procedure>) {
+    return apiFetch<Procedure>("/api/procedures", {
       method: "POST",
       body: JSON.stringify(payload),
     });
   },
 
-  updateProcedure(id: string, payload: any) {
-    return apiFetch<import("@/types").Procedure>(`/api/procedures/${id}`, {
+  updateProcedure(id: string, payload: Partial<Procedure>) {
+    return apiFetch<Procedure>(`/api/procedures/${id}`, {
       method: "PATCH",
       body: JSON.stringify(payload),
     });
@@ -327,18 +382,18 @@ export const api = {
   },
 
   getTreatmentPlans(patientId: string) {
-    return apiFetch<any[]>(`/api/treatment-plans${buildQuery({ patientId })}`);
+    return apiFetch<TreatmentPlan[]>(`/api/treatment-plans${buildQuery({ patientId })}`);
   },
 
-  createTreatmentPlan(payload: any) {
-    return apiFetch<any>("/api/treatment-plans", {
+  createTreatmentPlan(payload: Partial<TreatmentPlan>) {
+    return apiFetch<TreatmentPlan>("/api/treatment-plans", {
       method: "POST",
       body: JSON.stringify(payload),
     });
   },
 
-  updateTreatmentPlan(id: string, payload: any) {
-    return apiFetch<any>(`/api/treatment-plans/${id}`, {
+  updateTreatmentPlan(id: string, payload: Partial<TreatmentPlan>) {
+    return apiFetch<TreatmentPlan>(`/api/treatment-plans/${id}`, {
       method: "PATCH",
       body: JSON.stringify(payload),
     });
@@ -381,19 +436,30 @@ export const api = {
     });
   },
 
-  getExpenses() {
-    return apiFetch<any[]>("/api/expenses");
+  getBackupSettings() {
+    return apiFetch<BackupSettings>("/api/backup/settings");
   },
 
-  createExpense(payload: any) {
-    return apiFetch<any>("/api/expenses", {
+  updateBackupSettings(payload: Partial<Pick<BackupSettings, "enabled" | "intervalDays" | "startDate">>) {
+    return apiFetch<BackupSettings>("/api/backup/settings", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  getExpenses() {
+    return apiFetch<Expense[]>("/api/expenses");
+  },
+
+  createExpense(payload: Partial<Expense>) {
+    return apiFetch<Expense>("/api/expenses", {
       method: "POST",
       body: JSON.stringify(payload),
     });
   },
 
-  updateExpense(id: string, payload: any) {
-    return apiFetch<any>(`/api/expenses/${id}`, {
+  updateExpense(id: string, payload: Partial<Expense>) {
+    return apiFetch<Expense>(`/api/expenses/${id}`, {
       method: "PATCH",
       body: JSON.stringify(payload),
     });
@@ -406,18 +472,18 @@ export const api = {
   },
 
   getDoctors() {
-    return apiFetch<any[]>("/api/doctors");
+    return apiFetch<Doctor[]>("/api/doctors");
   },
 
-  createDoctor(payload: any) {
-    return apiFetch<any>("/api/doctors", {
+  createDoctor(payload: Partial<Doctor>) {
+    return apiFetch<Doctor>("/api/doctors", {
       method: "POST",
       body: JSON.stringify(payload),
     });
   },
 
-  updateDoctor(id: string, payload: any) {
-    return apiFetch<any>(`/api/doctors/${id}`, {
+  updateDoctor(id: string, payload: Partial<Doctor>) {
+    return apiFetch<Doctor>(`/api/doctors/${id}`, {
       method: "PUT",
       body: JSON.stringify(payload),
     });
@@ -427,6 +493,47 @@ export const api = {
     return apiFetch<{ message: string }>(`/api/doctors/${id}`, {
       method: "DELETE",
     });
+  },
+
+  getRecalls() {
+    return apiFetch<RecallEntry[]>("/api/recalls");
+  },
+  createRecall(payload: Partial<RecallEntry>) {
+    return apiFetch<RecallEntry>("/api/recalls", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+  updateRecall(id: string, payload: Partial<RecallEntry>) {
+    return apiFetch<RecallEntry>(`/api/recalls/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  },
+  deleteRecall(id: string) {
+    return apiFetch<void>(`/api/recalls/${id}`, {
+      method: "DELETE",
+    });
+  },
+
+  // ── Queue Dashboard API ──
+  getQueueStats() {
+    return apiFetch<QueueStatsResponse>("/api/queues/stats");
+  },
+  pauseQueue(name: string) {
+    return apiFetch<{ message: string }>(`/api/queues/${name}/pause`, { method: "POST" });
+  },
+  resumeQueue(name: string) {
+    return apiFetch<{ message: string }>(`/api/queues/${name}/resume`, { method: "POST" });
+  },
+  cleanQueue(name: string, status: string = 'completed') {
+    return apiFetch<{ message: string, cleaned: number }>(`/api/queues/${name}/clean`, {
+      method: "POST",
+      body: JSON.stringify({ status, grace: 0 }),
+    });
+  },
+  retryFailedJobs(name: string) {
+    return apiFetch<{ message: string, retried: number }>(`/api/queues/${name}/retry-all`, { method: "POST" });
   },
 
   logout() {

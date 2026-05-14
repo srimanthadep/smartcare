@@ -1,5 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSocket } from "@/contexts/SocketContext";
+import { api } from "@/lib/api";
 import {
   AlertTriangle,
   CalendarClock,
@@ -35,67 +38,7 @@ type RecallEntry = {
   notes?: string;
 };
 
-const STORAGE_KEY = "siara-recalls";
 
-const initialRecalls: RecallEntry[] = [
-  {
-    id: "RC001",
-    patientId: "P001",
-    patientName: "Aarav Sharma",
-    lastVisit: "2026-03-15",
-    recallDate: "2026-09-15",
-    status: "Due",
-    type: "Routine Checkup",
-  },
-  {
-    id: "RC002",
-    patientId: "P002",
-    patientName: "Priya Patel",
-    lastVisit: "2026-03-17",
-    recallDate: "2026-04-17",
-    status: "Due",
-    type: "Orthodontic Review",
-    notes: "Monthly adjustment needed",
-  },
-  {
-    id: "RC003",
-    patientId: "P003",
-    patientName: "Rahul Verma",
-    lastVisit: "2026-03-18",
-    recallDate: "2026-04-01",
-    status: "Overdue",
-    type: "Post-Procedure",
-    notes: "Post RCT follow-up for 46",
-  },
-  {
-    id: "RC004",
-    patientId: "P004",
-    patientName: "Sneha Gupta",
-    lastVisit: "2026-03-10",
-    recallDate: "2026-09-10",
-    status: "Scheduled",
-    type: "Routine Checkup",
-  },
-  {
-    id: "RC005",
-    patientId: "P005",
-    patientName: "Vikram Singh",
-    lastVisit: "2026-01-20",
-    recallDate: "2026-03-20",
-    status: "Overdue",
-    type: "Periodontal",
-    notes: "Denture review periodontal probing",
-  },
-  {
-    id: "RC006",
-    patientId: "P006",
-    patientName: "Meera Reddy",
-    lastVisit: "2026-03-16",
-    recallDate: "2026-06-16",
-    status: "Due",
-    type: "Routine Checkup",
-  },
-];
 
 const statusTone: Record<RecallEntry["status"], string> = {
   Due: "bg-warning/10 text-warning border-warning/20",
@@ -104,17 +47,15 @@ const statusTone: Record<RecallEntry["status"], string> = {
   Completed: "bg-success/10 text-success border-success/20",
 };
 
-function loadRecalls(): RecallEntry[] {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : initialRecalls;
-  } catch {
-    return initialRecalls;
-  }
-}
-
 const RecallSystem: React.FC = () => {
-  const [recalls, setRecalls] = useState<RecallEntry[]>(loadRecalls);
+  const queryClient = useQueryClient();
+  const { data: serverRecalls } = useQuery({
+    queryKey: ["recalls"],
+    queryFn: () => api.getRecalls().catch(() => [])
+  });
+  
+  const recalls = serverRecalls || [];
+
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | RecallEntry["status"]>("all");
 
@@ -122,9 +63,26 @@ const RecallSystem: React.FC = () => {
     document.title = "Recall System · Siara Dental";
   }, []);
 
+  const { socket } = useSocket();
+
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(recalls));
-  }, [recalls]);
+    if (!socket) return;
+    
+    const handleUpdate = (data: any) => {
+      // Refetch if specifically a recall update, or if generic
+      if (data?.updateType === 'RECALL' || !data?.updateType) {
+        queryClient.invalidateQueries({ queryKey: ["recalls"] });
+      }
+    };
+
+    socket.on('PATIENT_UPDATED', handleUpdate);
+    socket.on('PRESCRIPTION_UPDATED', () => queryClient.invalidateQueries({ queryKey: ["recalls"] }));
+
+    return () => {
+      socket.off('PATIENT_UPDATED', handleUpdate);
+      socket.off('PRESCRIPTION_UPDATED');
+    };
+  }, [socket, queryClient]);
 
   const filtered = useMemo(() => {
     return recalls
@@ -144,21 +102,20 @@ const RecallSystem: React.FC = () => {
     [recalls]
   );
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string, payload: any }) => api.updateRecall(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recalls"] });
+    }
+  });
+
   const markScheduled = (id: string) => {
-    setRecalls((current) =>
-      current.map((item) =>
-        item.id === id ? { ...item, status: "Scheduled" } : item
-      )
-    );
+    updateMutation.mutate({ id, payload: { status: "Scheduled" } });
     toast.success("Recall scheduled and ready for booking");
   };
 
   const markCompleted = (id: string) => {
-    setRecalls((current) =>
-      current.map((item) =>
-        item.id === id ? { ...item, status: "Completed" } : item
-      )
-    );
+    updateMutation.mutate({ id, payload: { status: "Completed" } });
     toast.success("Recall marked complete");
   };
 

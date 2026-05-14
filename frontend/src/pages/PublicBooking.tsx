@@ -17,7 +17,7 @@ const PublicBooking: React.FC = () => {
   const [doctorName, setDoctorName] = useState(preselect || mockDoctors[0]?.name || '');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [date, setDate] = useState('2026-03-19');
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [time, setTime] = useState('10:00');
   const [reason, setReason] = useState('Consultation');
 

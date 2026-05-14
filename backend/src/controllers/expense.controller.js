@@ -3,7 +3,14 @@ import { aiService } from '../services/ai.service.js';
 
 export const getExpenses = async (req, res, next) => {
   try {
-    const result = await dbService.query('SELECT * FROM expenses WHERE is_deleted = FALSE ORDER BY date DESC, created_at DESC');
+    // H4: Pagination
+    const limit = parseInt(req.query.limit) || 200;
+    const page = parseInt(req.query.page) || 1;
+    const offset = (page - 1) * limit;
+    const result = await dbService.query(
+      `SELECT * FROM expenses WHERE is_deleted = FALSE ORDER BY date DESC, created_at DESC LIMIT $1 OFFSET $2`,
+      [limit, offset]
+    );
     res.json(result.rows);
   } catch (error) {
     next(error);

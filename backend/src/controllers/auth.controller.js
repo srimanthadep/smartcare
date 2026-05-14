@@ -47,8 +47,24 @@ export const login = async (req, res, next) => {
 
 export const register = async (req, res, next) => {
   try {
+    // C3: Gate public registration — only allow if explicitly enabled or if an authenticated admin is creating the user
+    if (!config.ALLOW_PUBLIC_SIGNUP) {
+      const authHeader = req.headers.authorization;
+      const token = (authHeader && authHeader.split(' ')[1]) || req.cookies?.AuthToken;
+      if (!token) {
+        return res.status(403).json({ message: 'Public registration is disabled. Contact your administrator.' });
+      }
+      try {
+        const decoded = jwt.verify(token, config.AUTH_SECRET);
+        if (decoded.role !== 'admin') {
+          return res.status(403).json({ message: 'Only administrators can create new accounts.' });
+        }
+      } catch {
+        return res.status(403).json({ message: 'Public registration is disabled. Contact your administrator.' });
+      }
+    }
+
     const { name, email, username, password, role } = req.body;
-    
     const checkRes = await dbService.query('SELECT id FROM users WHERE LOWER(username) = $1 AND is_deleted = FALSE', [username.toLowerCase()]);
     if (checkRes.rows.length > 0) {
       return res.status(400).json({ message: 'Username already taken' });

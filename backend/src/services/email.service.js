@@ -1,19 +1,17 @@
 import { Resend } from 'resend';
-import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { pdfService } from './pdf.service.js';
+import { config } from '../config/env.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-dotenv.config();
+const resend = new Resend(config.RESEND_API_KEY);
+const FROM_EMAIL = config.RESEND_FROM_EMAIL || 'Siara Dental <onboarding@resend.dev>';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM_EMAIL = process.env.EMAIL_FROM || 'Siara Dental <onboarding@resend.dev>';
-
-if (!process.env.RESEND_API_KEY) {
+if (!config.RESEND_API_KEY) {
   console.error('❌ RESEND_API_KEY is missing from environment variables!');
 } else {
   console.log('✅ Resend API client initialized');
@@ -73,7 +71,7 @@ export const emailService = {
     }
     if (!patient.email) return;
 
-    const logoPath = path.join(__dirname, '../../../frontend/src/assets/logo.png');
+    const logoPath = path.join(__dirname, '../../assets/logo.png');
 
     const html = `
 <!DOCTYPE html>
@@ -216,7 +214,7 @@ body { background:#f5f7fb; font-family:'Poppins', sans-serif; padding:40px 15px;
     }
     if (!patient.email) return;
 
-    const logoPath = path.join(__dirname, '../../../frontend/src/assets/logo.png');
+    const logoPath = path.join(__dirname, '../../assets/logo.png');
     const pdfBuffer = await pdfService.generatePrescriptionPDF(patient, prescription);
 
     const medicinesHtml = prescription.medicines.map(m => `
@@ -358,7 +356,7 @@ body { background:#f5f7fb; font-family:'Poppins', sans-serif; padding:40px 15px;
     }
     if (!patient.email) return;
 
-    const logoPath = path.join(__dirname, '../../../frontend/src/assets/logo.png');
+    const logoPath = path.join(__dirname, '../../assets/logo.png');
     const pdfBuffer = await pdfService.generateInvoicePDF(patient, invoice);
 
     const itemsHtml = invoice.items.map(item => `

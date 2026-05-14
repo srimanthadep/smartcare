@@ -72,16 +72,6 @@ const Signup: React.FC = () => {
                 <Label>Password</Label>
                 <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
               </div>
-              <div className="space-y-2">
-                <Label>Role</Label>
-                <Select value={role} onValueChange={(v) => setRole(v as UserRole)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="doctor">Doctor</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
               <Button type="submit" className="w-full">Create account</Button>
               <Button type="button" variant="ghost" className="w-full" onClick={() => navigate('/login')}>
                 Already have an account? Sign in

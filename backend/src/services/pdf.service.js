@@ -6,199 +6,271 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const LOGO_PATH = path.join(__dirname, '../../assets/logo.png');
 
+// --- Clinic Constants ---
+const CLINIC_NAME = "SIARA DENTAL";
+const CLINIC_TAGLINE = "CREATING MILES OF SMILES";
+const CLINIC_PHONE = "+91 89198 78543";
+const CLINIC_EMAIL = "care@siaradental.in";
+const CLINIC_WEB = "siaradental.in";
+const CLINIC_ADDR = "Omini Hospital Road, New Nagole Main Rd,\nOpposite Nayara Petrol Bunk,\nHyderabad 500035";
+
+// --- Design Tokens (Matching Frontend) ---
+const P = {
+  primary: '#F97316',      // Orange 500
+  primaryDark: '#C2410C',  // Orange 700
+  primaryLight: '#FFF7ED', // Orange 50
+  dark: '#1F2937',         // Gray 800
+  text: '#374151',         // Gray 700
+  muted: '#6B7280',        // Gray 500
+  border: '#E5E7EB',       // Gray 200
+  bg: '#F9FAFB',           // Gray 50
+  white: '#FFFFFF',
+  emerald: '#10B981',
+  destructive: '#EF4444',
+};
+
+// --- Helpers ---
+function drawProfessionalHeader(doc, label) {
+  const pageWidth = 612; // Standard US Letter width in points (approx)
+  // PDFKit default is 72 points per inch. A4 is 595.28 x 841.89 points.
+  const W = doc.page.width;
+  const H = 85;
+
+  // Background Header Area
+  doc.rect(0, 0, W, H).fill(P.bg);
+
+  // Top Primary Border
+  doc.rect(0, 0, W, 3).fill(P.primary);
+
+  // Logo
+  if (fs.existsSync(LOGO_PATH)) {
+    doc.image(LOGO_PATH, 40, 15, { width: 55 });
+  }
+
+  // Clinic Info
+  doc.fillColor(P.primary).font('Helvetica-Bold').fontSize(24).text(CLINIC_NAME, 110, 25);
+  doc.fillColor(P.muted).font('Helvetica-Bold').fontSize(8).text(CLINIC_TAGLINE, 111, 55, { characterSpacing: 1.2 });
+
+  // Address & Contact (Right Aligned)
+  doc.fillColor(P.text).font('Helvetica').fontSize(8);
+  const addrLines = CLINIC_ADDR.split("\n");
+  let addrY = 20;
+  addrLines.forEach(line => {
+    doc.text(line, 0, addrY, { align: 'right', width: W - 40 });
+    addrY += 10;
+  });
+
+  doc.fillColor(P.primaryDark).font('Helvetica-Bold').text(`${CLINIC_WEB} | ${CLINIC_PHONE}`, 0, 55, { align: 'right', width: W - 40 });
+
+  // Document Badge
+  const badgeW = 100;
+  doc.roundedRect(W - 40 - badgeW, 68, badgeW, 15, 2).fill(P.primary);
+  doc.fillColor(P.white).font('Helvetica-Bold').fontSize(10).text(label, W - 40 - badgeW, 71.5, { width: badgeW, align: 'center', characterSpacing: 1 });
+
+  return H;
+}
+
+function drawProfessionalFooter(doc) {
+  const W = doc.page.width;
+  const pageHeight = doc.page.height;
+  const footerY = pageHeight - 40;
+
+  doc.moveTo(40, footerY).lineTo(W - 40, footerY).strokeColor(P.border).lineWidth(0.5).stroke();
+
+  doc.fillColor(P.muted).font('Helvetica').fontSize(7.5);
+  doc.text(`Siara Dental - ${CLINIC_WEB} | ${CLINIC_PHONE}`, 0, footerY + 10, { align: 'center', width: W });
+  doc.text("Professional Care · Personal Touch", 0, footerY + 20, { align: 'center', width: W });
+}
+
+function drawSectionHeader(doc, label, y) {
+  const W = doc.page.width;
+  doc.rect(40, y, W - 80, 12).fill(P.primaryLight);
+  doc.rect(40, y, 4, 12).fill(P.primary);
+
+  doc.fillColor(P.primaryDark).font('Helvetica-Bold').fontSize(9).text(label.toUpperCase(), 50, y + 2.5);
+  return y + 20;
+}
+
 export const pdfService = {
   async generatePrescriptionPDF(patient, prescription) {
-    return new Promise((resolve, reject) => {
-      const doc = new PDFDocument({ margin: 50 });
+    const { dbService } = await import('./db.service.js');
+    let doctorDetails = { qualifications: 'BDS, MDS', registration_number: 'A-4428' };
+    try {
+      if (prescription.doctorName) {
+        const res = await dbService.query('SELECT qualifications, registration_number FROM doctors WHERE name = $1 LIMIT 1', [prescription.doctorName]);
+        if (res.rows.length > 0) doctorDetails = res.rows[0];
+      }
+    } catch(e) {}
+
+    return new Promise((resolve) => {
+      const doc = new PDFDocument({ size: 'A4', margins: { top: 40, bottom: 0, left: 40, right: 40 } });
       let buffers = [];
       doc.on('data', buffers.push.bind(buffers));
-      doc.on('end', () => {
-        let pdfData = Buffer.concat(buffers);
-        resolve(pdfData);
-      });
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
 
-      // Header
-      if (fs.existsSync(LOGO_PATH)) {
-        doc.image(LOGO_PATH, 50, 40, { width: 45 });
-      }
-      
-      doc.fillColor('#1d0d08').fontSize(22).font('Helvetica-Bold').text('SIARA DENTAL', 110, 45);
-      doc.fillColor('#ff7a1a').fontSize(8).text('CREATING MILES OF SMILES', 110, 68, { characterSpacing: 1.5 });
-      doc.fillColor('#666666').fontSize(8).font('Helvetica').text('Omini Hospital Road, New Nagole, Hyderabad, Telangana 500035', 110, 85);
-      doc.text('Ph: +91 89198 78543 | Web: www.siaradental.in', 110, 95);
+      const startY = drawProfessionalHeader(doc, "PRESCRIPTION");
+      let y = startY + 20;
+      const W = doc.page.width;
 
-      doc.moveTo(50, 115).lineTo(550, 115).strokeColor('#ff7a1a').lineWidth(1.5).stroke();
+      // Patient Snapshot
+      doc.fillColor(P.muted).font('Helvetica-Bold').fontSize(8).text('PATIENT NAME:', 40, y);
+      doc.fillColor(P.text).font('Helvetica').fontSize(9).text(patient.name.toUpperCase(), 120, y);
+      y += 12;
+      doc.fillColor(P.muted).font('Helvetica-Bold').text('PATIENT ID:', 40, y);
+      doc.fillColor(P.text).font('Helvetica').text(patient.id, 120, y);
+      y += 12;
+      doc.fillColor(P.muted).font('Helvetica-Bold').text('AGE / GENDER:', 40, y);
+      doc.fillColor(P.text).font('Helvetica').text(`${patient.age}Y / ${patient.gender}`, 120, y);
+      y += 12;
+      doc.fillColor(P.muted).font('Helvetica-Bold').text('DATE:', 40, y);
+      doc.fillColor(P.text).font('Helvetica').text(new Date(prescription.date).toLocaleDateString('en-GB'), 120, y);
 
-      // Title
-      doc.fillColor('#1d0d08').fontSize(18).font('Helvetica-Bold').text('PRESCRIPTION', 0, 135, { align: 'center' });
+      y += 20;
 
-      // Patient Info
-      doc.roundedRect(50, 160, 500, 55, 8).fill('#fff3ea').strokeColor('#ffb27a').lineWidth(0.5).stroke();
-      doc.fillColor('#ff7a1a').fontSize(8).font('Helvetica-Bold').text('PATIENT DETAILS', 65, 170);
-      doc.fillColor('#1d0d08').fontSize(11).font('Helvetica-Bold').text(`Name: ${patient.name}`, 65, 185);
-      doc.fontSize(9).font('Helvetica').text(`Age/Gender: ${patient.age}Y / ${patient.gender}`, 65, 200);
-      doc.fontSize(9).text(`Prescription ID: ${prescription.id}`, 380, 185);
-      doc.fontSize(9).text(`Date: ${prescription.date}`, 380, 200);
-
-      let y = 230;
-
-      // Chief Complaint & Diagnosis
+      // Clinical Details
       if (prescription.chiefComplaint) {
-        doc.fillColor('#ff7a1a').fontSize(9).font('Helvetica-Bold').text('1. CHIEF COMPLAINT', 50, y);
-        doc.fillColor('#444444').fontSize(10).font('Helvetica').text(prescription.chiefComplaint, 60, y + 15);
-        y += 45;
+        y = drawSectionHeader(doc, "Chief Complaint", y);
+        doc.fillColor(P.text).font('Helvetica').fontSize(9).text(prescription.chiefComplaint, 50, y, { width: W - 100 });
+        y += (doc.heightOfString(prescription.chiefComplaint, { width: W - 100 }) + 15);
       }
 
       if (prescription.diagnosis) {
-        doc.fillColor('#ff7a1a').fontSize(9).font('Helvetica-Bold').text('2. DIAGNOSIS', 50, y);
-        doc.fillColor('#444444').fontSize(10).font('Helvetica').text(prescription.diagnosis, 60, y + 15);
-        y += 45;
+        y = drawSectionHeader(doc, "Diagnosis", y);
+        doc.fillColor(P.text).font('Helvetica').fontSize(9).text(prescription.diagnosis, 50, y, { width: W - 100 });
+        y += (doc.heightOfString(prescription.diagnosis, { width: W - 100 }) + 15);
       }
 
       // Treatment Plan
       if (prescription.treatmentPlan && prescription.treatmentPlan.length > 0) {
-        doc.fillColor('#ff7a1a').fontSize(9).font('Helvetica-Bold').text('3. TREATMENT PLAN', 50, y);
-        y += 18;
-        
-        doc.fillColor('#1d0d08').fontSize(8).font('Helvetica-Bold').text('Phase / Procedure', 60, y);
-        doc.text('Estimated Cost', 450, y, { align: 'right' });
-        
-        doc.moveTo(50, y + 10).lineTo(550, y + 10).strokeColor('#ffb27a').lineWidth(0.5).stroke();
-        y += 18;
-
-        prescription.treatmentPlan.forEach((p) => {
-          doc.fillColor('#444444').fontSize(9).font('Helvetica').text(p.name, 60, y);
-          doc.fillColor('#1d0d08').font('Helvetica-Bold').text(`Rs.${p.estimatedCost?.toLocaleString()}`, 450, y, { align: 'right' });
-          y += 15;
+        y = drawSectionHeader(doc, "Treatment Plan", y);
+        prescription.treatmentPlan.forEach(p => {
+          doc.fillColor(P.text).font('Helvetica-Bold').fontSize(9).text(p.name, 50, y);
           if (p.description) {
-            doc.fillColor('#888888').fontSize(8).font('Helvetica').text(p.description, 65, y);
-            y += 12;
+            doc.fillColor(P.muted).font('Helvetica').fontSize(8).text(p.description, 50, y + 10);
+            y += 22;
+          } else {
+            y += 14;
           }
-          y += 5;
         });
         y += 10;
       }
 
-      // Rx
-      doc.fillColor('#ff7a1a').fontSize(14).font('Helvetica-Bold').text('Rx', 50, y);
-      y += 20;
+      // Medications
+      y = drawSectionHeader(doc, "Medications (Rx)", y);
+      doc.fillColor(P.primaryDark).font('Helvetica-Bold').fontSize(8);
+      doc.text('Medicine Name', 50, y);
+      doc.text('Dosage', 220, y);
+      doc.text('Frequency', 340, y);
+      doc.text('Duration', 460, y);
+      y += 12;
+      doc.moveTo(40, y).lineTo(W - 40, y).strokeColor(P.border).lineWidth(0.5).stroke();
+      y += 10;
 
-      // Medicines Table Header
-      doc.roundedRect(50, y, 500, 20, 4).fill('#fff3ea');
-      doc.fillColor('#ff7a1a').fontSize(8).font('Helvetica-Bold').text('Medicine Name', 60, y + 7);
-      doc.text('Dosage', 250, y + 7);
-      doc.text('Frequency', 350, y + 7);
-      doc.text('Duration', 450, y + 7);
-      
-      y += 28;
-      doc.fillColor('#000000').font('Helvetica');
-      prescription.medicines.forEach((m, i) => {
-        if (y > 700) { doc.addPage(); y = 50; }
-        doc.fontSize(9).font('Helvetica-Bold').text(m.name, 60, y).font('Helvetica');
-        doc.text(m.dosage, 250, y);
-        doc.text(m.frequency, 350, y);
-        doc.text(m.duration, 450, y);
+      doc.fillColor(P.text).font('Helvetica').fontSize(9);
+      prescription.medicines.forEach(m => {
+        if (y > doc.page.height - 100) { doc.addPage(); y = 40; }
+        doc.font('Helvetica-Bold').text(m.name, 50, y);
+        doc.font('Helvetica').text(m.dosage, 220, y);
+        doc.text(m.frequency || "—", 340, y);
+        doc.text(m.duration || "—", 460, y);
         y += 18;
-        doc.moveTo(50, y - 5).lineTo(550, y - 5).strokeColor('#eeeeee').lineWidth(0.5).stroke();
       });
 
-      // Notes
+      // Advice
       if (prescription.notes) {
         y += 15;
-        if (y > 700) { doc.addPage(); y = 50; }
-        doc.fillColor('#ff7a1a').fontSize(9).font('Helvetica-Bold').text('CLINICAL ADVICE & NOTES:', 50, y);
-        doc.fillColor('#444444').fontSize(9).font('Helvetica').text(prescription.notes, 55, y + 15);
-        y += 40;
+        y = drawSectionHeader(doc, "Advice & Notes", y);
+        doc.fillColor(P.text).font('Helvetica').fontSize(9).text(prescription.notes, 50, y, { width: W - 100 });
       }
 
-      // Next Visit
+      // Signature Area
+      const sigY = doc.page.height - 100;
       if (prescription.nextVisitDate) {
-        if (y > 720) { doc.addPage(); y = 50; }
-        doc.roundedRect(50, y, 500, 25, 5).fill('#fffbeb');
-        doc.fillColor('#d97706').fontSize(8).font('Helvetica-Bold').text('NEXT VISIT SCHEDULED ON:', 65, y + 8);
-        doc.fontSize(11).text(new Date(prescription.nextVisitDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }), 65, y + 18);
-        y += 40;
+        doc.fillColor(P.primaryDark).font('Helvetica-Bold').fontSize(9).text(`Next Review: ${new Date(prescription.nextVisitDate).toLocaleDateString('en-GB')}`, 40, sigY);
       }
 
-      // Footer
-      const footerY = 750;
-      doc.moveTo(50, footerY).lineTo(550, footerY).strokeColor('#ff7a1a').lineWidth(1).stroke();
-      doc.fillColor('#1d0d08').fontSize(10).font('Helvetica-Bold').text(prescription.doctorName || 'Dr. Saikiran Reddy', 400, footerY + 15);
-      doc.fillColor('#666666').fontSize(8).font('Helvetica').text('BDS, MDS | Reg No: A-12345', 400, footerY + 28);
-      doc.fillColor('#999999').fontSize(7).text('Thank you for trusting Siara Dental.', 50, footerY + 15);
-      doc.text('www.siaradental.in', 50, footerY + 25);
+      doc.fillColor(P.dark).font('Helvetica-Bold').fontSize(10).text(prescription.doctorName || 'Dr. Saikiran Reddy', 0, sigY, { align: 'right', width: W - 40 });
+      doc.fillColor(P.muted).font('Helvetica').fontSize(8).text(`${doctorDetails.qualifications || 'BDS, MDS'} (Reg: ${doctorDetails.registration_number || 'A-4428'})`, 0, sigY + 12, { align: 'right', width: W - 40 });
 
+      drawProfessionalFooter(doc);
       doc.end();
     });
   },
 
   async generateInvoicePDF(patient, invoice) {
-    return new Promise((resolve, reject) => {
-      const doc = new PDFDocument({ margin: 50 });
+    return new Promise((resolve) => {
+      const doc = new PDFDocument({ size: 'A4', margins: { top: 40, bottom: 0, left: 40, right: 40 } });
       let buffers = [];
       doc.on('data', buffers.push.bind(buffers));
-      doc.on('end', () => {
-        let pdfData = Buffer.concat(buffers);
-        resolve(pdfData);
-      });
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
 
-      // Header
-      if (fs.existsSync(LOGO_PATH)) {
-        doc.image(LOGO_PATH, 50, 45, { width: 50 });
-      }
+      const startY = drawProfessionalHeader(doc, "TAX INVOICE");
+      let y = startY + 20;
+      const W = doc.page.width;
+
+      // Bill To
+      doc.fillColor(P.muted).font('Helvetica-Bold').fontSize(8).text('BILL TO', 40, y);
+      doc.fillColor(P.dark).font('Helvetica-Bold').fontSize(11).text(patient.name.toUpperCase(), 40, y + 10);
+      doc.fillColor(P.text).font('Helvetica').fontSize(8).text(`Patient ID: ${patient.id}`, 40, y + 22);
+      doc.text(`Contact: ${patient.phone}`, 40, y + 32);
+
+      // Invoice Details
+      doc.fillColor(P.muted).font('Helvetica-Bold').text('INVOICE DETAILS', 0, y, { align: 'right', width: W - 40 });
+      doc.fillColor(P.text).font('Helvetica').text(`Invoice No: ${invoice.id}`, 0, y + 10, { align: 'right', width: W - 40 });
+      doc.text(`Date: ${new Date(invoice.date).toLocaleDateString('en-GB')}`, 0, y + 20, { align: 'right', width: W - 40 });
       
-      doc.fillColor('#0070f3').fontSize(24).text('Siara Dental Clinic', 110, 50);
-      doc.fillColor('#666666').fontSize(10).text('123 Dental Street, Healthcare City', 110, 80);
-      doc.text('Phone: +91 98765 43210 | Email: contact@siaradental.com', 110, 95);
+      const statusColor = invoice.status === "Paid" ? P.emerald : P.destructive;
+      doc.fillColor(statusColor).font('Helvetica-Bold').text(`Status: ${invoice.status.toUpperCase()}`, 0, y + 30, { align: 'right', width: W - 40 });
 
-      doc.moveTo(50, 115).lineTo(550, 115).strokeColor('#0070f3').lineWidth(1).stroke();
+      y += 60;
 
-      // Invoice Info
-      doc.fillColor('#000000').fontSize(20).text('INVOICE', 50, 140);
-      doc.fontSize(10).text(`Invoice #: ${invoice.id}`, 400, 140);
-      doc.text(`Date: ${invoice.date}`, 400, 155);
-      doc.text(`Status: ${invoice.status.toUpperCase()}`, 400, 170);
-
-      // Billing Info
-      doc.fillColor('#666666').fontSize(10).text('BILL TO', 50, 190);
-      doc.fillColor('#000000').fontSize(12).text(patient.name, 50, 205);
-      doc.fontSize(10).text(patient.phone, 50, 220);
-      if (patient.address) {
-        doc.text(patient.address, 50, 235, { width: 200 });
-      }
-
-      // Table
-      let y = 280;
-      doc.fillColor('#0070f3').fontSize(10).text('#', 50, y);
-      doc.text('Service Description', 80, y);
-      doc.text('Amount', 450, y, { align: 'right' });
-      
-      doc.moveTo(50, y + 15).lineTo(550, y + 15).strokeColor('#0070f3').lineWidth(2).stroke();
-      
+      // Table Header
+      doc.rect(40, y, W - 80, 20).fill(P.primary);
+      doc.fillColor(P.white).font('Helvetica-Bold').fontSize(9);
+      doc.text('S.No', 50, y + 6);
+      doc.text('Description / Procedure', 100, y + 6);
+      doc.text('Tooth', 350, y + 6);
+      doc.text('Amount (INR)', 450, y + 6, { align: 'right', width: 100 });
       y += 25;
-      doc.fillColor('#000000');
+
+      // Table Body
+      doc.fillColor(P.text).font('Helvetica').fontSize(9);
       invoice.items.forEach((item, i) => {
         doc.text(i + 1, 50, y);
-        doc.text(item.description + (item.toothNumber ? ` (Tooth #${item.toothNumber})` : ""), 80, y);
-        doc.text(`Rs ${item.amount.toLocaleString()}`, 450, y, { align: 'right' });
+        doc.text(item.description, 100, y, { width: 240 });
+        doc.text(item.toothNumber || "—", 350, y);
+        doc.font('Helvetica-Bold').text(item.amount.toLocaleString("en-IN"), 450, y, { align: 'right', width: 100 });
         y += 20;
+        doc.moveTo(40, y - 5).lineTo(W - 40, y - 5).strokeColor(P.border).lineWidth(0.5).stroke();
       });
 
-      // Total
-      y += 20;
-      doc.font('Helvetica-Bold').fontSize(14).text('Total Amount:', 300, y);
-      doc.fillColor('#0070f3').text(`Rs ${invoice.total.toLocaleString()}`, 450, y, { align: 'right' });
+      y += 10;
+      // Calculations
+      const calcX = W - 180;
+      doc.fillColor(P.muted).font('Helvetica').fontSize(9).text("Subtotal", calcX, y);
+      doc.fillColor(P.dark).font('Helvetica-Bold').text(`INR ${invoice.total.toLocaleString("en-IN")}`, 0, y, { align: 'right', width: W - 40 });
 
-      // Status Box
-      y += 40;
-      if (invoice.status === 'Paid') {
-        doc.roundedRect(50, y, 500, 30, 5).fill('#e6fffa').stroke('#2c7a7b');
-        doc.fillColor('#2c7a7b').fontSize(12).text('PAID IN FULL', 0, y + 10, { align: 'center' });
-      } else {
-        doc.roundedRect(50, y, 500, 30, 5).fill('#fff5f5').stroke('#c53030');
-        doc.fillColor('#c53030').fontSize(12).text('PAYMENT PENDING', 0, y + 10, { align: 'center' });
+      if (invoice.payments && invoice.payments.length > 0) {
+        invoice.payments.forEach(pay => {
+          y += 15;
+          doc.fillColor(P.muted).font('Helvetica').fontSize(8).text(`Payment (${new Date(pay.date).toLocaleDateString('en-GB')})`, calcX, y);
+          doc.fillColor(P.text).text(`- INR ${pay.amount.toLocaleString("en-IN")}`, 0, y, { align: 'right', width: W - 40 });
+        });
       }
 
+      y += 20;
+      doc.rect(calcX - 10, y - 5, 150, 20).fill(P.primaryLight);
+      doc.fillColor(P.primaryDark).font('Helvetica-Bold').fontSize(10).text("BALANCE DUE", calcX, y + 2);
+      const balance = invoice.total - (invoice.paidAmount || 0);
+      doc.text(`INR ${balance.toLocaleString("en-IN")}`, 0, y + 2, { align: 'right', width: W - 40 });
+
+      // Footer Sign
+      const sigY = doc.page.height - 80;
+      doc.fillColor(P.muted).font('Helvetica').fontSize(7).text("This is a computer generated invoice and does not require a physical signature.", 0, sigY - 20, { align: 'center', width: W });
+      doc.fillColor(P.dark).font('Helvetica-Bold').fontSize(9).text("Authorized Signatory", 0, sigY, { align: 'right', width: W - 40 });
+      doc.fillColor(P.text).fontSize(8).text("Dr. Saikiran Reddy", 0, sigY + 12, { align: 'right', width: W - 40 });
+
+      drawProfessionalFooter(doc);
       doc.end();
     });
   }

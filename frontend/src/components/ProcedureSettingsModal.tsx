@@ -9,12 +9,23 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const ProcedureSettingsModal = () => {
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
   
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [price, setPrice] = useState<number | "">("");
 
@@ -112,6 +123,7 @@ export const ProcedureSettingsModal = () => {
                   <Label>Default Price (₹)</Label>
                   <Input 
                     type="number" 
+                    autoComplete="off"
                     value={price} 
                     onChange={(e) => setPrice(e.target.value ? Number(e.target.value) : "")} 
                     placeholder="0" 
@@ -164,9 +176,7 @@ export const ProcedureSettingsModal = () => {
                           variant="ghost" 
                           size="icon" 
                           className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10" 
-                          onClick={() => {
-                            if (window.confirm("Delete this procedure?")) deleteMutation.mutate(p.id);
-                          }}
+                          onClick={() => setDeleteId(p.id)}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -179,6 +189,25 @@ export const ProcedureSettingsModal = () => {
           </div>
         </div>
       </DialogContent>
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Procedure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this procedure? This will remove it from the catalog.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteId && deleteMutation.mutate(deleteId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending ? "Deleting..." : "Delete Procedure"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 };

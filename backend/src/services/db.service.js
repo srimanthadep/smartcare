@@ -16,6 +16,22 @@ class DbService {
     return pool.query(text, params);  // pool manages client lifecycle safely
   }
 
+  // H3: Transaction helper for operations needing isolation
+  async withTransaction(fn) {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const result = await fn(client);
+      await client.query('COMMIT');
+      return result;
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
   // Optimized read for compatibility - but we should move away from this
   async read() {
     const db = {};
@@ -29,7 +45,7 @@ class DbService {
     const results = await Promise.all(
       tables.map(table => {
         // Exclude deleted items from tables that support soft delete
-        const noSoftDelete = ['activity_logs', 'doctors', 'diagnoses', 'reports', 'medicines'];
+        const noSoftDelete = ['activity_logs', 'doctors', 'medicines'];
         const filter = noSoftDelete.includes(table) ? '' : ' WHERE is_deleted = FALSE';
         return this.query(`SELECT * FROM ${table}${filter}`);
       })
@@ -130,44 +146,69 @@ class DbService {
         userName: r.user_name
       }));
     }
+    if (table === 'recalls') {
+      return rows.map(r => ({
+        ...r,
+        patientId: r.patient_id,
+        patientName: r.patient_name,
+        lastVisit: r.last_visit ? new Date(r.last_visit).toLocaleDateString('en-CA') : null,
+        recallDate: r.recall_date ? new Date(r.recall_date).toLocaleDateString('en-CA') : null,
+      }));
+    }
     return rows;
   }
 
   // Placeholder write for compatibility - should be replaced with targeted updates
   async write(db) {
-    // This is hard to implement generically and safely for a real DB.
-    // We will leave it as a no-op and refactor the controllers to use SQL directly.
-    console.warn('dbService.write() called - this is a no-op. Please use targeted SQL updates.');
+    throw new Error('dbService.write() is deprecated. Use targeted SQL queries via dbService.query().');
   }
 
+  // H3: Race-safe ID generation using advisory lock inside a transaction
   async generateId(prefix, targetTable) {
-    let tableName = targetTable;
-    
-    if (!tableName) {
-      switch (prefix) {
-        case 'P': tableName = 'patients'; break;
-        case 'U': tableName = 'users'; break;
-        case 'D': tableName = 'doctors'; break;
-        case 'A': tableName = 'appointments'; break;
-        case 'INV': tableName = 'invoices'; break;
-        case 'PR': tableName = 'prescriptions'; break;
-        case 'RX': tableName = 'prescriptions'; break;
-        case 'TPL': tableName = 'prescription_templates'; break;
-        case 'DIAG': tableName = 'diagnoses'; break;
-        case 'TP': tableName = 'treatment_plans'; break;
-        case 'EXP': tableName = 'expenses'; break;
+    try {
+      return await this.withTransaction(async (client) => {
+        // Advisory lock keyed on table name hash to prevent concurrent generation
+        const lockKey = Math.abs([...targetTable].reduce((h, c) => (h << 5) - h + c.charCodeAt(0), 0));
+        await client.query('SELECT pg_advisory_xact_lock($1)', [lockKey]);
 
-        default: return `${prefix}${Date.now()}`;
-      }
+        const query = `
+          SELECT id FROM ${targetTable}
+          WHERE id ~ $1
+          ORDER BY id DESC LIMIT 1
+        `;
+        const pattern = `^${prefix}[0-9]+$`;
+        const result = await client.query(query, [pattern]);
+
+        if (result.rows.length === 0) {
+          return `${prefix}001`;
+        }
+
+        const lastId = result.rows[0].id;
+        const numMatch = lastId.match(/[0-9]+$/);
+
+        if (numMatch) {
+          const numPart = parseInt(numMatch[0]);
+          const nextNum = numPart + 1;
+          const paddedNum = nextNum.toString().padStart(Math.max(3, numMatch[0].length), '0');
+          return `${prefix}${paddedNum}`;
+        }
+
+        const { randomBytes } = await import('crypto');
+        return `${prefix}${randomBytes(3).toString('hex').toUpperCase()}`;
+      });
+    } catch (error) {
+      console.error(`Error generating ID for ${targetTable}:`, error);
+      const { randomUUID } = await import('crypto');
+      return `${prefix}${randomUUID().slice(0, 8).toUpperCase()}`;
     }
+  }
 
-    const res = await this.query(`SELECT id FROM ${tableName} WHERE id LIKE $1 ORDER BY id DESC LIMIT 1`, [`${prefix}%`]);
-    if (res.rows.length === 0) return `${prefix}001`;
-    
-    const lastId = res.rows[0].id;
-    const numMatch = lastId.match(/\d+$/);
-    const num = numMatch ? parseInt(numMatch[0]) + 1 : 1;
-    return `${prefix}${String(num).padStart(3, '0')}`;
+  // H9: Stream a single table for backup (avoids loading everything into memory)
+  async streamTableRows(table) {
+    const noSoftDelete = ['activity_logs', 'doctors', 'medicines'];
+    const filter = noSoftDelete.includes(table) ? '' : ' WHERE is_deleted = FALSE';
+    const result = await this.query(`SELECT * FROM ${table}${filter}`);
+    return this.mapRows(table, result.rows);
   }
 }
 

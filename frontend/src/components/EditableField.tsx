@@ -43,6 +43,18 @@ const EditableField: React.FC<Props> = ({ label, value, onSave, type = 'text', p
             placeholder={placeholder}
             className="mt-1"
             disabled={disabled}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                if (changed) {
+                  onSave(draft);
+                  setEditing(false);
+                }
+              } else if (e.key === 'Escape') {
+                setDraft(value);
+                setEditing(false);
+              }
+            }}
           />
         ) : (
           <p className="mt-1 text-sm font-medium truncate">{value || '—'}</p>

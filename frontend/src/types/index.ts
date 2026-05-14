@@ -104,6 +104,17 @@ export interface Doctor {
   department: string;
 }
 
+export interface Expense {
+  id: string;
+  date: string;
+  category: string;
+  amount: number;
+  description: string;
+  paymentMethod: string;
+  receiptUrl?: string;
+  createdAt?: string;
+}
+
 export interface DashboardStats {
   dailyPatients: number;
   totalPatients: number;
@@ -191,6 +202,12 @@ export interface PrescriptionTemplate {
   name: string;
   medicines: Medication[];
   notes?: string;
+}
+
+export interface TreatmentPlanTemplate {
+  id: string;
+  name: string;
+  phases: Omit<TreatmentPhase, "id" | "status" | "scheduledDate" | "completedDate">[];
 }
 
 export interface DashboardResponse {
@@ -288,4 +305,47 @@ export interface RecallEntry {
   status: "Due" | "Overdue" | "Scheduled" | "Completed";
   type: "Routine Checkup" | "Orthodontic Review" | "Post-Procedure" | "Periodontal";
   notes?: string;
+}
+
+export interface QueueCounts {
+  waiting: number;
+  active: number;
+  completed: number;
+  failed: number;
+  delayed: number;
+}
+
+export interface QueueJob {
+  id: string;
+  name: string;
+  attemptsMade: number;
+  failedReason?: string;
+  duration?: number;
+  finishedOn?: number;
+  [key: string]: unknown;
+}
+
+export interface RepeatableJob {
+  key: string;
+  name: string;
+  pattern: string;
+  tz?: string;
+  next?: number;
+}
+
+export interface QueueData {
+  name: string;
+  label: string;
+  icon: string;
+  isPaused: boolean;
+  counts: QueueCounts;
+  recentCompleted: QueueJob[];
+  recentFailed: QueueJob[];
+  repeatableJobs: RepeatableJob[];
+}
+
+export interface QueueStatsResponse {
+  redisConnected: boolean;
+  timestamp: number;
+  queues: QueueData[];
 }

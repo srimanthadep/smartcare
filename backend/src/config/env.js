@@ -14,6 +14,8 @@ const envSchema = z.object({
   RESEND_FROM_EMAIL: z.string().optional(),
   RESEND_TO_EMAIL: z.string().optional(),
   DATABASE_URL: z.string().url("Invalid database URL"),
+  REDIS_URL: z.string().optional(),
+  ALLOW_PUBLIC_SIGNUP: z.string().default('false').transform((s) => s === 'true'),
 });
 
 const parsed = envSchema.safeParse(process.env);

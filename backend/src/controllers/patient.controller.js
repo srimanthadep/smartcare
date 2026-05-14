@@ -1,8 +1,8 @@
 import { dbService } from '../services/db.service.js';
-import { activityService } from '../services/activity.service.js';
-import { emailService } from '../services/email.service.js';
-import { whatsappService } from '../services/whatsapp.service.js';
 import { emitEvent, SOCKET_EVENTS } from '../services/socket.service.js';
+import { addEmailJob, EMAIL_JOBS } from '../queues/email.queue.js';
+import { addWhatsAppJob, WHATSAPP_JOBS } from '../queues/whatsapp.queue.js';
+import { addActivityJob, ACTIVITY_JOBS } from '../queues/activity.queue.js';
 
 export const getPatients = async (req, res, next) => {
   try {
@@ -92,15 +92,17 @@ export const createPatient = async (req, res, next) => {
     const result = await dbService.query(query, params);
     const patient = dbService.mapRows('patients', result.rows)[0];
 
-    activityService.log(req.user.sub, req.user.username, 'Create Patient', `Created patient ${patient.name} (${patient.id})`, req.ip).catch(console.error);
+    // ── Queue background jobs (fire-and-forget) ──
+    addActivityJob(ACTIVITY_JOBS.LOG, {
+      userId: req.user.sub, userName: req.user.username,
+      action: 'Create Patient', details: `Created patient ${patient.name} (${patient.id})`, ip: req.ip
+    });
     
-    // Send welcome email
+    // Welcome email + WhatsApp
     if (patient.email) {
-      emailService.sendWelcomeEmail(patient).catch(err => console.error('Email failed:', err));
+      addEmailJob(EMAIL_JOBS.WELCOME, { patient });
     }
-
-    // Send welcome WhatsApp
-    whatsappService.sendWelcome(patient).catch(err => console.error('WhatsApp failed:', err));
+    addWhatsAppJob(WHATSAPP_JOBS.WELCOME, { patient });
 
     // Auto-create Consultation Fee Invoice
     const fee = consultationFee || 300;
@@ -114,13 +116,11 @@ export const createPatient = async (req, res, next) => {
     const invRes = await dbService.query(invQuery, invParams);
     const invoice = dbService.mapRows('invoices', invRes.rows)[0];
 
-    // Send invoice email
+    // Invoice email + WhatsApp
     if (patient.email) {
-      emailService.sendInvoiceEmail(patient, invoice).catch(err => console.error('Invoice email failed:', err));
+      addEmailJob(EMAIL_JOBS.INVOICE, { patient, invoice });
     }
-
-    // Send invoice WhatsApp
-    whatsappService.sendInvoice(patient, invoice).catch(err => console.error('WhatsApp failed:', err));
+    addWhatsAppJob(WHATSAPP_JOBS.INVOICE, { patient, invoice });
     
     emitEvent(SOCKET_EVENTS.INVOICE_UPDATED, invoice);
     emitEvent(SOCKET_EVENTS.PATIENT_UPDATED, patient);
@@ -135,29 +135,27 @@ export const updatePatient = async (req, res, next) => {
     const { id } = req.params;
     const fields = req.body;
     
-    // Convert camelCase to snake_case for DB
-    const mapping = {
-      bloodGroup: 'blood_group',
-      consultationFee: 'consultation_fee',
-      chiefComplaint: 'chief_complaint'
+    // C4: Safe column mapping — only hardcoded strings ever reach SQL
+    const COLUMN_MAP = {
+      name: 'name', age: 'age', gender: 'gender', phone: 'phone', email: 'email',
+      bloodGroup: 'blood_group', blood_group: 'blood_group', status: 'status',
+      address: 'address', allergies: 'allergies', conditions: 'conditions',
+      medications: 'medications', notes: 'notes',
+      consultationFee: 'consultation_fee', consultation_fee: 'consultation_fee',
+      dental_history: 'dental_history', dentalHistory: 'dental_history',
+      chiefComplaint: 'chief_complaint', chief_complaint: 'chief_complaint',
     };
-
-    const ALLOWED_COLUMNS = [
-      'name', 'age', 'gender', 'phone', 'email', 'blood_group', 'status', 
-      'address', 'allergies', 'conditions', 'medications', 'notes', 
-      'consultation_fee', 'dental_history', 'chief_complaint'
-    ];
 
     const updates = [];
     const params = [id];
     let i = 2;
 
     for (const [key, value] of Object.entries(fields)) {
-      const dbKey = mapping[key] || key;
-      if (!ALLOWED_COLUMNS.includes(dbKey)) continue; // Security: Skip non-allowed columns
+      const dbCol = COLUMN_MAP[key];
+      if (!dbCol) continue; // Skip unknown fields entirely
       
-      updates.push(`${dbKey} = $${i}`);
-      params.push(key === 'medications' || key === 'dental_history' ? JSON.stringify(value) : value);
+      updates.push(`${dbCol} = $${i}`);
+      params.push(key === 'medications' || key === 'dentalHistory' || key === 'dental_history' ? JSON.stringify(value) : value);
       i++;
     }
 
@@ -185,11 +183,24 @@ export const deletePatient = async (req, res, next) => {
 
     const patientName = patientRes.rows[0].name;
     
-    // Cascading deletes handled by foreign keys in DB (on delete cascade)
-    const result = await dbService.query('UPDATE patients SET is_deleted = TRUE WHERE id = $1 RETURNING id', [id]);
-    if (result.rows.length === 0) return res.status(404).json({ message: 'Patient not found' });
+    // Cascading soft deletes for all associated patient data
+    // We do this manually because database foreign key 'ON DELETE CASCADE' only works for actual row deletion (hard delete)
+    await Promise.all([
+      dbService.query('UPDATE patients SET is_deleted = TRUE WHERE id = $1', [id]),
+      dbService.query('UPDATE appointments SET is_deleted = TRUE WHERE patient_id = $1', [id]),
+      dbService.query('UPDATE invoices SET is_deleted = TRUE WHERE patient_id = $1', [id]),
+      dbService.query('UPDATE prescriptions SET is_deleted = TRUE WHERE patient_id = $1', [id]),
+      dbService.query('UPDATE dental_charts SET is_deleted = TRUE WHERE patient_id = $1', [id]),
+      dbService.query('UPDATE treatment_plans SET is_deleted = TRUE WHERE patient_id = $1', [id]),
+      dbService.query('UPDATE diagnoses SET is_deleted = TRUE WHERE patient_id = $1', [id]),
+      dbService.query('UPDATE reports SET is_deleted = TRUE WHERE patient_id = $1', [id]),
+      dbService.query('UPDATE recalls SET is_deleted = TRUE WHERE patient_id = $1', [id])
+    ]);
     
-    activityService.log(req.user.sub, req.user.username, 'Delete Patient', `Deleted patient ${patientName} (${id})`, req.ip).catch(console.error);
+    addActivityJob(ACTIVITY_JOBS.LOG, {
+      userId: req.user.sub, userName: req.user.username,
+      action: 'Delete Patient', details: `Deleted patient ${patientName} (${id})`, ip: req.ip
+    });
 
     emitEvent(SOCKET_EVENTS.PATIENT_UPDATED, { id, deleted: true });
     res.json({ message: 'Patient deleted successfully' });

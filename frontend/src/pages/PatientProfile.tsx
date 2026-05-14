@@ -39,6 +39,16 @@ import { ToothRecord } from "@/types";
 import InvoiceModal from "@/components/InvoiceModal";
 import InvoiceEditModal from "@/components/InvoiceEditModal";
 import { Invoice } from "@/types";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const PatientProfile: React.FC = () => {
   const { id = "" } = useParams<{ id: string }>();
@@ -78,6 +88,9 @@ const PatientProfile: React.FC = () => {
     mutationFn: (patientId: string) => api.deletePatient(patientId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["patients"] });
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["prescriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
       toast.success("Patient deleted successfully");
       navigate("/patients");
     },
@@ -128,6 +141,9 @@ const PatientProfile: React.FC = () => {
   const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [isNewInvoiceOpen, setIsNewInvoiceOpen] = useState(false);
+  const [patientToDelete, setPatientToDelete] = useState<string | null>(null);
+  const [invoiceToDelete, setInvoiceToDelete] = useState<string | null>(null);
+  const [prescriptionToDelete, setPrescriptionToDelete] = useState<string | null>(null);
 
   const updateDentalChart = useMutation({
     mutationFn: (teeth: ToothRecord[]) => api.updateDentalChart(id, teeth),
@@ -317,13 +333,9 @@ const PatientProfile: React.FC = () => {
           <Button 
             variant="destructive" 
             size="sm" 
-            onClick={() => {
-              if (window.confirm("Are you sure you want to delete this patient?")) {
-                deletePatient.mutate(id!);
-              }
-            }}
+            onClick={() => setPatientToDelete(id!)}
           >
-            Delete
+            <Trash2 className="mr-2 h-4 w-4" /> Delete Profile
           </Button>
         </div>
       </div>
@@ -342,8 +354,6 @@ const PatientProfile: React.FC = () => {
           <TabsTrigger value="prescriptions">Prescriptions</TabsTrigger>
           <TabsTrigger value="treatment-plans">Treatment Plans</TabsTrigger>
           <TabsTrigger value="diagnoses">Diagnoses</TabsTrigger>
-          <TabsTrigger value="allergies">Allergies</TabsTrigger>
-          <TabsTrigger value="medications">Medications</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-4 space-y-4">
@@ -389,6 +399,17 @@ const PatientProfile: React.FC = () => {
                     placeholder="Enter conditions separated by commas..."
                     className="h-8 text-xs"
                     autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const arr = conditionsDraft.split(",").map(s => s.trim()).filter(Boolean);
+                        updatePatient.mutate({ conditions: arr as any });
+                        setEditingConditions(false);
+                      } else if (e.key === 'Escape') {
+                        setEditingConditions(false);
+                        setConditionsDraft(patient.conditions.join(", "));
+                      }
+                    }}
                   />
                 ) : patient.conditions.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
@@ -443,6 +464,17 @@ const PatientProfile: React.FC = () => {
                     placeholder="Enter allergies separated by commas..."
                     className="h-8 text-xs"
                     autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const arr = allergiesDraft.split(",").map(s => s.trim()).filter(Boolean);
+                        updatePatient.mutate({ allergies: arr as any });
+                        setEditingAllergies(false);
+                      } else if (e.key === 'Escape') {
+                        setEditingAllergies(false);
+                        setAllergiesDraft(patient.allergies.join(", "));
+                      }
+                    }}
                   />
                 ) : patient.allergies.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
@@ -466,20 +498,28 @@ const PatientProfile: React.FC = () => {
               </CardHeader>
               <CardContent>
                 {patient.dentalHistory ? (
-                  <>
-                    <div className="flex justify-between border-b border-border/50 pb-1">
-                      <span className="text-muted-foreground text-xs uppercase font-semibold">Oral Hygiene:</span>
-                      <span className="font-medium">{patient.dentalHistory.hygiene || "N/A"}</span>
+                  <div className="space-y-4 pt-1">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex flex-col items-center justify-center rounded-xl border border-primary/10 bg-primary/5 p-3 text-center">
+                        <span className="mb-1 text-[10px] font-bold tracking-wider text-muted-foreground uppercase">Oral Hygiene</span>
+                        <Badge variant="secondary" className="bg-background/80 shadow-sm">{patient.dentalHistory.hygiene || "N/A"}</Badge>
+                      </div>
+                      <div className="flex flex-col items-center justify-center rounded-xl border border-destructive/10 bg-destructive/5 p-3 text-center">
+                        <span className="mb-1 text-[10px] font-bold tracking-wider text-muted-foreground uppercase">Tobacco Use</span>
+                        <Badge variant="outline" className="bg-background/80 shadow-sm border-destructive/30 text-destructive">
+                          {patient.dentalHistory.tobacco || "No"}
+                        </Badge>
+                      </div>
                     </div>
-                    <div className="flex justify-between border-b border-border/50 pb-1">
-                      <span className="text-muted-foreground text-xs uppercase font-semibold">Tobacco Use:</span>
-                      <span className="font-medium text-destructive">{patient.dentalHistory.tobacco || "No"}</span>
+                    <div className="rounded-xl border border-border/50 bg-secondary/10 p-3.5">
+                      <span className="mb-2 flex items-center gap-1.5 text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
+                        <FileText className="h-3 w-3" /> Relevant History/Complaints
+                      </span>
+                      <p className="text-sm font-medium leading-relaxed text-foreground/90">
+                        {patient.dentalHistory.history || <span className="font-normal italic text-muted-foreground text-xs">No notes provided.</span>}
+                      </p>
                     </div>
-                    <div className="flex flex-col gap-1 mt-2">
-                      <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-wider">Relevant History/Complaints:</span>
-                      <p className="rounded-md bg-secondary/30 p-2 italic text-xs leading-relaxed">{patient.dentalHistory.history || "No notes provided."}</p>
-                    </div>
-                  </>
+                  </div>
                 ) : (
                   <p className="py-4 text-center text-sm text-muted-foreground italic">No dental history recorded.</p>
                 )}
@@ -548,6 +588,16 @@ const PatientProfile: React.FC = () => {
                     className="min-h-[100px] text-sm"
                     autoFocus
                     onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                        e.preventDefault();
+                        updatePatient.mutate({ notes: notesDraft });
+                        setEditingNotes(false);
+                      } else if (e.key === 'Escape') {
+                        setEditingNotes(false);
+                        setNotesDraft(patient.notes || "");
+                      }
+                    }}
                   />
                 ) : (
                   <p className="text-sm text-muted-foreground whitespace-pre-wrap">{patient.notes || "No additional notes recorded. Click to edit."}</p>
@@ -677,7 +727,13 @@ const PatientProfile: React.FC = () => {
 
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => pdfService.generateInvoicePDF(patient, inv)}>
+                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => {
+                                  toast.promise(api.downloadInvoice(inv.id), {
+                                    loading: 'Preparing PDF...',
+                                    success: 'Downloaded!',
+                                    error: 'Failed to download'
+                                  });
+                                }}>
                                   <FileDown className="h-4 w-4" />
                                 </Button>
                               </TooltipTrigger>
@@ -716,9 +772,7 @@ const PatientProfile: React.FC = () => {
 
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => {
-                                  if (window.confirm("Delete this invoice?")) deleteInvoice.mutate(inv.id);
-                                }}>
+                                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => setInvoiceToDelete(inv.id)}>
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </TooltipTrigger>
@@ -795,7 +849,13 @@ const PatientProfile: React.FC = () => {
                                   size="icon" 
                                   variant="ghost" 
                                   className="h-8 w-8"
-                                  onClick={() => pdfService.generatePrescriptionPDF(patient, px)}
+                                  onClick={() => {
+                                    toast.promise(api.downloadPrescription(px.id), {
+                                      loading: 'Preparing PDF...',
+                                      success: 'Downloaded!',
+                                      error: 'Failed to download'
+                                    });
+                                  }}
                                 >
                                   <FileDown className="h-4 w-4" />
                                 </Button>
@@ -846,11 +906,7 @@ const PatientProfile: React.FC = () => {
                                   size="icon" 
                                   variant="ghost" 
                                   className="h-8 w-8 text-destructive hover:bg-destructive/10" 
-                                  onClick={() => {
-                                    if (confirm("Are you sure you want to delete this prescription?")) {
-                                      deletePrescription.mutate(px.id);
-                                    }
-                                  }}
+                                  onClick={() => setPrescriptionToDelete(px.id)}
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -990,13 +1046,27 @@ const PatientProfile: React.FC = () => {
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₹</span>
                   <Input
-                    id="amount"
+                    id="payment-amount-input"
+                    name="payment-amount-input"
                     type="number"
                     className="pl-7 text-lg font-bold"
                     placeholder="Enter amount..."
                     value={additionalPayment}
                     onChange={(e) => setAdditionalPayment(e.target.value)}
+                    autoComplete="off"
                     autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        // Trigger the same logic as the Confirm Payment button
+                        if (!additionalPayment || isNaN(Number(additionalPayment))) {
+                          toast.error("Please enter a valid amount");
+                          return;
+                        }
+                        const confirmBtn = document.getElementById('confirm-partial-payment');
+                        if (confirmBtn) confirmBtn.click();
+                      }
+                    }}
                   />
                 </div>
                 {additionalPayment && !isNaN(Number(additionalPayment)) && (
@@ -1010,6 +1080,7 @@ const PatientProfile: React.FC = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsPartialPaymentOpen(false)}>Cancel</Button>
             <Button 
+              id="confirm-partial-payment"
               className="bg-emerald-600 hover:bg-emerald-700"
               onClick={() => {
                 if (!additionalPayment || isNaN(Number(additionalPayment))) {
@@ -1044,6 +1115,71 @@ const PatientProfile: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Delete Patient Confirmation Dialog */}
+      <AlertDialog open={!!patientToDelete} onOpenChange={(open) => !open && setPatientToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Patient Profile?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the patient profile
+              for <span className="font-bold text-foreground">{patient.name}</span> and all associated clinical data, 
+              prescriptions, and billing history.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => patientToDelete && deletePatient.mutate(patientToDelete)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletePatient.isPending ? "Deleting..." : "Delete Patient"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Invoice Confirmation Dialog */}
+      <AlertDialog open={!!invoiceToDelete} onOpenChange={(open) => !open && setInvoiceToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Invoice?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete invoice <span className="font-bold text-foreground">{invoiceToDelete}</span>? 
+              This will remove all billing records for this transaction.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => invoiceToDelete && deleteInvoice.mutate(invoiceToDelete)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteInvoice.isPending ? "Deleting..." : "Delete Invoice"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Prescription Confirmation Dialog */}
+      <AlertDialog open={!!prescriptionToDelete} onOpenChange={(open) => !open && setPrescriptionToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Prescription?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove this prescription record. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => prescriptionToDelete && deletePrescription.mutate(prescriptionToDelete)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletePrescription.isPending ? "Deleting..." : "Delete Prescription"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 };
@@ -1159,6 +1295,7 @@ const TreatmentPlansSection: React.FC<TreatmentPlansSectionProps> = ({ patientId
     },
   });
 
+  const [planToDelete, setPlanToDelete] = useState<string | null>(null);
   const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
 
   const addPlan = () => {
@@ -1307,6 +1444,7 @@ const TreatmentPlansSection: React.FC<TreatmentPlansSectionProps> = ({ patientId
                   <div className="flex gap-2">
                     <Input
                       type="number"
+                      autoComplete="off"
                       placeholder="Cost"
                       value={newPhase.cost}
                       onChange={(e) => setNewPhase({ ...newPhase, cost: Number(e.target.value) })}
@@ -1387,11 +1525,7 @@ const TreatmentPlansSection: React.FC<TreatmentPlansSectionProps> = ({ patientId
                     size="icon" 
                     variant="ghost" 
                     className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                    onClick={() => {
-                      if (confirm("Are you sure you want to delete this treatment plan?")) {
-                        deletePlanMutation.mutate(plan.id);
-                      }
-                    }}
+                    onClick={() => setPlanToDelete(plan.id)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -1430,6 +1564,26 @@ const TreatmentPlansSection: React.FC<TreatmentPlansSectionProps> = ({ patientId
           </Card>
         ))
       )}
+      {/* Delete Treatment Plan Confirmation Dialog */}
+      <AlertDialog open={!!planToDelete} onOpenChange={(open) => !open && setPlanToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Treatment Plan?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this treatment plan? This action cannot be undone and will remove all phases and estimated costs associated with it.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => planToDelete && deletePlanMutation.mutate(planToDelete)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletePlanMutation.isPending ? "Deleting..." : "Delete Plan"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

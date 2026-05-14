@@ -11,7 +11,9 @@ import { usePWA } from '../hooks/usePWA';
  */
 export default function InstallPromptBanner() {
     const { isInstallable, installApp } = usePWA();
-    const [dismissed, setDismissed] = useState(false);
+    const [dismissed, setDismissed] = useState(() => {
+        return localStorage.getItem("pwa-prompt-dismissed") === "true";
+    });
     const [isStandalone, setIsStandalone] = useState(false);
 
     useEffect(() => {
@@ -24,6 +26,11 @@ export default function InstallPromptBanner() {
 
     const handleInstall = async () => {
         await installApp();
+    };
+
+    const handleDismiss = () => {
+        setDismissed(true);
+        localStorage.setItem("pwa-prompt-dismissed", "true");
     };
 
     // Don't show if: already standalone, dismissed, or not installable
@@ -99,27 +106,27 @@ export default function InstallPromptBanner() {
                 </motion.button>
 
                 {/* Dismiss Button */}
-                <button
-                    onClick={() => setDismissed(true)}
+                <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleDismiss}
                     aria-label="Dismiss install banner"
                     style={{
-                        background: 'rgba(255,255,255,0.2)',
-                        border: 'none',
-                        borderRadius: '50%',
-                        width: 28,
-                        height: 28,
-                        cursor: 'pointer',
+                        background: 'rgba(255,255,255,0.1)',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        borderRadius: 8,
                         color: 'white',
+                        padding: '8px 12px',
+                        cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: 18,
-                        lineHeight: 1,
+                        fontSize: 13,
+                        fontWeight: 500,
                         flexShrink: 0,
                     }}
                 >
-                    ×
-                </button>
+                    Remind me later
+                </motion.button>
             </motion.div>
         </AnimatePresence>
     );

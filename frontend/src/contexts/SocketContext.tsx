@@ -23,12 +23,12 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
 
     socketInstance.on('connect', () => {
-      console.log('🔌 Connected to WebSocket server');
+      if (import.meta.env.DEV) console.log('🔌 Connected to WebSocket server');
       setIsConnected(true);
     });
 
     socketInstance.on('disconnect', () => {
-      console.log('🔌 Disconnected from WebSocket server');
+      if (import.meta.env.DEV) console.log('🔌 Disconnected from WebSocket server');
       setIsConnected(false);
     });
 

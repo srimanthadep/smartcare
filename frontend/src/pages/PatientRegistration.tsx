@@ -137,8 +137,7 @@ const PatientRegistration: React.FC = () => {
 
   useEffect(() => {
     if (step === 1 && addressInputRef.current && !autocompleteRef.current) {
-      // Small delay to ensure the DOM is ready and google script is loaded
-      const timer = setTimeout(() => {
+      const loadGoogleMaps = () => {
         if (!window.google || !window.google.maps || !window.google.maps.places) {
           console.warn("Google Maps API not loaded yet");
           return;
@@ -159,12 +158,24 @@ const PatientRegistration: React.FC = () => {
             updateField("address", place.formatted_address);
           }
         });
-      }, 500);
+      };
+
+      if (!window.google) {
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_PLACES_API_KEY}&libraries=places&loading=async`;
+        script.async = true;
+        script.defer = true;
+        script.onload = () => {
+          setTimeout(loadGoogleMaps, 500);
+        };
+        document.head.appendChild(script);
+      } else {
+        setTimeout(loadGoogleMaps, 500);
+      }
 
       return () => {
-        clearTimeout(timer);
         if (autocompleteRef.current) {
-          window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+          window.google?.maps?.event?.clearInstanceListeners(autocompleteRef.current);
           autocompleteRef.current = null;
         }
       };
@@ -201,12 +212,12 @@ const PatientRegistration: React.FC = () => {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Full Name</Label>
-                  <Input value={form.name} onChange={(event) => updateField("name", event.target.value)} placeholder="Enter full name" required />
+                  <Label htmlFor="name">Full Name</Label>
+                  <Input id="name" name="name" autocomplete="name" value={form.name} onChange={(event) => updateField("name", event.target.value)} placeholder="Enter full name" required />
                 </div>
                 <div className="space-y-2">
-                  <Label>Age (Years)</Label>
-                  <Input type="number" value={form.age} onChange={(event) => updateField("age", event.target.value)} placeholder="e.g. 25" required />
+                  <Label htmlFor="age">Age (Years)</Label>
+                  <Input id="age" name="age" type="number" autoComplete="off" value={form.age} onChange={(event) => updateField("age", event.target.value)} placeholder="e.g. 25" required />
                 </div>
                 <div className="space-y-2">
                   <Label>Gender</Label>
@@ -231,13 +242,16 @@ const PatientRegistration: React.FC = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Phone</Label>
-                  <Input value={form.phone} onChange={(event) => updateField("phone", event.target.value)} placeholder="+91 XXXXX XXXXX" required />
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input id="phone" name="phone" autocomplete="tel" value={form.phone} onChange={(event) => updateField("phone", event.target.value)} placeholder="+91 XXXXX XXXXX" required />
                 </div>
                 <div className="space-y-2">
-                  <Label>Email</Label>
+                  <Label htmlFor="email">Email</Label>
                   <div className="space-y-1">
                     <Input
+                      id="email"
+                      name="email"
+                      autocomplete="email"
                       type="email"
                       value={form.email}
                       onChange={(event) => {
@@ -271,8 +285,11 @@ const PatientRegistration: React.FC = () => {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Address</Label>
+                <Label htmlFor="address">Address</Label>
                 <Input 
+                  id="address"
+                  name="address"
+                  autocomplete="street-address"
                   ref={addressInputRef}
                   value={form.address} 
                   onChange={(event) => updateField("address", event.target.value)} 
@@ -292,6 +309,7 @@ const PatientRegistration: React.FC = () => {
                 <Label className="text-primary font-bold">Consultation Fee (₹)</Label>
                 <Input
                   type="number"
+                  autoComplete="off"
                   value={form.consultationFee}
                   onChange={(event) => updateField("consultationFee", event.target.value)}
                   placeholder="300"

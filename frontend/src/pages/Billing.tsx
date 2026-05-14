@@ -23,11 +23,22 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import StatusBadge from "@/components/StatusBadge";
 import { Patient, InvoiceLineItem, Invoice, Procedure } from "@/types";
 import { pdfService } from "@/lib/pdfService";
 import { cn } from "@/lib/utils";
 import { ProcedureSettingsModal } from "@/components/ProcedureSettingsModal";
+import { ProcedureCombobox } from "@/components/ProcedureCombobox";
 
 const Billing: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -46,6 +57,7 @@ const Billing: React.FC = () => {
   const [items, setItems] = useState<InvoiceLineItem[]>([{ description: "", amount: 0, toothNumber: "" }]);
   const [paidAmount, setPaidAmount] = useState<number>(0);
   const [status, setStatus] = useState<"Pending" | "Paid" | "Overdue" | "Partially Paid">("Pending");
+  const [invoiceToDelete, setInvoiceToDelete] = useState<string | null>(null);
 
   const patientsQuery = useQuery({
     queryKey: ["patients", "billing-options"],
@@ -62,9 +74,16 @@ const Billing: React.FC = () => {
     queryFn: () => api.getProcedures(),
   });
 
+  const dentalChartQuery = useQuery({
+    queryKey: ["dental-chart", patientId],
+    queryFn: () => api.getDentalChart(patientId),
+    enabled: !!patientId,
+  });
+
   const patients = patientsQuery.data || [];
   const allInvoices = invoicesQuery.data || [];
   const procedures = (proceduresQuery.data || []) as any[];
+  const dentalChart = dentalChartQuery.data;
   const patient = patients.find((p) => p.id === patientId);
 
   // Initialize from URL params
@@ -238,19 +257,15 @@ const Billing: React.FC = () => {
           <Button
             variant="outline"
             onClick={() => {
-              if (!patient) {
-                toast.error("Select a patient to generate PDF");
+              if (!patient || !editId) {
+                toast.error("Save the bill before downloading PDF");
                 return;
               }
-              pdfService.generateInvoicePDF(patient, {
-                id: editId || "DRAFT",
-                patientId,
-                patientName: patient.name,
-                date,
-                items,
-                total,
-                status
-              } as Invoice);
+              toast.promise(api.downloadInvoice(editId), {
+                loading: 'Preparing PDF...',
+                success: 'Downloaded!',
+                error: 'Failed to download'
+              });
             }}
           >
             <Printer className="mr-1 h-4 w-4" /> Print PDF
@@ -335,71 +350,42 @@ const Billing: React.FC = () => {
               {items.map((item, index) => (
                 <div key={index} className="rounded-lg border border-border/50 bg-secondary/20 p-4 relative group">
                   <div className="grid grid-cols-12 gap-3">
-                    <div className="col-span-12 sm:col-span-7 space-y-2">
+                    <div className="col-span-12 sm:col-span-6 space-y-2">
                       <Label>Description</Label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className="w-full justify-between font-normal bg-background"
-                          >
-                            {item.description || "Select or type procedure..."}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[300px] p-0" align="start">
-                          <Command>
-                            <CommandInput
-                              placeholder="Search procedures..."
-                              value={item.description}
-                              onValueChange={(val) => updateItem(index, "description", val)}
-                            />
-                            <CommandList>
-                              <CommandEmpty>
-                                <Button
-                                  variant="ghost"
-                                  className="w-full justify-start text-sm"
-                                  onClick={() => {
-                                    // Just close popover, value is already in input
-                                    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-                                  }}
-                                >
-                                  Use custom: "{item.description}"
-                                </Button>
-                              </CommandEmpty>
-                              <CommandGroup heading="Standard Procedures">
-                                {procedures.map((proc: any) => (
-                                  <CommandItem
-                                    key={proc.id}
-                                    value={proc.name}
-                                    onSelect={() => {
-                                      updateItem(index, "description", proc.name);
-                                      updateItem(index, "amount", proc.price);
-                                      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-                                    }}
-                                  >
-                                    <Check
-                                      className={cn(
-                                        "mr-2 h-4 w-4",
-                                        item.description === proc.name ? "opacity-100" : "opacity-0"
-                                      )}
-                                    />
-                                    <div className="flex flex-1 items-center justify-between">
-                                      <span>{proc.name}</span>
-                                      <span className="text-xs text-muted-foreground">₹{proc.price}</span>
-                                    </div>
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
+                      <ProcedureCombobox
+                        value={item.description}
+                        procedures={procedures}
+                        onChange={(value, proc) => {
+                          updateItem(index, "description", value);
+                          if (proc) updateItem(index, "amount", proc.price);
+
+                          if (value && dentalChart?.teeth && !item.toothNumber) {
+                             const lowerVal = value.toLowerCase();
+                             let targetConditions: string[] = [];
+                             if (lowerVal.includes("root canal") || lowerVal.includes("rct")) targetConditions = ["root_canal"];
+                             else if (lowerVal.includes("extract")) targetConditions = ["extraction"];
+                             else if (lowerVal.includes("filling") || lowerVal.includes("restoration") || lowerVal.includes("caries")) targetConditions = ["filling", "caries"];
+                             else if (lowerVal.includes("crown")) targetConditions = ["crown"];
+                             else if (lowerVal.includes("implant")) targetConditions = ["implant"];
+                             else if (lowerVal.includes("bridge")) targetConditions = ["bridge"];
+                             else if (lowerVal.includes("veneer")) targetConditions = ["veneer"];
+                             else if (lowerVal.includes("sealant")) targetConditions = ["sealant"];
+                             
+                             if (targetConditions.length > 0) {
+                               const matchingTeeth = dentalChart.teeth.filter((t: any) => targetConditions.includes(t.condition));
+                               if (matchingTeeth.length > 0) {
+                                 const teethString = matchingTeeth.map((t: any) => t.toothNumber).join(", ");
+                                 updateItem(index, "toothNumber", teethString);
+                               }
+                             }
+                          }
+                        }}
+                      />
                     </div>
-                    <div className="col-span-6 sm:col-span-2 space-y-2">
+                    <div className="col-span-6 sm:col-span-3 space-y-2">
                       <Label>Tooth</Label>
                       <Input
+                        showVoice={false}
                         value={item.toothNumber || ""}
                         onChange={(e) => updateItem(index, "toothNumber", e.target.value)}
                         placeholder="e.g. 14"
@@ -409,6 +395,7 @@ const Billing: React.FC = () => {
                       <Label>Amount (₹)</Label>
                       <Input
                         type="number"
+                        autoComplete="off"
                         value={item.amount || ""}
                         onChange={(e) => updateItem(index, "amount", parseFloat(e.target.value) || 0)}
                         placeholder="0"
@@ -446,6 +433,7 @@ const Billing: React.FC = () => {
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₹</span>
                     <Input
                       type="number"
+                      autoComplete="off"
                       className="pl-7 bg-emerald-50/30 border-emerald-100"
                       value={paidAmount || ""}
                       onChange={(e) => setPaidAmount(Number(e.target.value) || 0)}
@@ -671,7 +659,11 @@ const Billing: React.FC = () => {
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => {
-                                pdfService.generateInvoicePDF({ name: invoice.patientName, id: invoice.patientId, phone: invoice.patientPhone } as any, invoice);
+                                toast.promise(api.downloadInvoice(invoice.id), {
+                                  loading: 'Preparing PDF...',
+                                  success: 'Downloaded!',
+                                  error: 'Failed to download'
+                                });
                               }}>
                                 <FileDown className="h-4 w-4" />
                               </Button>
@@ -711,9 +703,7 @@ const Billing: React.FC = () => {
 
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => {
-                                if (window.confirm("Delete this invoice?")) deleteInvoice.mutate(invoice.id);
-                              }}>
+                              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => setInvoiceToDelete(invoice.id)}>
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </TooltipTrigger>
@@ -779,8 +769,10 @@ const Billing: React.FC = () => {
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₹</span>
                         <Input
-                          id="amount"
+                          id="payment-amount-input"
+                          name="payment-amount-input"
                           type="number"
+                          autoComplete="off"
                           className="pl-7 text-lg font-bold"
                           placeholder="Enter amount..."
                           value={additionalPayment}
@@ -837,6 +829,28 @@ const Billing: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Delete Invoice Confirmation Dialog */}
+      <AlertDialog open={!!invoiceToDelete} onOpenChange={(open) => !open && setInvoiceToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Invoice?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete invoice <span className="font-bold text-foreground">{invoiceToDelete}</span>? 
+              This will remove all billing records for this transaction.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => invoiceToDelete && deleteInvoice.mutate(invoiceToDelete)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteInvoice.isPending ? "Deleting..." : "Delete Invoice"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 };

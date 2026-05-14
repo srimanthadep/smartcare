@@ -40,6 +40,6 @@ const updateSW = registerSW({
         }
     },
     onOfflineReady() {
-        console.log('App ready for offline use');
+        if (import.meta.env.DEV) console.log('App ready for offline use');
     },
 });

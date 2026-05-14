@@ -187,6 +187,7 @@ const InvoiceEditModal: React.FC<InvoiceEditModalProps> = ({
                   <div className="space-y-1.5 sm:col-span-2">
                     <Label className="text-[10px] uppercase font-bold text-muted-foreground">Tooth #</Label>
                     <Input 
+                      showVoice={false}
                       placeholder="e.g. 46" 
                       value={item.toothNumber} 
                       onChange={(e) => setItems(current => current.map((row, i) => i === index ? { ...row, toothNumber: e.target.value } : row))} 
@@ -197,6 +198,7 @@ const InvoiceEditModal: React.FC<InvoiceEditModalProps> = ({
                     <Label className="text-[10px] uppercase font-bold text-muted-foreground">Amount (₹)</Label>
                     <Input 
                       type="number" 
+                      autoComplete="off"
                       value={item.amount} 
                       onChange={(e) => setItems((current) => current.map((row, i) => (i === index ? { ...row, amount: Number(e.target.value) } : row)))} 
                       className="h-9"

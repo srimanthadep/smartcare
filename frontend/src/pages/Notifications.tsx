@@ -12,6 +12,8 @@ import {
   Trash2,
   Users,
 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { api } from "@/lib/api";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -101,12 +103,38 @@ const Notifications: React.FC = () => {
 
   useEffect(() => {
     document.title = "Notifications · Siara Dental";
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) setNotifications(JSON.parse(stored));
-    } catch {
-      setNotifications(seedNotifications);
-    }
+    
+    const fetchLogs = async () => {
+      try {
+        const logs = await api.getActivityLogs();
+        const mapped: Notice[] = logs.map(log => {
+          let kind: NoticeKind = "system";
+          if (log.entityType === 'patient') kind = 'patient';
+          if (log.entityType === 'invoice') kind = 'billing';
+          if (log.entityType === 'prescription') kind = 'prescription';
+          
+          return {
+            id: log.id,
+            title: `${log.action} - ${log.entityType}`,
+            body: log.details || `Activity recorded by ${log.userName}`,
+            time: formatDistanceToNow(new Date(log.timestamp), { addSuffix: true }),
+            read: false,
+            kind,
+            actionLabel: 'View',
+            actionPath: `/${log.entityType}s`
+          };
+        });
+        setNotifications(mapped);
+      } catch (e) {
+        console.error("Failed to load notifications", e);
+        // Fallback to seed if network fails
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) setNotifications(JSON.parse(stored));
+        else setNotifications(seedNotifications);
+      }
+    };
+    
+    fetchLogs();
   }, []);
 
   useEffect(() => {

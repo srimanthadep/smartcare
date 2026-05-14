@@ -12,15 +12,23 @@ import whatsappRoutes from './whatsapp.routes.js';
 import emailRoutes from './email.routes.js';
 import expenseRoutes from './expense.routes.js';
 import doctorRoutes from './doctor.routes.js';
+import recallRoutes from './recall.routes.js';
+import queueRoutes from './queue.routes.js';
 import * as dashboardController from '../controllers/dashboard.controller.js';
 import * as appointmentController from '../controllers/appointment.controller.js';
 import * as invoiceController from '../controllers/invoice.controller.js';
 import * as prescriptionController from '../controllers/prescription.controller.js';
 import * as adminController from '../controllers/admin.controller.js';
+import { validate } from '../middleware/validate.js';
+import { createInvoiceSchema, updateInvoiceSchema } from '../validators/invoice.validator.js';
+import { createAppointmentSchema, updateAppointmentSchema } from '../validators/appointment.validator.js';
+import { createPrescriptionSchema, updatePrescriptionSchema } from '../validators/prescription.validator.js';
 import * as dentalController from '../controllers/dental.controller.js';
 import { auth, authorize } from '../middleware/auth.js';
 import { dbService } from '../services/db.service.js';
-import { emailService } from '../services/email.service.js';
+import { addEmailJob, EMAIL_JOBS } from '../queues/email.queue.js';
+import { addWhatsAppJob, WHATSAPP_JOBS } from '../queues/whatsapp.queue.js';
+import { bullBoardAdapter } from '../queues/index.js';
 
 import rateLimit from 'express-rate-limit';
 
@@ -42,24 +50,30 @@ const aiRateLimit = rateLimit({
 router.get('/', (req, res) => res.json({ status: 'ok', message: 'API is operational' }));
 router.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 router.use('/auth', authRateLimit, authRoutes);
-router.use('/whatsapp', whatsappRoutes);
-router.use('/email', emailRoutes);
 
 // Protected routes
 router.use(auth);
 
+// H10: WhatsApp/Email routes now behind auth
+router.use('/whatsapp', whatsappRoutes);
+router.use('/email', emailRoutes);
+
+// ── Bull Board Admin Dashboard ──
+// Accessible at /api/admin/queues (requires authentication)
+router.use('/admin/queues', bullBoardAdapter.getRouter());
+
 router.get('/bootstrap', dashboardController.getBootstrap);
 router.get('/dashboard', dashboardController.getDashboard);
 
-// Email re-send endpoints
+// Email re-send endpoints (now queued)
 router.post('/patients/:id/send-welcome', async (req, res, next) => {
   try {
     const resPat = await dbService.query('SELECT * FROM patients WHERE id = $1', [req.params.id]);
     const patient = dbService.mapRows('patients', resPat.rows)[0];
     if (!patient || !patient.email) return res.status(400).json({ message: 'Patient or email not found' });
-    console.log(`Manual trigger: Sending welcome email to ${patient.email}`);
-    await emailService.sendWelcomeEmail(patient);
-    res.json({ message: 'Welcome email sent' });
+    console.log(`Manual trigger: Queuing welcome email for ${patient.email}`);
+    addEmailJob(EMAIL_JOBS.WELCOME, { patient });
+    res.json({ message: 'Welcome email queued for delivery' });
   } catch (error) { next(error); }
 });
 
@@ -73,9 +87,9 @@ router.post('/prescriptions/:id/send-email', async (req, res, next) => {
     const patient = dbService.mapRows('patients', resPat.rows)[0];
     if (!patient || !patient.email) return res.status(400).json({ message: 'Patient or email not found' });
     
-    console.log(`Manual trigger: Sending prescription email to ${patient.email}`);
-    await emailService.sendPrescriptionEmail(patient, px);
-    res.json({ message: 'Prescription email sent' });
+    console.log(`Manual trigger: Queuing prescription email for ${patient.email}`);
+    addEmailJob(EMAIL_JOBS.PRESCRIPTION, { patient, prescription: px });
+    res.json({ message: 'Prescription email queued for delivery' });
   } catch (error) { next(error); }
 });
 
@@ -89,9 +103,9 @@ router.post('/invoices/:id/send-email', async (req, res, next) => {
     const patient = dbService.mapRows('patients', resPat.rows)[0];
     if (!patient || !patient.email) return res.status(400).json({ message: 'Patient or email not found' });
     
-    console.log(`Manual trigger: Sending invoice email to ${patient.email}`);
-    await emailService.sendInvoiceEmail(patient, invoice);
-    res.json({ message: 'Invoice email sent' });
+    console.log(`Manual trigger: Queuing invoice email for ${patient.email}`);
+    addEmailJob(EMAIL_JOBS.INVOICE, { patient, invoice });
+    res.json({ message: 'Invoice email queued for delivery' });
   } catch (error) { next(error); }
 });
 
@@ -102,27 +116,31 @@ router.use('/prescription-templates', prescriptionTemplateRoutes);
 router.use('/treatment-plan-templates', treatmentPlanTemplateRoutes);
 router.use('/treatment-plans', treatmentPlanRoutes);
 router.use('/procedures', procedureRoutes);
-router.use('/backup', authorize('admin'), backupRoutes);
+router.use('/backup', backupRoutes);
 router.use('/expenses', expenseRoutes);
 router.use('/doctors', doctorRoutes);
+router.use('/recalls', recallRoutes);
+router.use('/queues', queueRoutes);
 
-// Appointments
+// Appointments (H1: validated)
 router.get('/appointments', appointmentController.getAppointments);
-router.post('/appointments', appointmentController.createAppointment);
-router.patch('/appointments/:id', appointmentController.updateAppointment);
+router.post('/appointments', validate(createAppointmentSchema), appointmentController.createAppointment);
+router.patch('/appointments/:id', validate(updateAppointmentSchema), appointmentController.updateAppointment);
 router.delete('/appointments/:id', appointmentController.deleteAppointment);
 
-// Invoices
+// Invoices (H1: validated)
 router.get('/invoices', invoiceController.getInvoices);
-router.post('/invoices', invoiceController.createInvoice);
-router.patch('/invoices/:id', invoiceController.updateInvoice);
+router.post('/invoices', validate(createInvoiceSchema), invoiceController.createInvoice);
+router.patch('/invoices/:id', validate(updateInvoiceSchema), invoiceController.updateInvoice);
 router.delete('/invoices/:id', invoiceController.deleteInvoice);
+router.get('/invoices/:id/download', invoiceController.downloadInvoice);
 
-// Prescriptions
+// Prescriptions (H1: validated)
 router.get('/prescriptions', prescriptionController.getPrescriptions);
-router.post('/prescriptions', prescriptionController.createPrescription);
-router.patch('/prescriptions/:id', prescriptionController.updatePrescription);
+router.post('/prescriptions', validate(createPrescriptionSchema), prescriptionController.createPrescription);
+router.patch('/prescriptions/:id', validate(updatePrescriptionSchema), prescriptionController.updatePrescription);
 router.delete('/prescriptions/:id', prescriptionController.deletePrescription);
+router.get('/prescriptions/:id/download', prescriptionController.downloadPrescription);
 router.post('/prescriptions/:id/send-whatsapp', prescriptionController.sendWhatsApp);
 router.post('/invoices/:id/send-whatsapp', async (req, res, next) => {
   try {
@@ -134,10 +152,8 @@ router.post('/invoices/:id/send-whatsapp', async (req, res, next) => {
     const patient = dbService.mapRows('patients', resPat.rows)[0];
     if (!patient) return res.status(404).json({ message: 'Patient not found' });
 
-    import('../services/whatsapp.service.js').then(({ whatsappService }) => {
-      whatsappService.sendInvoice(patient, invoice);
-    });
-    res.json({ message: 'Invoice WhatsApp sent' });
+    addWhatsAppJob(WHATSAPP_JOBS.INVOICE, { patient, invoice });
+    res.json({ message: 'Invoice WhatsApp queued for delivery' });
   } catch (error) { next(error); }
 });
 
@@ -145,7 +161,7 @@ router.post('/invoices/:id/send-whatsapp', async (req, res, next) => {
 router.get('/dental-chart/:patientId', dentalController.getDentalChart);
 router.post('/dental-chart/:patientId', dentalController.updateDentalChart);
 
-// Admin only
-router.get('/activity-logs', authorize('admin'), adminController.getActivityLogs);
+// Logs (Accessible to staff)
+router.get('/activity-logs', adminController.getActivityLogs);
 
 export default router;

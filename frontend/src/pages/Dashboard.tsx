@@ -24,6 +24,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import StatsCard from "@/components/StatsCard";
 import StatusBadge from "@/components/StatusBadge";
 
@@ -67,16 +77,16 @@ const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const [period, setPeriod] = React.useState("monthly");
   const [backupLoading, setBackupLoading] = React.useState(false);
+  const [isBackupConfirmOpen, setIsBackupConfirmOpen] = React.useState(false);
 
   React.useEffect(() => {
     document.title = "Dashboard | Siara Dental";
   }, []);
 
-  const handleBackup = async () => {
-    if (!window.confirm('Start a full database backup? This may take a moment.')) {
-      return;
-    }
+  const handleBackupClick = () => setIsBackupConfirmOpen(true);
 
+  const executeBackup = async () => {
+    setIsBackupConfirmOpen(false);
     setBackupLoading(true);
     const toastId = (await import('sonner')).toast.loading("Creating Backup...");
 
@@ -177,7 +187,7 @@ const Dashboard: React.FC = () => {
         </Button>
         <Button
           size="sm"
-          onClick={handleBackup}
+          onClick={handleBackupClick}
           disabled={backupLoading}
           className="bg-amber-500 hover:bg-amber-600 text-white"
         >
@@ -291,6 +301,23 @@ const Dashboard: React.FC = () => {
           </CardContent>
         </Card>
       </motion.div>
+
+      <AlertDialog open={isBackupConfirmOpen} onOpenChange={setIsBackupConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Start full backup?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will create a backup of your entire database. It may take a moment.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={backupLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={executeBackup} disabled={backupLoading} className="bg-amber-500 hover:bg-amber-600 text-white">
+              Start Backup
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 };

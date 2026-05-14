@@ -10,7 +10,7 @@ const worker = {
     if (spell) return;
 
     try {
-      console.log("Worker: Fetching dictionaries...");
+      if (import.meta.env.DEV) console.log("Worker: Fetching dictionaries...");
       const [affResp, dicResp] = await Promise.all([
         fetch('/dicts/en-US.aff'),
         fetch('/dicts/en-US.dic')
@@ -23,10 +23,10 @@ const worker = {
         throw new Error(`Dictionary load failed: ${affResp.status} ${dicResp.status}`);
       }
 
-      console.log(`Worker: Initializing nspell (aff: ${aff.length}, dic: ${dic.length})...`);
+      if (import.meta.env.DEV) console.log(`Worker: Initializing nspell (aff: ${aff.length}, dic: ${dic.length})...`);
       spell = nspell(aff, dic);
-      console.log("Worker: nspell initialized.");
-      console.log("Worker: Test check 'hello':", spell.correct("hello"));
+      if (import.meta.env.DEV) console.log("Worker: nspell initialized.");
+      if (import.meta.env.DEV) console.log("Worker: Test check 'hello':", spell.correct("hello"));
       
       // Add custom medical/dental terms
       DENTAL_TERMS.forEach(term => {
@@ -54,16 +54,16 @@ const worker = {
   },
 
   async check(word: string) {
-    console.log(`Worker: Received check request for "${word}"`);
+    if (import.meta.env.DEV) console.log(`Worker: Received check request for "${word}"`);
     if (!spell) {
-      console.warn("Worker: Spellchecker not initialized yet.");
+      if (import.meta.env.DEV) console.warn("Worker: Spellchecker not initialized yet.");
       return true;
     }
     try {
       const cleanWord = word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").trim();
       if (!cleanWord) return true;
       const result = spell.correct(cleanWord);
-      console.log(`Worker: Checking "${cleanWord}" -> ${result}`);
+      if (import.meta.env.DEV) console.log(`Worker: Checking "${cleanWord}" -> ${result}`);
       return result;
     } catch (e) {
       console.error("Worker: Check error", e);
@@ -72,13 +72,13 @@ const worker = {
   },
 
   async suggest(word: string) {
-    console.log(`Worker: Received suggest request for "${word}"`);
+    if (import.meta.env.DEV) console.log(`Worker: Received suggest request for "${word}"`);
     if (!spell) return [];
     try {
       const cleanWord = word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").trim();
       if (!cleanWord) return [];
       const results = spell.suggest(cleanWord);
-      console.log(`Worker: Suggestions for "${cleanWord}" ->`, results);
+      if (import.meta.env.DEV) console.log(`Worker: Suggestions for "${cleanWord}" ->`, results);
       return results;
     } catch (e) {
       console.error("Worker: Suggest error", e);
