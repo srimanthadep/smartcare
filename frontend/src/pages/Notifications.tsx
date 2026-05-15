@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { api } from "@/lib/api";
+import { safeLocalStorageParse } from "@/lib/storage";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -128,9 +129,7 @@ const Notifications: React.FC = () => {
       } catch (e) {
         console.error("Failed to load notifications", e);
         // Fallback to seed if network fails
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) setNotifications(JSON.parse(stored));
-        else setNotifications(seedNotifications);
+        setNotifications(safeLocalStorageParse<Notice[]>(STORAGE_KEY, seedNotifications));
       }
     };
     

@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { safeLocalStorageParse } from "@/lib/storage";
 
 interface Message {
   role: "user" | "assistant";
@@ -26,16 +27,7 @@ const defaultMessages: Message[] = [
 ];
 
 function loadMessages(): Message[] {
-  try {
-    const stored = localStorage.getItem(CHAT_STORAGE_KEY);
-    if (stored && stored !== "undefined") {
-      const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed)) return parsed;
-    }
-  } catch (e) {
-    console.error("Failed to load AI messages", e);
-  }
-  return defaultMessages;
+  return safeLocalStorageParse<Message[]>(CHAT_STORAGE_KEY, defaultMessages);
 }
 
 const AI: React.FC = () => {

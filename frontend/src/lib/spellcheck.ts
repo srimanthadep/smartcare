@@ -1,5 +1,6 @@
 
 import * as Comlink from 'comlink';
+import { safeLocalStorageParse } from './storage';
 
 export interface Spellchecker {
   init(userWords?: string[]): Promise<boolean>;
@@ -24,7 +25,7 @@ export const getSpellchecker = async (): Promise<Comlink.Remote<Spellchecker>> =
 
   globalProxy = Comlink.wrap<Spellchecker>(globalWorker);
   
-  const userWords = JSON.parse(localStorage.getItem(USER_WORDS_KEY) || '[]');
+  const userWords = safeLocalStorageParse<string[]>(USER_WORDS_KEY, []);
   if (import.meta.env.DEV) console.log("Spellcheck: Initializing proxy with words:", userWords.length);
   await globalProxy.init(userWords);
   
@@ -35,7 +36,7 @@ export const addToUserDictionary = async (word: string) => {
   const checker = await getSpellchecker();
   await checker.addWord(word);
   
-  const userWords = JSON.parse(localStorage.getItem(USER_WORDS_KEY) || '[]');
+  const userWords = safeLocalStorageParse<string[]>(USER_WORDS_KEY, []);
   if (!userWords.includes(word)) {
     userWords.push(word);
     localStorage.setItem(USER_WORDS_KEY, JSON.stringify(userWords));

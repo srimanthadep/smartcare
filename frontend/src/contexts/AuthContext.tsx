@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { User, UserRole } from "@/types";
+import { safeLocalStorageParse } from "@/lib/storage";
 
 interface AuthContextType {
   user: User | null;
@@ -23,10 +24,9 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    const raw = localStorage.getItem(USER_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  });
+  const [user, setUser] = useState<User | null>(() => 
+    safeLocalStorageParse<User | null>(USER_STORAGE_KEY, null)
+  );
 
   const login = useCallback(async (username: string, password: string, role: UserRole) => {
     const response = await api.login({ username, password, role });

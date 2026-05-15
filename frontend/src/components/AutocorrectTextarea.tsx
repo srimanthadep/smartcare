@@ -7,6 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Button } from "./ui/button";
 import { Plus, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { safeLocalStorageParse } from "@/lib/storage";
 
 export const AutocorrectTextarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
   ({ onChange, onKeyDown, value, ...props }, ref) => {
@@ -31,11 +32,8 @@ export const AutocorrectTextarea = React.forwardRef<HTMLTextAreaElement, Textare
       init();
 
       // Check settings
-      const settings = localStorage.getItem('smartcare_settings');
-      if (settings) {
-        const parsed = JSON.parse(settings);
-        setIsEnabled(parsed.autocorrectEnabled !== false);
-      }
+      const settings = safeLocalStorageParse('smartcare_settings', { autocorrectEnabled: true });
+      setIsEnabled(settings.autocorrectEnabled !== false);
     }, []);
 
     const handleSpellCheck = async (text: string, cursorPosition: number) => {

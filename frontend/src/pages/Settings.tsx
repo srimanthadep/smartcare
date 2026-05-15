@@ -26,6 +26,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
+import { safeLocalStorageParse } from '@/lib/storage';
 
 const Settings: React.FC = () => {
   const { user, refreshUser } = useAuth();
@@ -67,10 +68,9 @@ const Settings: React.FC = () => {
   const [deleteDoctorId, setDeleteDoctorId] = useState<string | null>(null);
   const [isDeletingDoctor, setIsDeletingDoctor] = useState(false);
   
-  const [typingSettings, setTypingSettings] = useState(() => {
-    const saved = localStorage.getItem('smartcare_settings');
-    return saved ? JSON.parse(saved) : { autocorrectEnabled: true };
-  });
+  const [typingSettings, setTypingSettings] = useState(() => 
+    safeLocalStorageParse('smartcare_settings', { autocorrectEnabled: true })
+  );
 
   useEffect(() => {
     localStorage.setItem('smartcare_settings', JSON.stringify(typingSettings));

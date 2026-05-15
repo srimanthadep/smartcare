@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { mockInventory } from "@/data/mockData";
 import { useDebounce } from "@/hooks/useDebounce";
 import { api } from "@/lib/api";
+import { safeLocalStorageParse } from "@/lib/storage";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -50,12 +51,7 @@ type LocalInventoryItem = {
 const INVENTORY_KEY = "siara-local-inventory";
 
 function loadInventory(): LocalInventoryItem[] {
-  try {
-    const stored = localStorage.getItem(INVENTORY_KEY);
-    return stored ? JSON.parse(stored) : (mockInventory as LocalInventoryItem[]);
-  } catch {
-    return mockInventory as LocalInventoryItem[];
-  }
+  return safeLocalStorageParse<LocalInventoryItem[]>(INVENTORY_KEY, mockInventory as LocalInventoryItem[]);
 }
 
 const Pharmacy: React.FC = () => {
