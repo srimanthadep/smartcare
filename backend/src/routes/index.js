@@ -14,6 +14,7 @@ import expenseRoutes from './expense.routes.js';
 import doctorRoutes from './doctor.routes.js';
 import recallRoutes from './recall.routes.js';
 import queueRoutes from './queue.routes.js';
+import xrayRoutes from './xray.routes.js';
 import * as dashboardController from '../controllers/dashboard.controller.js';
 import * as appointmentController from '../controllers/appointment.controller.js';
 import * as invoiceController from '../controllers/invoice.controller.js';
@@ -24,6 +25,7 @@ import { createInvoiceSchema, updateInvoiceSchema } from '../validators/invoice.
 import { createAppointmentSchema, updateAppointmentSchema } from '../validators/appointment.validator.js';
 import { createPrescriptionSchema, updatePrescriptionSchema } from '../validators/prescription.validator.js';
 import * as dentalController from '../controllers/dental.controller.js';
+import * as xrayController from '../controllers/xray.controller.js';
 import { auth, authorize } from '../middleware/auth.js';
 import { dbService } from '../services/db.service.js';
 import { addEmailJob, EMAIL_JOBS } from '../queues/email.queue.js';
@@ -121,6 +123,7 @@ router.use('/expenses', expenseRoutes);
 router.use('/doctors', doctorRoutes);
 router.use('/recalls', recallRoutes);
 router.use('/queues', queueRoutes);
+router.use('/xrays', xrayRoutes);
 
 // Appointments (H1: validated)
 router.get('/appointments', appointmentController.getAppointments);
@@ -160,6 +163,9 @@ router.post('/invoices/:id/send-whatsapp', async (req, res, next) => {
 // Dental Charts
 router.get('/dental-chart/:patientId', dentalController.getDentalChart);
 router.post('/dental-chart/:patientId', dentalController.updateDentalChart);
+
+// Patient X-Rays (scoped)
+router.get('/patients/:id/xrays', xrayController.getPatientXrays);
 
 // Logs (Accessible to staff)
 router.get('/activity-logs', adminController.getActivityLogs);

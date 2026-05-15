@@ -350,3 +350,39 @@ export interface QueueStatsResponse {
   timestamp: number;
   queues: QueueData[];
 }
+
+// ── X-Ray Module Types ─────────────────────────────────────────
+
+export type XRayType = 'IOPA' | 'OPG' | 'CBCT' | 'Bitewing' | 'Cephalometric';
+
+export interface XRay {
+  id: string;
+  patientId: string;
+  patientName?: string;
+  patientPhone?: string;
+  fileUrl: string;
+  thumbnailUrl: string | null;
+  cloudinaryPublicId: string;
+  type: XRayType;
+  toothNumbers: number[];
+  notes: string;
+  diagnosis: string;
+  tags: string[];
+  annotations: unknown[];
+  reviewed: boolean;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  uploadedBy: string;
+  takenDate: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface XRayStats {
+  total: number;
+  monthlyUploads: number;
+  pendingReview: number;
+  recentUploads: XRay[];
+  typeDistribution: { type: string; count: number }[];
+  monthlyTrend: { month: string; count: number }[];
+}

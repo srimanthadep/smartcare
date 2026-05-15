@@ -28,6 +28,7 @@ import Settings from "@/pages/Settings";
 import RecallSystem from "@/pages/RecallSystem";
 import ActivityLogs from "@/pages/ActivityLogs";
 import BullDashboard from "@/pages/BullDashboard";
+import XRays from "@/pages/XRays";
 import NotFound from "@/pages/NotFound";
 import PublicLayout from "@/components/PublicLayout";
 import PublicBooking from "@/pages/PublicBooking";
@@ -74,6 +75,7 @@ const App = () => (
                 <Route path="pharmacy" element={<Pharmacy />} />
                 <Route path="expenses" element={<Expenses />} />
                 <Route path="recalls" element={<RecallSystem />} />
+                <Route path="xrays" element={<XRays />} />
                 <Route path="analytics" element={<Analytics />} />
                 <Route path="ai" element={<AI />} />
                 <Route path="notifications" element={<Notifications />} />

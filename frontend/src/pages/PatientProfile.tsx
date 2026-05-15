@@ -35,6 +35,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import StatusBadge from "@/components/StatusBadge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DentalChart from "@/components/DentalChart";
+import PatientXRayTab from "@/components/xray/PatientXRayTab";
 import { ToothRecord } from "@/types";
 import InvoiceModal from "@/components/InvoiceModal";
 import InvoiceEditModal from "@/components/InvoiceEditModal";
@@ -353,6 +354,7 @@ const PatientProfile: React.FC = () => {
           <TabsTrigger value="billing">Billing</TabsTrigger>
           <TabsTrigger value="prescriptions">Prescriptions</TabsTrigger>
           <TabsTrigger value="treatment-plans">Treatment Plans</TabsTrigger>
+          <TabsTrigger value="xrays">X-Rays</TabsTrigger>
           <TabsTrigger value="diagnoses">Diagnoses</TabsTrigger>
         </TabsList>
 
@@ -928,6 +930,10 @@ const PatientProfile: React.FC = () => {
 
         <TabsContent value="treatment-plans" className="mt-4 space-y-4">
           <TreatmentPlansSection patientId={id} patientName={patient.name} />
+        </TabsContent>
+
+        <TabsContent value="xrays" className="mt-4">
+          <PatientXRayTab patientId={id} />
         </TabsContent>
 
         <TabsContent value="diagnoses" className="mt-4">

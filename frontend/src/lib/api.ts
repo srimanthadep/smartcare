@@ -20,6 +20,8 @@ import {
   Procedure,
   PrescriptionTemplate,
   QueueStatsResponse,
+  XRay,
+  XRayStats,
 } from "@/types";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3001";
@@ -515,6 +517,10 @@ export const api = {
     });
   },
 
+  analyzeXray(id: string) {
+    return apiFetch<XRay>(`/api/xrays/${id}/analyze`, { method: "POST" });
+  },
+
   // ── Queue Dashboard API ──
   getQueueStats() {
     return apiFetch<QueueStatsResponse>("/api/queues/stats");
@@ -537,5 +543,81 @@ export const api = {
 
   logout() {
     return apiFetch<{ message: string }>("/api/auth/logout", { method: "POST" });
+  },
+
+  // ── X-Ray Module API ──
+  getXrays(params: {
+    search?: string;
+    type?: string;
+    reviewed?: string;
+    from?: string;
+    to?: string;
+    toothNumber?: string;
+    patientId?: string;
+    uploadedBy?: string;
+    page?: string;
+    limit?: string;
+  } = {}) {
+    return apiFetch<XRay[]>(`/api/xrays${buildQuery(params)}`);
+  },
+
+  getPatientXrays(patientId: string) {
+    return apiFetch<XRay[]>(`/api/patients/${patientId}/xrays`);
+  },
+
+  getXrayStats() {
+    return apiFetch<XRayStats>("/api/xrays/stats");
+  },
+
+  getXray(id: string) {
+    return apiFetch<XRay>(`/api/xrays/${id}`);
+  },
+
+  async uploadXray(formData: FormData) {
+    const token = localStorage.getItem("smartcare_token");
+    const response = await fetch(`${API_BASE_URL}/api/xrays`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+      },
+      body: formData,
+      credentials: "include",
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.message || "Upload failed");
+    return data as XRay;
+  },
+
+  updateXray(id: string, payload: Partial<XRay>) {
+    return apiFetch<XRay>(`/api/xrays/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  reviewXray(id: string, reviewed: boolean) {
+    return apiFetch<XRay>(`/api/xrays/${id}/review`, {
+      method: "PATCH",
+      body: JSON.stringify({ reviewed }),
+    });
+  },
+
+  deleteXray(id: string) {
+    return apiFetch<{ message: string }>(`/api/xrays/${id}`, {
+      method: "DELETE",
+    });
+  },
+
+  async downloadXray(url: string, filename: string) {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Failed to download x-ray");
+    const blob = await response.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    URL.revokeObjectURL(a.href);
+    document.body.removeChild(a);
   },
 };

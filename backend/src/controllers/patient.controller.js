@@ -194,7 +194,8 @@ export const deletePatient = async (req, res, next) => {
       dbService.query('UPDATE treatment_plans SET is_deleted = TRUE WHERE patient_id = $1', [id]),
       dbService.query('UPDATE diagnoses SET is_deleted = TRUE WHERE patient_id = $1', [id]),
       dbService.query('UPDATE reports SET is_deleted = TRUE WHERE patient_id = $1', [id]),
-      dbService.query('UPDATE recalls SET is_deleted = TRUE WHERE patient_id = $1', [id])
+      dbService.query('UPDATE recalls SET is_deleted = TRUE WHERE patient_id = $1', [id]),
+      dbService.query('UPDATE xrays SET is_deleted = TRUE WHERE patient_id = $1', [id])
     ]);
     
     addActivityJob(ACTIVITY_JOBS.LOG, {

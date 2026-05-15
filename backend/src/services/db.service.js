@@ -38,7 +38,7 @@ class DbService {
     const tables = [
       'users', 'patients', 'doctors', 'appointments',
       'invoices', 'prescriptions', 'medicines', 'prescription_templates',
-      'activity_logs', 'dental_charts', 'treatment_plans', 'diagnoses', 'reports', 'clinical_procedures'
+      'activity_logs', 'dental_charts', 'treatment_plans', 'diagnoses', 'reports', 'clinical_procedures', 'xrays'
     ];
 
     // Run queries in parallel for better performance
@@ -161,6 +161,26 @@ class DbService {
         ...r,
         paymentMethod: r.payment_method,
         createdAt: r.created_at,
+      }));
+    }
+    if (table === 'xrays') {
+      return rows.map(r => ({
+        ...r,
+        patientId: r.patient_id,
+        patientName: r.patient_name,
+        patientPhone: r.patient_phone,
+        fileUrl: r.file_url,
+        thumbnailUrl: r.thumbnail_url,
+        cloudinaryPublicId: r.cloudinary_public_id,
+        toothNumbers: this.safeJsonParse(r.tooth_numbers, []),
+        tags: this.safeJsonParse(r.tags, []),
+        annotations: this.safeJsonParse(r.annotations, []),
+        reviewedBy: r.reviewed_by,
+        reviewedAt: r.reviewed_at,
+        uploadedBy: r.uploaded_by,
+        takenDate: r.taken_date ? new Date(r.taken_date).toLocaleDateString('en-CA') : null,
+        createdAt: r.created_at,
+        updatedAt: r.updated_at,
       }));
     }
     return rows;

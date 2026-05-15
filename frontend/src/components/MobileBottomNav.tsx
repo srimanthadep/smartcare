@@ -10,6 +10,7 @@ import {
   Menu,
   Pill,
   Receipt,
+  ScanLine,
   Settings,
   Users,
   Wallet,
@@ -41,6 +42,7 @@ const moreTabs = [
   { title: "Settings", url: "/settings", icon: Settings, roles: ["doctor", "admin"] },
   { title: "Activity Logs", url: "/logs", icon: Activity, roles: ["admin"] },
   { title: "Recall System", url: "/recalls", icon: CalendarClock, roles: ["doctor", "admin"] },
+  { title: "X-Rays", url: "/xrays", icon: ScanLine, roles: ["doctor", "admin"] },
   { title: "Public Booking", url: "/book", icon: CalendarPlus, roles: ["doctor", "admin"] },
 ];
 

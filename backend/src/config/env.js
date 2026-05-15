@@ -16,6 +16,9 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url("Invalid database URL"),
   REDIS_URL: z.string().optional(),
   ALLOW_PUBLIC_SIGNUP: z.string().default('false').transform((s) => s === 'true'),
+  CLOUDINARY_CLOUD_NAME: z.string().optional(),
+  CLOUDINARY_API_KEY: z.string().optional(),
+  CLOUDINARY_API_SECRET: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

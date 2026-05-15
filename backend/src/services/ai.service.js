@@ -293,6 +293,80 @@ Format:
       return 'Other';
     }
   }
+
+  /**
+   * Analyzes a dental X-ray image using Gemini Vision.
+   */
+  async analyzeXray(imageUrl, patientContext = {}) {
+    if (!config.GEMINI_API_KEY) {
+      throw new Error('AI service is not configured.');
+    }
+
+    try {
+      // 1. Fetch image and convert to base64
+      console.log(`Fetching X-ray for AI analysis: ${imageUrl}`);
+      const imageResponse = await fetch(imageUrl);
+      if (!imageResponse.ok) throw new Error('Failed to fetch image for analysis');
+      
+      const buffer = await imageResponse.arrayBuffer();
+      const base64Image = Buffer.from(buffer).toString('base64');
+      const mimeType = imageResponse.headers.get('content-type') || 'image/jpeg';
+
+      const systemPrompt = `You are an expert Dental Radiologist assistant. 
+Analyze this dental X-ray and provide clinical insights.
+Patient Context: ${JSON.stringify(patientContext)}
+
+You must return the response in strict JSON format.
+Structure:
+{
+  "findings": ["Point 1", "Point 2"],
+  "diagnosis": "Overall clinical impression",
+  "affectedTeeth": [36, 47],
+  "confidence": 0.95,
+  "recommendations": ["Next step 1", "Next step 2"],
+  "disclaimer": "This is an AI-assisted analysis for review by Dr. Saikiran only."
+}
+
+CRITICAL: 
+- Be specific about caries, bone loss, periapical radiolucency, or restorations.
+- If the image is not a dental X-ray, state "Invalid Image" in findings.
+- Use FDI tooth numbering system (11-48).`;
+
+      console.log('Sending X-ray to Gemini for analysis...');
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${config.GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: systemPrompt },
+              {
+                inline_data: {
+                  mime_type: mimeType,
+                  data: base64Image
+                }
+              }
+            ]
+          }],
+          generationConfig: {
+            response_mime_type: "application/json",
+            temperature: 0.2
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Gemini Vision API error: ${errorData.error?.message || response.statusText}`);
+      }
+
+      const data = await response.json();
+      return JSON.parse(data.candidates[0].content.parts[0].text);
+    } catch (error) {
+      console.error('X-Ray Analysis Error:', error);
+      throw new Error(`Failed to analyze X-ray: ${error.message}`);
+    }
+  }
 }
 
 export const aiService = new AIService();

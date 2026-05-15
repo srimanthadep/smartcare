@@ -42,13 +42,27 @@ export const verifyRedisConnection = async () => {
   if (!conn) return false;
 
   try {
-    await conn.connect();
+    // Force a timeout for the initial connection check
+    const connectionPromise = conn.connect();
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Connection timeout')), 5000)
+    );
+
+    await Promise.race([connectionPromise, timeoutPromise]);
     await conn.ping();
     console.log('✅ Redis (Upstash) connected');
     return true;
   } catch (err) {
     console.error('❌ Redis connection failed:', err.message);
     console.warn('⚠️  Background job queues will be unavailable');
+    
+    // If it failed, we should probably disconnect to stop ioredis from retrying internally
+    try {
+      await conn.disconnect();
+    } catch (e) {
+      // Ignore disconnect errors
+    }
+    
     return false;
   }
 };

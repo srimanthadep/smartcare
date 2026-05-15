@@ -110,6 +110,36 @@ export const runMigrations = async () => {
             ALTER TABLE whatsapp_sessions ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
         END IF;
     END $$;
+
+    -- X-Ray Management Module
+    CREATE TABLE IF NOT EXISTS xrays (
+        id TEXT PRIMARY KEY,
+        patient_id TEXT NOT NULL,
+        file_url TEXT NOT NULL,
+        thumbnail_url TEXT,
+        cloudinary_public_id TEXT,
+        type TEXT NOT NULL DEFAULT 'IOPA',
+        tooth_numbers JSONB DEFAULT '[]'::jsonb,
+        notes TEXT DEFAULT '',
+        diagnosis TEXT DEFAULT '',
+        tags JSONB DEFAULT '[]'::jsonb,
+        annotations JSONB DEFAULT '[]'::jsonb,
+        reviewed BOOLEAN DEFAULT FALSE,
+        reviewed_by TEXT,
+        reviewed_at TIMESTAMP WITH TIME ZONE,
+        uploaded_by TEXT,
+        taken_date DATE DEFAULT CURRENT_DATE,
+        is_deleted BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_xrays_patient_id ON xrays(patient_id);
+    CREATE INDEX IF NOT EXISTS idx_xrays_created_at ON xrays(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_xrays_type ON xrays(type);
+    CREATE INDEX IF NOT EXISTS idx_xrays_reviewed ON xrays(reviewed);
+
+    ALTER TABLE prescriptions ADD COLUMN IF NOT EXISTS xray_ids JSONB DEFAULT '[]'::jsonb;
   `;
 
   try {
