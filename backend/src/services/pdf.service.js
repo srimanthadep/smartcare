@@ -5,6 +5,8 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const LOGO_PATH = path.join(__dirname, '../../assets/logo.png');
+const SIGN_PATH = path.join(__dirname, '../../assets/sign.png');
+const STAMP_PATH = path.join(__dirname, '../../assets/stamp.png');
 
 // --- Clinic Constants ---
 const CLINIC_NAME = "SIARA DENTAL";
@@ -89,6 +91,26 @@ function drawSectionHeader(doc, label, y) {
 
   doc.fillColor(P.primaryDark).font('Helvetica-Bold').fontSize(9).text(label.toUpperCase(), 50, y + 2.5);
   return y + 20;
+}
+
+function drawSignatureBlock(doc, y, doctorName, doctorDetails) {
+  const W = doc.page.width;
+  const sigX = W - 150; 
+  
+  if (fs.existsSync(STAMP_PATH)) {
+    try { doc.image(STAMP_PATH, 40, y - 110, { width: 100 }); } catch (e) {}
+  }
+  
+  if (fs.existsSync(SIGN_PATH)) {
+    try { doc.image(SIGN_PATH, sigX, y - 125, { width: 120 }); } catch (e) {}
+  }
+  
+  doc.moveTo(sigX, y).lineTo(W - 40, y).strokeColor(P.border).lineWidth(0.5).stroke();
+  
+  doc.fillColor(P.dark).font('Helvetica-Bold').fontSize(10).text(doctorName || 'Dr. Saikiran Reddy', sigX, y + 5, { align: 'center', width: 110 });
+  if (doctorDetails) {
+    doc.fillColor(P.muted).font('Helvetica').fontSize(8).text(`${doctorDetails.qualifications || 'BDS, MDS'}\nReg: ${doctorDetails.registration_number || 'A-4428'}`, sigX, y + 17, { align: 'center', width: 110 });
+  }
 }
 
 export const pdfService = {
@@ -186,11 +208,10 @@ export const pdfService = {
       // Signature Area
       const sigY = doc.page.height - 100;
       if (prescription.nextVisitDate) {
-        doc.fillColor(P.primaryDark).font('Helvetica-Bold').fontSize(9).text(`Next Review: ${new Date(prescription.nextVisitDate).toLocaleDateString('en-GB')}`, 40, sigY);
+        doc.fillColor(P.primaryDark).font('Helvetica-Bold').fontSize(9).text(`Next Review: ${new Date(prescription.nextVisitDate).toLocaleDateString('en-GB')}`, 40, sigY + 15);
       }
 
-      doc.fillColor(P.dark).font('Helvetica-Bold').fontSize(10).text(prescription.doctorName || 'Dr. Saikiran Reddy', 0, sigY, { align: 'right', width: W - 40 });
-      doc.fillColor(P.muted).font('Helvetica').fontSize(8).text(`${doctorDetails.qualifications || 'BDS, MDS'} (Reg: ${doctorDetails.registration_number || 'A-4428'})`, 0, sigY + 12, { align: 'right', width: W - 40 });
+      drawSignatureBlock(doc, sigY, prescription.doctorName, doctorDetails);
 
       drawProfessionalFooter(doc);
       doc.end();
@@ -265,10 +286,9 @@ export const pdfService = {
       doc.text(`INR ${balance.toLocaleString("en-IN")}`, 0, y + 2, { align: 'right', width: W - 40 });
 
       // Footer Sign
-      const sigY = doc.page.height - 80;
-      doc.fillColor(P.muted).font('Helvetica').fontSize(7).text("This is a computer generated invoice and does not require a physical signature.", 0, sigY - 20, { align: 'center', width: W });
-      doc.fillColor(P.dark).font('Helvetica-Bold').fontSize(9).text("Authorized Signatory", 0, sigY, { align: 'right', width: W - 40 });
-      doc.fillColor(P.text).fontSize(8).text("Dr. Saikiran Reddy", 0, sigY + 12, { align: 'right', width: W - 40 });
+      const sigY = doc.page.height - 100;
+      
+      drawSignatureBlock(doc, sigY, "Authorized Signatory", null);
 
       drawProfessionalFooter(doc);
       doc.end();

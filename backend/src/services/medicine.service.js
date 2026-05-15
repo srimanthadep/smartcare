@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -14,12 +15,14 @@ class MedicineService {
   getDb() {
     if (!this.db) {
       try {
+        if (!fs.existsSync(DB_FILE_PATH)) {
+          return null;
+        }
         this.db = new Database(DB_FILE_PATH, { fileMustExist: true });
-        // Enable WAL mode for better concurrency (useful for read-heavy operations)
         this.db.pragma('journal_mode = WAL');
       } catch (error) {
         console.error('Failed to open medicines database:', error);
-        throw new Error('Medicine database not available');
+        return null;
       }
     }
     return this.db;
@@ -36,6 +39,9 @@ class MedicineService {
     }
 
     const db = this.getDb();
+    if (!db) {
+      return [];
+    }
     
     // Clean and prepare query for FTS5 prefix matching
     // e.g., "para" -> "para*"

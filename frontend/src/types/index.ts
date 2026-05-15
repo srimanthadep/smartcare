@@ -70,6 +70,7 @@ export interface Prescription {
   diagnosis?: string;
   nextVisitDate?: string;
   treatmentPlan?: TreatmentPhase[];
+  templateId?: string;
 }
 
 export interface InvoiceLineItem {

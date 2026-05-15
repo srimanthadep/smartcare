@@ -34,17 +34,31 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 
-const CATEGORIES = [
+const EXPENSE_TABS = ["Clinic Expenses", "Personal Daily Expenses", "Others"] as const;
+type ExpenseTab = typeof EXPENSE_TABS[number];
+
+const CLINIC_CATEGORIES = [
+  "Lab Bill",
   "Rent",
-  "Salaries",
-  "Medicine Supplies",
+  "Electricity Bill",
+  "Maid Salary",
+  "Receptionist Salary",
   "Equipment",
-  "Utility Bills",
-  "Marketing",
-  "Other",
+  "Medicine Supplies",
+  "Other Clinic",
 ];
+const PERSONAL_CATEGORIES = ["Food", "Transport", "Personal Shopping", "Other Personal"];
+const OTHER_CATEGORIES = ["Miscellaneous", "One-time", "Other"];
+
+// Map tabs to categories
+const TAB_CATEGORIES: Record<ExpenseTab, string[]> = {
+  "Clinic Expenses": CLINIC_CATEGORIES,
+  "Personal Daily Expenses": PERSONAL_CATEGORIES,
+  "Others": OTHER_CATEGORIES,
+};
 
 const Expenses: React.FC = () => {
   const queryClient = useQueryClient();
@@ -54,6 +68,7 @@ const Expenses: React.FC = () => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [activeTab, setActiveTab] = useState<ExpenseTab>("Clinic Expenses");
 
   const { data: expenses, isLoading } = useQuery({
     queryKey: ["expenses"],
@@ -95,9 +110,11 @@ const Expenses: React.FC = () => {
   });
 
   const filteredExpenses = expenses?.filter((exp: any) => {
+    const tabCategories = TAB_CATEGORIES[activeTab];
+    const matchesTab = exp.tab === activeTab || (!exp.tab && tabCategories.includes(exp.category));
     const matchesSearch = exp.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter === "all" || exp.category === categoryFilter;
-    return matchesSearch && matchesCategory;
+    return matchesTab && matchesSearch && matchesCategory;
   });
 
   const totalAmount = filteredExpenses?.reduce((sum: number, exp: any) => sum + Number(exp.amount), 0) || 0;
@@ -111,6 +128,7 @@ const Expenses: React.FC = () => {
       amount: Number(formData.get("amount")),
       category: category === "auto" ? null : category,
       date: formData.get("date"),
+      tab: activeTab,
     };
     createExpense.mutate(payload);
   };
@@ -123,8 +141,8 @@ const Expenses: React.FC = () => {
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-heading font-bold">Clinic Expenses</h1>
-          <p className="text-sm text-muted-foreground">Track and manage your clinic expenditures in one go.</p>
+          <h1 className="text-2xl font-heading font-bold">Expenses</h1>
+          <p className="text-sm text-muted-foreground">Track and manage your expenditures.</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -179,7 +197,7 @@ const Expenses: React.FC = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="auto">Auto (AI categorization)</SelectItem>
-                      {CATEGORIES.map((cat) => (
+                      {TAB_CATEGORIES[activeTab].map((cat) => (
                         <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                       ))}
                     </SelectContent>
@@ -196,6 +214,14 @@ const Expenses: React.FC = () => {
           </DialogContent>
         </Dialog>
       </div>
+
+      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as ExpenseTab); setCategoryFilter("all"); }}>
+        <TabsList className="grid w-full grid-cols-3 mb-6">
+          {EXPENSE_TABS.map(tab => (
+            <TabsTrigger key={tab} value={tab}>{tab}</TabsTrigger>
+          ))}
+        </TabsList>
+        <TabsContent value={activeTab} className="space-y-6">
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-1 lg:grid-cols-4">
         <Card className="border-primary/20 bg-primary/5">
@@ -237,7 +263,7 @@ const Expenses: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
-                  {CATEGORIES.map((cat) => (
+                  {TAB_CATEGORIES[activeTab].map((cat) => (
                     <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                   ))}
                 </SelectContent>
@@ -350,6 +376,8 @@ const Expenses: React.FC = () => {
           ) : null}
         </CardContent>
       </Card>
+      </TabsContent>
+      </Tabs>
 
       {/* Edit Expense Dialog */}
       <Dialog open={isEditOpen} onOpenChange={(open) => { setIsEditOpen(open); if (!open) setEditingExpense(null); }}>
@@ -363,6 +391,7 @@ const Expenses: React.FC = () => {
               amount: Number(formData.get("edit-amount")),
               category: formData.get("edit-category"),
               date: formData.get("edit-date"),
+              tab: activeTab,
             };
             updateExpenseMutation.mutate({ id: editingExpense.id, payload });
           }}>
@@ -400,7 +429,7 @@ const Expenses: React.FC = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">
-                    {CATEGORIES.map((cat) => (
+                    {TAB_CATEGORIES[activeTab].map((cat) => (
                       <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                     ))}
                   </SelectContent>

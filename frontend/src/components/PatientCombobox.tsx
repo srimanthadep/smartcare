@@ -14,6 +14,12 @@ interface PatientComboboxProps {
 export function PatientCombobox({ value, onSelect, placeholder = "Search patient by name or ID...", initialLabel = "" }: PatientComboboxProps) {
   const [open, setOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState(initialLabel);
+
+  React.useEffect(() => {
+    if (initialLabel) {
+      setSearchQuery(initialLabel);
+    }
+  }, [initialLabel]);
   const wrapperRef = React.useRef<HTMLDivElement>(null);
 
   const { data: patients, isLoading } = usePatientsSearch(searchQuery);

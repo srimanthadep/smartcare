@@ -7,6 +7,7 @@ import { startWhatsAppWorker, stopWhatsAppWorker } from './whatsapp.worker.js';
 import { startBackupWorker, stopBackupWorker } from './backup.worker.js';
 import { startNotificationWorker, stopNotificationWorker } from './notification.worker.js';
 import { startActivityWorker, stopActivityWorker } from './activity.worker.js';
+import './fixedExpense.worker.js'; // Registers cron job
 import { getRedisConnection } from '../config/redis.js';
 
 /**

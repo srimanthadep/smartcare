@@ -26,7 +26,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import logo from "@/assets/logo.png";
 
-export const AppHeader: React.FC = () => {
+export const AppHeader: React.FC<{ onSearchClick?: () => void }> = ({ onSearchClick }) => {
   const { theme, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -54,10 +54,9 @@ export const AppHeader: React.FC = () => {
             variant="ghost"
             size="icon"
             className="relative h-9 w-9 rounded-xl border border-border/40 bg-card"
-            onClick={() => navigate("/notifications")}
+            onClick={onSearchClick || (() => navigate("/patients"))}
           >
-            <Bell className="h-4 w-4" />
-            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
+            <Search className="h-4 w-4" />
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -99,9 +98,9 @@ export const AppHeader: React.FC = () => {
           <Search className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted-foreground/70" />
           <Input
             readOnly
-            onClick={() => navigate("/patients")}
+            onClick={onSearchClick}
             placeholder="Search patients, appointments, invoices"
-            className="h-11 w-full rounded-xl border-border/50 bg-card pl-11 pr-16 text-sm shadow-sm transition-all placeholder:text-muted-foreground hover:border-border focus-visible:ring-1 focus-visible:ring-primary"
+            className="h-11 w-full rounded-xl cursor-pointer border-border/50 bg-card pl-11 pr-16 text-sm shadow-sm transition-all placeholder:text-muted-foreground hover:border-border focus-visible:ring-1 focus-visible:ring-primary"
           />
           <kbd className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 rounded-lg border border-border/50 bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
             <Command className="h-3 w-3" />K

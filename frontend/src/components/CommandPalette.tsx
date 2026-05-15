@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, FileText, LayoutDashboard, UserPlus, Users } from "lucide-react";
 import { api } from "@/lib/api";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from "@/components/ui/command";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 type Props = {
   open: boolean;
@@ -36,7 +36,9 @@ export const CommandPalette: React.FC<Props> = ({ open, onOpenChange }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="fixed bottom-0 left-0 right-0 w-full overflow-hidden rounded-t-2xl p-0 md:static md:w-auto md:rounded-xl">
+      <DialogContent hideCloseButton className="max-w-2xl overflow-hidden p-0 shadow-2xl border-none">
+        <DialogTitle className="sr-only">Command Palette</DialogTitle>
+        <DialogDescription className="sr-only">Search patients or jump to different sections of the app.</DialogDescription>
         <Command>
           <CommandInput placeholder="Search patients or jump to..." value={query} onValueChange={setQuery} />
           <CommandList>

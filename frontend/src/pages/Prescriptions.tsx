@@ -56,6 +56,7 @@ const Prescriptions: React.FC = () => {
   const createPrescription = useMutation({
     mutationFn: api.createPrescription,
     onSuccess: (res: any) => {
+      localStorage.removeItem("prescription_draft");
       queryClient.invalidateQueries({ queryKey: ["prescriptions"] });
       toast.success("Prescription saved");
       if (res && res.id) {
@@ -99,7 +100,7 @@ const Prescriptions: React.FC = () => {
   const bootstrap = bootstrapQuery.data;
   const savedPrescriptions = prescriptionsQuery.data || [];
 
-  const [doctorName, setDoctorName] = useState("");
+  const [doctorName, setDoctorName] = useState("Dr. Saikiran");
   const [listQuery, setListQuery] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [templateId, setTemplateId] = useState("none");
@@ -121,6 +122,49 @@ const Prescriptions: React.FC = () => {
     });
   }, [savedPrescriptions, listQuery]);
 
+  const DRAFT_KEY = 'prescription_draft';
+
+  // Save draft on every change (only for new prescriptions)
+  useEffect(() => {
+    if (!editId) {
+      const draft = { 
+        patientId, 
+        doctorName, 
+        date, 
+        medicines, 
+        notes, 
+        chiefComplaint, 
+        diagnosis, 
+        nextVisitDate, 
+        treatmentPlan,
+        templateId 
+      };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    }
+  }, [patientId, doctorName, date, medicines, notes, chiefComplaint, diagnosis, nextVisitDate, treatmentPlan, templateId, editId]);
+
+  // Restore draft on mount
+  useEffect(() => {
+    if (!editId && !urlPatientId) {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      if (saved) {
+        try {
+          const draft = JSON.parse(saved);
+          if (draft.medicines?.length) setMedicines(draft.medicines);
+          if (draft.notes) setNotes(draft.notes);
+          if (draft.chiefComplaint) setChiefComplaint(draft.chiefComplaint);
+          if (draft.diagnosis) setDiagnosis(draft.diagnosis);
+          if (draft.doctorName) setDoctorName(draft.doctorName);
+          if (draft.patientId) setPatientId(draft.patientId);
+          if (draft.treatmentPlan) setTreatmentPlan(draft.treatmentPlan);
+          toast.info("Draft restored from your last session");
+        } catch (e) {
+          console.error("Failed to restore draft", e);
+        }
+      }
+    }
+  }, []);
+
 
   useEffect(() => {
     document.title = "Prescriptions | Siara Dental";
@@ -133,29 +177,41 @@ const Prescriptions: React.FC = () => {
   }, [patient, editId]);
 
   useEffect(() => {
-    if (editId && savedPrescriptions.length > 0) {
-      const px = savedPrescriptions.find(p => p.id === editId);
-      if (px) {
-        setPatientId(px.patientId);
-        setDoctorName(px.doctorName);
-        setDate(px.date);
-        setMedicines(px.medicines);
-        setNotes(px.notes);
-        setChiefComplaint(px.chiefComplaint || "");
-        setDiagnosis(px.diagnosis || "");
-        setNextVisitDate(px.nextVisitDate || "");
-        setTreatmentPlan(px.treatmentPlan || []);
+    if (!editId || savedPrescriptions.length === 0) return;
+    
+    const px = savedPrescriptions.find(p => String(p.id) === String(editId));
+    if (px) {
+      setPatientId(px.patientId);
+      setDoctorName(px.doctorName || "");
+      setDate(px.date);
+      setMedicines(px.medicines || []);
+      setNotes(px.notes || "");
+      setChiefComplaint(px.chiefComplaint || "");
+      setDiagnosis(px.diagnosis || "");
+      setNextVisitDate(px.nextVisitDate || "");
+      setTreatmentPlan(px.treatmentPlan || []);
+      
+      // Try to find the templateId from various property names
+      const tid = px.templateId || (px as any).template_id;
+      if (tid) {
+        setTemplateId(String(tid));
+      } else {
+        setTemplateId("none");
       }
     }
-  }, [editId, savedPrescriptions]);
+  }, [editId, savedPrescriptions, bootstrap?.prescriptionTemplates]);
 
   const handleSave = () => {
     if (!patient) {
       toast.error("Select a patient");
       return;
     }
-    if (medicines.some((item) => !item.name.trim())) {
-      toast.error("Select medicines before saving");
+
+    // Filter out medicine rows where name is empty
+    const validMedicines = medicines.filter(m => m.name && m.name.trim() !== "");
+
+    if (validMedicines.length === 0 && !treatmentPlan.length && !diagnosis.trim() && !chiefComplaint.trim()) {
+      toast.error("Please enter some prescription details (Medicines, Treatment Plan, or Diagnosis)");
       return;
     }
 
@@ -164,12 +220,13 @@ const Prescriptions: React.FC = () => {
       patientName: patient.name,
       doctorName,
       date,
-      medicines,
+      medicines: validMedicines,
       notes,
       chiefComplaint,
       diagnosis,
       nextVisitDate,
-      treatmentPlan
+      treatmentPlan,
+      templateId: templateId === "none" ? null : templateId
     };
 
     if (editId) {
@@ -181,14 +238,24 @@ const Prescriptions: React.FC = () => {
 
   const applyTemplate = (value: string) => {
     setTemplateId(value);
-    const template = bootstrap?.prescriptionTemplates?.find((item: any) => item.id === value);
+    const template = bootstrap?.prescriptionTemplates?.find((item: any) => String(item.id) === String(value));
     if (!template) return;
-    setMedicines(template.medicines.map((item: any) => ({ ...item })));
+    
+    // Map template medicines to UI state, ensuring instructions are visible in frequency if frequency is empty
+    setMedicines(template.medicines.map((item: any) => ({
+      name: item.name || "",
+      dosage: item.dosage || "",
+      frequency: item.frequency || item.instructions || "",
+      duration: item.duration || ""
+    })));
+    
     setNotes(template.notes || "");
     toast.message(`Template applied: ${template.name}`);
   };
 
-  if (bootstrapQuery.isLoading || prescriptionsQuery.isLoading || (!!patientId && !patient && patientDetailsQuery.isLoading)) {
+  const isLoadingEdit = !!editId && prescriptionsQuery.isLoading;
+
+  if (bootstrapQuery.isLoading || prescriptionsQuery.isLoading || isLoadingEdit || (!!patientId && !patient && patientDetailsQuery.isLoading)) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-14 w-72" />
@@ -320,7 +387,7 @@ const Prescriptions: React.FC = () => {
                 <Label>Patient</Label>
                 <PatientCombobox
                   value={patientId}
-                  initialLabel={patient?.name}
+                  initialLabel={patient?.name || (editId && savedPrescriptions.find(p => p.id === editId)?.patientName) || ""}
                   onSelect={(p) => {
                     setPatientId(p.id);
                     setSelectedPatient(p);
@@ -344,14 +411,19 @@ const Prescriptions: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <Label>Template</Label>
-                <Select value={templateId} onValueChange={(value) => (value === "none" ? setTemplateId("none") : applyTemplate(value))} modal={false}>
+                <Select 
+                  key={`${editId}-${!!bootstrap}`}
+                  value={templateId} 
+                  onValueChange={(value) => (value === "none" ? setTemplateId("none") : applyTemplate(value))} 
+                  modal={false}
+                >
                   <SelectTrigger><SelectValue placeholder="Choose template" /></SelectTrigger>
                   <SelectContent side="bottom" sideOffset={4} avoidCollisions={false}>
                     <SelectItem value="none">None</SelectItem>
                     {[...(bootstrap.prescriptionTemplates || [])]
                       .sort((a: any, b: any) => a.name.localeCompare(b.name))
                       .map((template: any) => (
-                        <SelectItem key={template.id} value={template.id}>{template.name}</SelectItem>
+                        <SelectItem key={template.id} value={String(template.id)}>{template.name}</SelectItem>
                       ))}
                   </SelectContent>
                 </Select>
@@ -433,7 +505,7 @@ const Prescriptions: React.FC = () => {
                   size="sm"
                   variant="outline"
                   className="h-7 text-[10px] uppercase font-bold"
-                  onClick={() => setTreatmentPlan([...treatmentPlan, { id: `TP-${Date.now()}`, name: "", description: "", estimatedCost: 0, status: "Planned", toothNumbers: [] }])}
+                  onClick={() => setTreatmentPlan([...treatmentPlan, { id: `TP-${Date.now()}`, name: "", description: "", estimatedCost: 0, status: "Planned", toothNumbers: [], date: new Date().toISOString().slice(0, 10) }])}
                 >
                   <Plus className="w-3 h-3 mr-1" /> Add Phase
                 </Button>
@@ -458,7 +530,7 @@ const Prescriptions: React.FC = () => {
                     </Button>
 
                     <div className="grid grid-cols-12 gap-3">
-                      <div className="col-span-12 sm:col-span-8">
+                      <div className="col-span-12 sm:col-span-7">
                         <Input
                           placeholder="Phase Name (e.g. Root Canal Treatment)"
                           value={phase.name}
@@ -476,17 +548,15 @@ const Prescriptions: React.FC = () => {
                           className="h-8 text-sm font-medium"
                         />
                       </div>
-                      <div className="col-span-12 sm:col-span-4">
+                      <div className="col-span-12 sm:col-span-5">
                         <Input
-                          type="number"
-                          autoComplete="off"
-                          placeholder="Cost"
-                          value={phase.estimatedCost || ""}
-                          onChange={(e) => setTreatmentPlan(treatmentPlan.map((p, i) => i === idx ? { ...p, estimatedCost: Number(e.target.value) } : p))}
-                          className="h-8 text-sm"
+                          type="date"
+                          value={phase.date || ""}
+                          onChange={(e) => setTreatmentPlan(treatmentPlan.map((p, i) => i === idx ? { ...p, date: e.target.value } : p))}
+                          className="h-8 text-[11px] sm:text-xs"
                         />
                       </div>
-                      <div className="col-span-12">
+                      <div className="col-span-12 sm:col-span-8">
                         <Input
                           placeholder="Description / Tooth Numbers"
                           value={phase.description}
@@ -502,6 +572,16 @@ const Prescriptions: React.FC = () => {
                             setTreatmentPlan(treatmentPlan.map((p, i) => i === idx ? { ...p, description: val } : p));
                           }}
                           className="h-8 text-xs bg-white/50"
+                        />
+                      </div>
+                      <div className="col-span-12 sm:col-span-4">
+                        <Input
+                          type="number"
+                          autoComplete="off"
+                          placeholder="Cost"
+                          value={phase.estimatedCost || ""}
+                          onChange={(e) => setTreatmentPlan(treatmentPlan.map((p, i) => i === idx ? { ...p, estimatedCost: Number(e.target.value) } : p))}
+                          className="h-8 text-sm"
                         />
                       </div>
                     </div>
@@ -744,7 +824,10 @@ const Prescriptions: React.FC = () => {
                           {treatmentPlan.map((phase, i) => (
                             <div key={i} className="flex justify-between items-start border-l-2 border-indigo-500 pl-3 py-1">
                               <div>
-                                <p className="text-sm font-semibold">{phase.name || "Unnamed Phase"}</p>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-semibold">{phase.name || "Unnamed Phase"}</p>
+                                  {phase.date && <span className="text-[10px] bg-secondary text-secondary-foreground px-1.5 py-0.5 rounded-sm">{new Date(phase.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
+                                </div>
                                 {phase.description && <p className="text-[11px] text-muted-foreground">{phase.description}</p>}
                               </div>
                               <p className="text-sm font-bold text-indigo-700">₹{phase.estimatedCost?.toLocaleString()}</p>

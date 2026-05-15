@@ -114,7 +114,7 @@ export const getBootstrap = async (req, res, next) => {
     const [doctors, medicines, templates] = await Promise.all([
       dbService.query('SELECT * FROM doctors'),
       dbService.query('SELECT * FROM medicines'),
-      dbService.query('SELECT * FROM prescription_templates WHERE is_deleted = FALSE'),
+      dbService.query('SELECT * FROM prescription_templates'),
     ]);
 
     res.json({

@@ -116,6 +116,7 @@ class DbService {
         chiefComplaint: r.chief_complaint,
         diagnosis: r.diagnosis,
         nextVisitDate: r.next_visit_date ? new Date(r.next_visit_date).toLocaleDateString('en-CA') : null,
+        templateId: r.template_id,
         medicines: this.safeJsonParse(r.medicines, []),
         treatmentPlan: this.safeJsonParse(r.treatment_plan, [])
       }));
@@ -153,6 +154,13 @@ class DbService {
         patientName: r.patient_name,
         lastVisit: r.last_visit ? new Date(r.last_visit).toLocaleDateString('en-CA') : null,
         recallDate: r.recall_date ? new Date(r.recall_date).toLocaleDateString('en-CA') : null,
+      }));
+    }
+    if (table === 'expenses') {
+      return rows.map(r => ({
+        ...r,
+        paymentMethod: r.payment_method,
+        createdAt: r.created_at,
       }));
     }
     return rows;

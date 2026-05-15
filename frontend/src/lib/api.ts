@@ -10,7 +10,6 @@ import {
   UserRole,
   ActivityLog,
   ToothChart,
-  ToothChart,
   ToothRecord,
   TreatmentPlanTemplate,
   TreatmentPlan,
