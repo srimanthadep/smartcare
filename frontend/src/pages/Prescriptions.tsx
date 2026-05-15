@@ -329,9 +329,9 @@ const Prescriptions: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <Label>Doctor</Label>
-                <Select value={doctorName} onValueChange={setDoctorName}>
+                <Select value={doctorName} onValueChange={setDoctorName} modal={false}>
                   <SelectTrigger><SelectValue placeholder="Select doctor" /></SelectTrigger>
-                  <SelectContent>
+                  <SelectContent side="bottom" sideOffset={4} avoidCollisions={false}>
                     {bootstrap.doctors.map((doctor) => (
                       <SelectItem key={doctor.id} value={doctor.name}>{doctor.name}</SelectItem>
                     ))}
@@ -344,13 +344,15 @@ const Prescriptions: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <Label>Template</Label>
-                <Select value={templateId} onValueChange={(value) => (value === "none" ? setTemplateId("none") : applyTemplate(value))}>
+                <Select value={templateId} onValueChange={(value) => (value === "none" ? setTemplateId("none") : applyTemplate(value))} modal={false}>
                   <SelectTrigger><SelectValue placeholder="Choose template" /></SelectTrigger>
-                  <SelectContent>
+                  <SelectContent side="bottom" sideOffset={4} avoidCollisions={false}>
                     <SelectItem value="none">None</SelectItem>
-                    {bootstrap.prescriptionTemplates?.map((template: any) => (
-                      <SelectItem key={template.id} value={template.id}>{template.name}</SelectItem>
-                    ))}
+                    {[...(bootstrap.prescriptionTemplates || [])]
+                      .sort((a: any, b: any) => a.name.localeCompare(b.name))
+                      .map((template: any) => (
+                        <SelectItem key={template.id} value={template.id}>{template.name}</SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -645,7 +647,7 @@ const Prescriptions: React.FC = () => {
                     </div>
                   </div>
 
-                  <Popover>
+                  <Popover modal={false}>
                     <PopoverTrigger asChild>
                       <button className="flex h-full items-center justify-center px-4 border-l border-primary/10 hover:bg-primary/5 transition-all text-primary/60 hover:text-primary">
                         <div className="flex flex-col items-center">
@@ -659,7 +661,7 @@ const Prescriptions: React.FC = () => {
                         </div>
                       </button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 rounded-2xl shadow-2xl border-white/60" align="end">
+                    <PopoverContent className="w-auto p-0 rounded-2xl shadow-2xl border-white/60" align="end" side="bottom">
                       <Calendar
                         mode="single"
                         selected={nextVisitDate ? new Date(nextVisitDate) : undefined}
