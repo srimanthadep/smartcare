@@ -4,6 +4,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { Queue } from 'bullmq';
 import { getRedisConnection } from '../config/redis.js';
+import { whatsappService } from '../services/whatsapp.service.js';
 
 export const WHATSAPP_JOBS = {
   WELCOME: 'whatsapp-welcome',
@@ -35,12 +36,33 @@ export const getWhatsAppQueue = () => {
 
 export const addWhatsAppJob = async (jobName, data, opts = {}) => {
   const queue = getWhatsAppQueue();
-  if (!queue) return null;
+  
+  if (queue) {
+    try {
+      return await queue.add(jobName, data, opts);
+    } catch (err) {
+      console.error(`⚠️  Redis Queue failed for WhatsApp [${jobName}]: ${err.message}. Switching to Direct Send.`);
+    }
+  }
 
+  // Fallback: Direct synchronous send if Redis is down or Queue fails
   try {
-    return await queue.add(jobName, data, opts);
-  } catch (err) {
-    console.error(`⚠️  Failed to enqueue WhatsApp job [${jobName}]:`, err.message);
+    console.log(`📡 [WhatsApp Fallback] Attempting direct send for ${jobName}...`);
+    switch (jobName) {
+      case WHATSAPP_JOBS.WELCOME:
+        return await whatsappService.sendWelcome(data.patient);
+      case WHATSAPP_JOBS.INVOICE:
+        return await whatsappService.sendInvoice(data.patient, data.invoice);
+      case WHATSAPP_JOBS.PRESCRIPTION:
+        return await whatsappService.sendPrescription(data.patient, data.prescription);
+      case WHATSAPP_JOBS.REMINDER:
+        return await whatsappService.sendReminder(data.appointment);
+      default:
+        console.warn(`⚠️  [WhatsApp Fallback] No direct handler for ${jobName}`);
+        return null;
+    }
+  } catch (directErr) {
+    console.error(`❌ [WhatsApp Fallback] Direct send failed for ${jobName}:`, directErr.message);
     return null;
   }
 };
