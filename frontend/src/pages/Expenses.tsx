@@ -108,7 +108,7 @@ const Expenses: React.FC = () => {
     const category = formData.get("category");
     const payload = {
       description: formData.get("description"),
-      amount: formData.get("amount"),
+      amount: Number(formData.get("amount")),
       category: category === "auto" ? null : category,
       date: formData.get("date"),
     };
