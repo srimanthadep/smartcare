@@ -8,6 +8,7 @@ import {
   ZoomIn, ZoomOut, RotateCw, Maximize2, Sun, Contrast,
   Download, Printer, X, CheckCircle, Clock, RotateCcw,
   Sparkles, AlertCircle, BrainCircuit, ScanLine,
+  MessageCircle, Mail
 } from "lucide-react";
 import { Slider } from "@/shared/ui/slider";
 import type { XRay } from "@/shared/types";
@@ -20,10 +21,21 @@ interface XRayViewerProps {
   onClose: () => void;
   onReview?: (id: string, reviewed: boolean) => void;
   onDownload?: (xray: XRay) => void;
+  onSendWhatsapp?: (id: string) => void;
+  onSendEmail?: (id: string) => void;
   onUpdate?: (updated: XRay) => void;
 }
 
-const XRayViewer: React.FC<XRayViewerProps> = ({ xray, open, onClose, onReview, onDownload, onUpdate }) => {
+const XRayViewer: React.FC<XRayViewerProps> = ({ 
+  xray, 
+  open, 
+  onClose, 
+  onReview, 
+  onDownload, 
+  onSendWhatsapp,
+  onSendEmail,
+  onUpdate 
+}) => {
   const [rotation, setRotation] = useState(0);
   const [brightness, setBrightness] = useState(100);
   const [contrast, setContrast] = useState(100);
@@ -99,6 +111,18 @@ const XRayViewer: React.FC<XRayViewerProps> = ({ xray, open, onClose, onReview, 
                   <Button variant="ghost" size="icon" className="h-9 w-9 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
                     onClick={() => onDownload(xray)}>
                     <Download className="h-4 w-4" />
+                  </Button>
+                )}
+                {onSendWhatsapp && (
+                  <Button variant="ghost" size="icon" className="h-9 w-9 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 rounded-full transition-colors"
+                    onClick={() => onSendWhatsapp(xray.id)}>
+                    <MessageCircle className="h-4 w-4" />
+                  </Button>
+                )}
+                {onSendEmail && (
+                  <Button variant="ghost" size="icon" className="h-9 w-9 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-full transition-colors"
+                    onClick={() => onSendEmail(xray.id)}>
+                    <Mail className="h-4 w-4" />
                   </Button>
                 )}
                 <Button variant="ghost" size="icon" className="h-9 w-9 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"

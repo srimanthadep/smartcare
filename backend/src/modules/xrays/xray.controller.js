@@ -473,3 +473,103 @@ export const downloadXrayReport = async (req, res, next) => {
     next(error);
   }
 };
+
+// ────────────────────────────────────────────────────────────────
+// POST /api/xrays/:id/send-whatsapp — Send X-ray report via WhatsApp
+// ────────────────────────────────────────────────────────────────
+export const sendXrayWhatsapp = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { sendWhatsAppJob } = await import('../../shared/queue/jobQueue.service.js');
+    const { whatsappService } = await import('../whatsapp/whatsapp.service.js');
+
+    const result = await dbService.query(
+      `SELECT x.*, p.name as patient_name, p.phone as patient_phone, p.age as patient_age, p.gender as patient_gender, p.email as patient_email
+       FROM xrays x LEFT JOIN patients p ON x.patient_id = p.id
+       WHERE x.id = $1 AND x.is_deleted = FALSE`,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'X-ray not found' });
+    }
+
+    const xray = dbService.mapRows('xrays', result.rows)[0];
+    const patient = {
+      id: xray.patientId,
+      name: xray.patientName,
+      phone: xray.patientPhone,
+      age: xray.patientAge,
+      gender: xray.patientGender,
+      email: xray.patientEmail
+    };
+
+    if (!patient.phone) {
+      return res.status(400).json({ message: 'Patient phone number is missing' });
+    }
+
+    sendWhatsAppJob('wa-xray-report', () => whatsappService.sendXrayReport(patient, xray));
+
+    logActivity({
+      userId: req.user.sub,
+      userName: req.user.username,
+      action: 'Send X-Ray WhatsApp',
+      details: `Sent X-ray report ${id} to patient ${patient.name} via WhatsApp`,
+      ip: req.ip,
+    });
+
+    res.json({ message: 'WhatsApp message queued for delivery' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ────────────────────────────────────────────────────────────────
+// POST /api/xrays/:id/send-email — Send X-ray report via Email
+// ────────────────────────────────────────────────────────────────
+export const sendXrayEmail = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { sendEmailJob } = await import('../../shared/queue/jobQueue.service.js');
+    const { emailService } = await import('../../shared/services/email.service.js');
+
+    const result = await dbService.query(
+      `SELECT x.*, p.name as patient_name, p.phone as patient_phone, p.age as patient_age, p.gender as patient_gender, p.email as patient_email
+       FROM xrays x LEFT JOIN patients p ON x.patient_id = p.id
+       WHERE x.id = $1 AND x.is_deleted = FALSE`,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'X-ray not found' });
+    }
+
+    const xray = dbService.mapRows('xrays', result.rows)[0];
+    const patient = {
+      id: xray.patientId,
+      name: xray.patientName,
+      phone: xray.patientPhone,
+      age: xray.patientAge,
+      gender: xray.patientGender,
+      email: xray.patientEmail
+    };
+
+    if (!patient.email) {
+      return res.status(400).json({ message: 'Patient email address is missing' });
+    }
+
+    sendEmailJob('email-xray-report', () => emailService.sendXrayEmail(patient, xray));
+
+    logActivity({
+      userId: req.user.sub,
+      userName: req.user.username,
+      action: 'Send X-Ray Email',
+      details: `Sent X-ray report ${id} to patient ${patient.name} via Email`,
+      ip: req.ip,
+    });
+
+    res.json({ message: 'Email report queued for delivery' });
+  } catch (error) {
+    next(error);
+  }
+};

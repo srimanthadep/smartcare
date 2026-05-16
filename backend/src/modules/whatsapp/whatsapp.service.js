@@ -164,6 +164,24 @@ export const whatsappService = {
     }
   },
 
+  async sendXrayReport(patient, xray) {
+    if (connectionStatus !== "connected" || !sock) return;
+    try {
+      const jid = formatPhone(patient.phone);
+      if (!jid) return;
+      const pdfBuffer = await pdfService.generateXRayReportPDF(patient, xray);
+      const message = `Hello ${patient.name}, your diagnostic X-Ray report from Siara Dental Clinic (${xray.type}) is ready.`;
+      await sock.sendMessage(jid, { 
+        document: pdfBuffer, 
+        fileName: `XRay_Report_${xray.id}.pdf`,
+        mimetype: 'application/pdf',
+        caption: message 
+      });
+    } catch (error) {
+      console.error('WhatsApp sendXrayReport failed:', error);
+    }
+  },
+
   async sendReminder(appt) {
     // Silent skip — WhatsApp is optional, not a critical path
     if (connectionStatus !== "connected" || !sock) return;

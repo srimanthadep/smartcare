@@ -1,7 +1,7 @@
 import React from "react";
 import { Badge } from "@/shared/ui/badge";
 import { Button } from "@/shared/ui/button";
-import { Eye, Download, Trash2, CheckCircle, Clock } from "lucide-react";
+import { Eye, Download, Trash2, CheckCircle, Clock, MessageCircle, Mail } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/shared/ui/tooltip";
 import type { XRay } from "@/shared/types";
 
@@ -10,6 +10,8 @@ interface XRayCardProps {
   onView: (xray: XRay) => void;
   onDelete?: (id: string) => void;
   onDownload?: (xray: XRay) => void;
+  onSendWhatsapp?: (id: string) => void;
+  onSendEmail?: (id: string) => void;
   onSelect?: (xray: XRay) => void;
   selected?: boolean;
   selectable?: boolean;
@@ -28,6 +30,8 @@ const XRayCard: React.FC<XRayCardProps> = ({
   onView,
   onDelete,
   onDownload,
+  onSendWhatsapp,
+  onSendEmail,
   onSelect,
   selected,
   selectable,
@@ -190,6 +194,44 @@ const XRayCard: React.FC<XRayCardProps> = ({
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Delete</TooltipContent>
+              </Tooltip>
+            )}
+
+            {onSendWhatsapp && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-emerald-600 hover:bg-emerald-50"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSendWhatsapp(xray.id);
+                    }}
+                  >
+                    <MessageCircle className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Send via WhatsApp</TooltipContent>
+              </Tooltip>
+            )}
+
+            {onSendEmail && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-blue-600 hover:bg-blue-50"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSendEmail(xray.id);
+                    }}
+                  >
+                    <Mail className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Send via Email</TooltipContent>
               </Tooltip>
             )}
           </TooltipProvider>

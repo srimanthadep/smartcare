@@ -480,6 +480,118 @@ body { background:#f5f7fb; font-family:'Poppins', sans-serif; padding:40px 15px;
     }
   },
 
+  async sendXrayEmail(patient, xray) {
+    if (!emailEnabled) {
+      throw new Error('Email service is disabled');
+    }
+    if (!patient.email) return;
+
+    const pdfBuffer = await pdfService.generateXRayReportPDF(patient, xray);
+
+    const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#f5f7fb; font-family:'Poppins', sans-serif; padding:40px 15px; color:#333; }
+.email-container { max-width:700px; margin:auto; background:#ffffff; border-radius:28px; overflow:hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.08), 0 2px 10px rgba(0,0,0,0.04); }
+.hero { position:relative; background: linear-gradient(135deg,#1d0d08 0%,#3a1a10 45%,#ff7a1a 180%); padding:60px 40px 80px; text-align:center; overflow:hidden; }
+.hero::before { content:''; position:absolute; width:300px; height:300px; background:rgba(255,255,255,0.04); border-radius:50%; top:-120px; left:-100px; }
+.hero::after { content:''; position:absolute; width:250px; height:250px; background:rgba(255,255,255,0.03); border-radius:50%; bottom:-120px; right:-100px; }
+.logo-wrapper { position:relative; z-index:2; }
+.logo { width:120px; height:120px; border-radius:50%; object-fit:cover; border:6px solid rgba(255,255,255,0.15); background:#fff; padding:6px; }
+.brand { color:#fff; margin-top:20px; font-size:32px; font-weight:700; letter-spacing:2px; }
+.content { padding:50px 40px; }
+.badge { display:inline-block; background:#eff6ff; color:#2563eb; padding:10px 18px; border-radius:100px; font-size:13px; font-weight:600; margin-bottom:25px; }
+.title { font-size:36px; color:#1d0d08; font-weight:700; line-height:1.2; margin-bottom:25px; }
+.highlight { color:#2563eb; }
+.text { font-size:16px; line-height:1.9; color:#555; margin-bottom:22px; }
+.glass-card { margin:30px 0; background: linear-gradient(135deg, rgba(37,99,235,0.08), rgba(255,255,255,1)); border:1px solid rgba(37,99,235,0.12); border-radius:24px; padding:28px; }
+.glass-title { font-size:20px; color:#1d0d08; margin-bottom:12px; font-weight:600; }
+.section-title { font-size:22px; font-weight:700; color:#1d0d08; margin:35px 0 20px; }
+.footer { padding:30px; text-align:center; background:#fafafa; border-top:1px solid #eee; }
+.footer-logo { font-size:20px; font-weight:700; color:#1d0d08; margin-bottom:8px; }
+.footer-text { color:#777; font-size:13px; line-height:1.8; }
+.footer a { color:#ff7a1a; text-decoration:none; font-weight:600; }
+</style>
+</head>
+<body>
+<div class="email-container">
+  <div class="hero">
+    <div class="logo-wrapper">
+      <img src="cid:logo" alt="SIARA DENTAL" class="logo">
+      <div class="brand">SIARA DENTAL</div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="badge">📸 Diagnostic Report</div>
+    <div class="title">Your <span class="highlight">X-Ray Report</span> is Ready</div>
+    <p class="text">Dear <strong>${patient.name}</strong>,</p>
+    <p class="text">Your dental X-ray has been processed and reviewed. We have attached a professional diagnostic report containing the X-ray image and clinical observations for your records.</p>
+    
+    <div class="glass-card">
+      <div class="glass-title">🔍 Report Summary</div>
+      <div style="font-size:15px; color:#555; line-height:1.8;">
+        <strong>Report ID:</strong> ${xray.id}<br>
+        <strong>X-Ray Type:</strong> ${xray.type}<br>
+        <strong>Date Taken:</strong> ${xray.takenDate || 'N/A'}<br>
+        <strong>Teeth Numbers:</strong> ${xray.toothNumbers?.join(', ') || 'General'}<br>
+      </div>
+    </div>
+
+    <div class="section-title">Clinical Findings</div>
+    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:18px; padding:24px; margin-bottom:30px; color:#334155; font-size:15px; line-height:1.8;">
+      ${xray.diagnosis || 'Clinical review completed. Please refer to the attached PDF for detailed observations.'}
+    </div>
+
+    <p class="text" style="margin-top:30px; font-size:14px; color:#666;">
+      This digital report is part of your permanent clinical record at Siara Dental. If you have any questions regarding these findings, our team is available to discuss them during your next consultation.
+    </p>
+  </div>
+  <div class="footer">
+    <div class="footer-logo">SIARA DENTAL</div>
+    <div class="footer-text">Creating Beautiful Smiles With Care & Excellence.<br>🌐 <a href="https://siaradental.in">www.siaradental.in</a></div>
+  </div>
+</div>
+</body>
+</html>`;
+
+    try {
+      const { data, error } = await resend.emails.send({
+        from: FROM_EMAIL,
+        to: patient.email,
+        subject: `X-Ray Report from Siara Dental - ${xray.id}`,
+        html,
+        attachments: [
+          {
+            filename: 'logo.png',
+            content: LOGO_BUFFER,
+            cid: 'logo',
+            disposition: 'inline'
+          },
+          {
+            filename: `XRay_Report_${xray.id}.pdf`,
+            content: pdfBuffer,
+          },
+        ],
+      });
+
+      if (error) {
+        console.error('Resend API Error:', error);
+        throw error;
+      }
+
+      console.log(`✅ X-Ray email sent! ID: ${data.id}`);
+      return data;
+    } catch (err) {
+      console.error('Failed to send x-ray email:', err);
+      throw err;
+    }
+  },
+
   // --- Advanced SDK Methods (As per instructions) ---
 
   async sendBatch(emails) {

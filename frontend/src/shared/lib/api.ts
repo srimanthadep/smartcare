@@ -639,4 +639,12 @@ export const api = {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   },
+
+  sendXrayWhatsapp(id: string) {
+    return apiFetch<{ message: string }>(`/api/xrays/${id}/send-whatsapp`, { method: "POST" });
+  },
+
+  sendXrayEmail(id: string) {
+    return apiFetch<{ message: string }>(`/api/xrays/${id}/send-email`, { method: "POST" });
+  },
 };

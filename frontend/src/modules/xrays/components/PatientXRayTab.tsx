@@ -108,6 +108,20 @@ const PatientXRayTab: React.FC<PatientXRayTabProps> = ({ patientId }) => {
     );
   };
 
+  const handleSendWhatsapp = (id: string) => {
+    toast.promise(
+      api.sendXrayWhatsapp(id),
+      { loading: "Queuing WhatsApp message...", success: "Report queued for WhatsApp delivery!", error: "Failed to send WhatsApp message" }
+    );
+  };
+
+  const handleSendEmail = (id: string) => {
+    toast.promise(
+      api.sendXrayEmail(id),
+      { loading: "Queuing Email report...", success: "Report queued for Email delivery!", error: "Failed to send Email" }
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -236,6 +250,8 @@ const PatientXRayTab: React.FC<PatientXRayTabProps> = ({ patientId }) => {
               onView={setViewingXray}
               onDelete={(id) => deleteMutation.mutate(id)}
               onDownload={handleDownload}
+              onSendWhatsapp={handleSendWhatsapp}
+              onSendEmail={handleSendEmail}
               selectable={compareMode}
               selected={selectedForCompare.some((x) => x.id === xray.id)}
               onSelect={handleCompareSelect}
@@ -259,6 +275,8 @@ const PatientXRayTab: React.FC<PatientXRayTabProps> = ({ patientId }) => {
         onClose={() => setViewingXray(null)}
         onReview={(id, reviewed) => reviewMutation.mutate({ id, reviewed })}
         onDownload={handleDownload}
+        onSendWhatsapp={handleSendWhatsapp}
+        onSendEmail={handleSendEmail}
         onUpdate={(updated) => {
           setViewingXray(updated);
           queryClient.invalidateQueries({ queryKey: ["patient-xrays", patientId] });

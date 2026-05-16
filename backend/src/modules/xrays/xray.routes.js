@@ -43,4 +43,8 @@ router.delete('/:id', xrayController.deleteXray);
 // AI Analysis
 router.post('/:id/analyze', xrayController.analyzeXray);
 
+// Send report
+router.post('/:id/send-whatsapp', xrayController.sendXrayWhatsapp);
+router.post('/:id/send-email', xrayController.sendXrayEmail);
+
 export default router;
