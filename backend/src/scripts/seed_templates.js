@@ -1,4 +1,4 @@
-import { dbService } from '../services/db.service.js';
+import { dbService } from '../../core/db/db.service.js';
 import fs from 'fs';
 import path from 'path';
 

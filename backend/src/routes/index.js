@@ -1,80 +1,95 @@
 import { Router } from 'express';
-import authRoutes from './auth.routes.js';
-import patientRoutes from './patient.routes.js';
-import medicineRoutes from './medicine.routes.js';
-import aiRoutes from './ai.routes.js';
-import prescriptionTemplateRoutes from './prescription-template.routes.js';
-import treatmentPlanTemplateRoutes from './treatment-plan-template.routes.js';
-import treatmentPlanRoutes from './treatment-plan.routes.js';
-import procedureRoutes from './procedure.routes.js';
-import backupRoutes from './backup.js';
-import whatsappRoutes from './whatsapp.routes.js';
-import emailRoutes from './email.routes.js';
-import expenseRoutes from './expense.routes.js';
-import doctorRoutes from './doctor.routes.js';
-import recallRoutes from './recall.routes.js';
-import queueRoutes from './queue.routes.js';
-import xrayRoutes from './xray.routes.js';
-import * as dashboardController from '../controllers/dashboard.controller.js';
-import * as appointmentController from '../controllers/appointment.controller.js';
-import * as invoiceController from '../controllers/invoice.controller.js';
-import * as prescriptionController from '../controllers/prescription.controller.js';
-import * as adminController from '../controllers/admin.controller.js';
-import { validate } from '../middleware/validate.js';
-import { createInvoiceSchema, updateInvoiceSchema } from '../validators/invoice.validator.js';
-import { createAppointmentSchema, updateAppointmentSchema } from '../validators/appointment.validator.js';
-import { createPrescriptionSchema, updatePrescriptionSchema } from '../validators/prescription.validator.js';
-import * as dentalController from '../controllers/dental.controller.js';
-import * as xrayController from '../controllers/xray.controller.js';
-import { auth, authorize } from '../middleware/auth.js';
-import { dbService } from '../services/db.service.js';
-import { addEmailJob, EMAIL_JOBS } from '../queues/email.queue.js';
-import { addWhatsAppJob, WHATSAPP_JOBS } from '../queues/whatsapp.queue.js';
-import { bullBoardAdapter } from '../queues/index.js';
-
 import rateLimit from 'express-rate-limit';
+
+// Modules
+import authRoutes from '../modules/auth/auth.routes.js';
+import patientRoutes from '../modules/patients/patient.routes.js';
+import dentalRoutes from '../modules/patients/dental.routes.js';
+import appointmentRoutes from '../modules/appointments/appointment.routes.js';
+import invoiceRoutes from '../modules/invoices/invoice.routes.js';
+import prescriptionRoutes from '../modules/prescriptions/prescription.routes.js';
+import medicineRoutes from '../modules/prescriptions/medicine.routes.js';
+import prescriptionTemplateRoutes from '../modules/prescriptions/prescription-template.routes.js';
+import treatmentPlanRoutes from '../modules/treatment-plans/treatment-plan.routes.js';
+import treatmentPlanTemplateRoutes from '../modules/treatment-plans/treatment-plan-template.routes.js';
+import procedureRoutes from '../modules/treatment-plans/procedure.routes.js';
+import xrayRoutes from '../modules/xrays/xray.routes.js';
+import whatsappRoutes from '../modules/whatsapp/whatsapp.routes.js';
+import emailRoutes from '../modules/notifications/email.routes.js';
+import expenseRoutes from '../modules/expenses/expense.routes.js';
+import doctorRoutes from '../modules/doctors/doctor.routes.js';
+import recallRoutes from '../modules/recalls/recall.routes.js';
+import aiRoutes from '../modules/ai/ai.routes.js';
+
+// Shared / Core
+import backupRoutes from '../shared/services/backup.routes.js';
+import * as dashboardController from '../modules/dashboard/dashboard.controller.js';
+import * as adminController from '../modules/auth/admin.controller.js';
+import * as xrayController from '../modules/xrays/xray.controller.js';
+import { auth } from '../core/middleware/auth.js';
+import { dbService } from '../core/db/db.service.js';
+import { sendEmailJob, sendWhatsAppJob } from '../shared/queue/jobQueue.service.js';
+import { emailService } from '../shared/services/email.service.js';
+import { whatsappService } from '../modules/whatsapp/whatsapp.service.js';
 
 const router = Router();
 
+// Rate Limiters
 const authRateLimit = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
+  windowMs: 1 * 60 * 1000,
   max: 10,
   message: { message: 'Too many login attempts, please try again after a minute' }
 });
 
 const aiRateLimit = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
+  windowMs: 1 * 60 * 1000,
   max: 20,
   message: { message: 'Too many AI requests, please try again after a minute' }
 });
 
-// Public routes
+// Public Routes
 router.get('/', (req, res) => res.json({ status: 'ok', message: 'API is operational' }));
 router.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 router.use('/auth', authRateLimit, authRoutes);
 
-// Protected routes
+// Protected Routes
 router.use(auth);
 
-// H10: WhatsApp/Email routes now behind auth
-router.use('/whatsapp', whatsappRoutes);
-router.use('/email', emailRoutes);
-
-// ── Bull Board Admin Dashboard ──
-// Accessible at /api/admin/queues (requires authentication)
-router.use('/admin/queues', bullBoardAdapter.getRouter());
-
+// Core Logic
 router.get('/bootstrap', dashboardController.getBootstrap);
 router.get('/dashboard', dashboardController.getDashboard);
+router.get('/activity-logs', adminController.getActivityLogs);
 
-// Email re-send endpoints (now queued)
+// Module Routes
+router.use('/patients', patientRoutes);
+router.use('/dental-chart', dentalRoutes);
+router.use('/appointments', appointmentRoutes);
+router.use('/invoices', invoiceRoutes);
+router.use('/prescriptions', prescriptionRoutes);
+router.use('/medicines', medicineRoutes);
+router.use('/prescription-templates', prescriptionTemplateRoutes);
+router.use('/treatment-plans', treatmentPlanRoutes);
+router.use('/treatment-plan-templates', treatmentPlanTemplateRoutes);
+router.use('/procedures', procedureRoutes);
+router.use('/xrays', xrayRoutes);
+router.use('/expenses', expenseRoutes);
+router.use('/doctors', doctorRoutes);
+router.use('/recalls', recallRoutes);
+router.use('/ai', aiRateLimit, aiRoutes);
+router.use('/whatsapp', whatsappRoutes);
+router.use('/email', emailRoutes);
+router.use('/backup', backupRoutes);
+
+// Shared Patient Scoped Routes
+router.get('/patients/:id/xrays', xrayController.getPatientXrays);
+
+// Manual Notification Trigger Endpoints
 router.post('/patients/:id/send-welcome', async (req, res, next) => {
   try {
     const resPat = await dbService.query('SELECT * FROM patients WHERE id = $1', [req.params.id]);
     const patient = dbService.mapRows('patients', resPat.rows)[0];
     if (!patient || !patient.email) return res.status(400).json({ message: 'Patient or email not found' });
-    console.log(`Manual trigger: Queuing welcome email for ${patient.email}`);
-    addEmailJob(EMAIL_JOBS.WELCOME, { patient });
+    sendEmailJob('email-welcome', () => emailService.sendWelcomeEmail(patient));
     res.json({ message: 'Welcome email queued for delivery' });
   } catch (error) { next(error); }
 });
@@ -84,13 +99,10 @@ router.post('/prescriptions/:id/send-email', async (req, res, next) => {
     const resPx = await dbService.query('SELECT * FROM prescriptions WHERE id = $1', [req.params.id]);
     const px = dbService.mapRows('prescriptions', resPx.rows)[0];
     if (!px) return res.status(404).json({ message: 'Prescription not found' });
-    
     const resPat = await dbService.query('SELECT * FROM patients WHERE id = $1', [px.patientId]);
     const patient = dbService.mapRows('patients', resPat.rows)[0];
     if (!patient || !patient.email) return res.status(400).json({ message: 'Patient or email not found' });
-    
-    console.log(`Manual trigger: Queuing prescription email for ${patient.email}`);
-    addEmailJob(EMAIL_JOBS.PRESCRIPTION, { patient, prescription: px });
+    sendEmailJob('email-prescription', () => emailService.sendPrescriptionEmail(patient, px));
     res.json({ message: 'Prescription email queued for delivery' });
   } catch (error) { next(error); }
 });
@@ -100,74 +112,25 @@ router.post('/invoices/:id/send-email', async (req, res, next) => {
     const resInv = await dbService.query('SELECT * FROM invoices WHERE id = $1', [req.params.id]);
     const invoice = dbService.mapRows('invoices', resInv.rows)[0];
     if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
-    
     const resPat = await dbService.query('SELECT * FROM patients WHERE id = $1', [invoice.patientId]);
     const patient = dbService.mapRows('patients', resPat.rows)[0];
     if (!patient || !patient.email) return res.status(400).json({ message: 'Patient or email not found' });
-    
-    console.log(`Manual trigger: Queuing invoice email for ${patient.email}`);
-    addEmailJob(EMAIL_JOBS.INVOICE, { patient, invoice });
+    sendEmailJob('email-invoice', () => emailService.sendInvoiceEmail(patient, invoice));
     res.json({ message: 'Invoice email queued for delivery' });
   } catch (error) { next(error); }
 });
 
-router.use('/patients', patientRoutes);
-router.use('/medicines', medicineRoutes);
-router.use('/ai', aiRateLimit, aiRoutes);
-router.use('/prescription-templates', prescriptionTemplateRoutes);
-router.use('/treatment-plan-templates', treatmentPlanTemplateRoutes);
-router.use('/treatment-plans', treatmentPlanRoutes);
-router.use('/procedures', procedureRoutes);
-router.use('/backup', backupRoutes);
-router.use('/expenses', expenseRoutes);
-router.use('/doctors', doctorRoutes);
-router.use('/recalls', recallRoutes);
-router.use('/queues', queueRoutes);
-router.use('/xrays', xrayRoutes);
-
-// Appointments (H1: validated)
-router.get('/appointments', appointmentController.getAppointments);
-router.post('/appointments', validate(createAppointmentSchema), appointmentController.createAppointment);
-router.patch('/appointments/:id', validate(updateAppointmentSchema), appointmentController.updateAppointment);
-router.delete('/appointments/:id', appointmentController.deleteAppointment);
-
-// Invoices (H1: validated)
-router.get('/invoices', invoiceController.getInvoices);
-router.post('/invoices', validate(createInvoiceSchema), invoiceController.createInvoice);
-router.patch('/invoices/:id', validate(updateInvoiceSchema), invoiceController.updateInvoice);
-router.delete('/invoices/:id', invoiceController.deleteInvoice);
-router.get('/invoices/:id/download', invoiceController.downloadInvoice);
-
-// Prescriptions (H1: validated)
-router.get('/prescriptions', prescriptionController.getPrescriptions);
-router.post('/prescriptions', validate(createPrescriptionSchema), prescriptionController.createPrescription);
-router.patch('/prescriptions/:id', validate(updatePrescriptionSchema), prescriptionController.updatePrescription);
-router.delete('/prescriptions/:id', prescriptionController.deletePrescription);
-router.get('/prescriptions/:id/download', prescriptionController.downloadPrescription);
-router.post('/prescriptions/:id/send-whatsapp', prescriptionController.sendWhatsApp);
 router.post('/invoices/:id/send-whatsapp', async (req, res, next) => {
   try {
     const resInv = await dbService.query('SELECT * FROM invoices WHERE id = $1', [req.params.id]);
     const invoice = dbService.mapRows('invoices', resInv.rows)[0];
     if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
-    
     const resPat = await dbService.query('SELECT * FROM patients WHERE id = $1', [invoice.patientId]);
     const patient = dbService.mapRows('patients', resPat.rows)[0];
     if (!patient) return res.status(404).json({ message: 'Patient not found' });
-
-    addWhatsAppJob(WHATSAPP_JOBS.INVOICE, { patient, invoice });
+    sendWhatsAppJob('wa-invoice', () => whatsappService.sendInvoice(patient, invoice));
     res.json({ message: 'Invoice WhatsApp queued for delivery' });
   } catch (error) { next(error); }
 });
-
-// Dental Charts
-router.get('/dental-chart/:patientId', dentalController.getDentalChart);
-router.post('/dental-chart/:patientId', dentalController.updateDentalChart);
-
-// Patient X-Rays (scoped)
-router.get('/patients/:id/xrays', xrayController.getPatientXrays);
-
-// Logs (Accessible to staff)
-router.get('/activity-logs', adminController.getActivityLogs);
 
 export default router;
