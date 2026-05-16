@@ -71,6 +71,7 @@ export interface Prescription {
   nextVisitDate?: string;
   treatmentPlan?: TreatmentPhase[];
   templateId?: string;
+  xrayIds?: string[];
 }
 
 export interface InvoiceLineItem {

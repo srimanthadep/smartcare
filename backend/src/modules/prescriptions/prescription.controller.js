@@ -35,15 +35,15 @@ export const getPrescriptions = async (req, res, next) => {
 export const createPrescription = async (req, res, next) => {
   try {
     const id = await dbService.generateId('PR', 'prescriptions');
-    const { patientId, patientName, doctorName, date, medicines, notes, chiefComplaint, diagnosis, nextVisitDate, treatmentPlan, templateId } = req.body;
+    const { patientId, patientName, doctorName, date, medicines, notes, chiefComplaint, diagnosis, nextVisitDate, treatmentPlan, templateId, xrayIds } = req.body;
     const pxDate = date || new Date().toISOString().slice(0, 10);
 
     const query = `
-      INSERT INTO prescriptions (id, patient_id, doctor_name, date, medicines, notes, chief_complaint, diagnosis, next_visit_date, treatment_plan, template_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      INSERT INTO prescriptions (id, patient_id, doctor_name, date, medicines, notes, chief_complaint, diagnosis, next_visit_date, treatment_plan, template_id, xray_ids)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       RETURNING *
     `;
-    const params = [id, patientId, doctorName, pxDate, JSON.stringify(medicines), notes, chiefComplaint, diagnosis, nextVisitDate || null, JSON.stringify(treatmentPlan || []), templateId || null];
+    const params = [id, patientId, doctorName, pxDate, JSON.stringify(medicines), notes, chiefComplaint, diagnosis, nextVisitDate || null, JSON.stringify(treatmentPlan || []), templateId || null, JSON.stringify(xrayIds || [])];
     const result = await dbService.query(query, params);
     const prescription = dbService.mapRows('prescriptions', result.rows)[0];
 
@@ -131,13 +131,14 @@ export const updatePrescription = async (req, res, next) => {
       nextVisitDate: 'next_visit_date', next_visit_date: 'next_visit_date',
       treatmentPlan: 'treatment_plan', treatment_plan: 'treatment_plan',
       templateId: 'template_id', template_id: 'template_id',
+      xrayIds: 'xray_ids', xray_ids: 'xray_ids',
     };
 
     for (const [key, value] of Object.entries(fields)) {
       const dbCol = COLUMN_MAP[key];
       if (!dbCol) continue;
 
-      let finalValue = (key === 'medicines' || key === 'treatmentPlan' || key === 'treatment_plan') ? JSON.stringify(value) : value;
+      let finalValue = (key === 'medicines' || key === 'treatmentPlan' || key === 'treatment_plan' || key === 'xrayIds' || key === 'xray_ids') ? JSON.stringify(value) : value;
       if (dbCol === 'next_visit_date' && finalValue === '') finalValue = null;
       
       updates.push(`${dbCol} = $${i}`);
@@ -264,7 +265,14 @@ export const downloadPrescription = async (req, res, next) => {
       gender: prescription.gender
     };
 
-    const pdfBuffer = await pdfService.generatePrescriptionPDF(patient, prescription);
+    // Fetch attached X-Rays
+    let xrays = [];
+    if (prescription.xrayIds && prescription.xrayIds.length > 0) {
+      const xrayRes = await dbService.query('SELECT * FROM xrays WHERE id = ANY($1)', [prescription.xrayIds]);
+      xrays = dbService.mapRows('xrays', xrayRes.rows);
+    }
+
+    const pdfBuffer = await pdfService.generatePrescriptionPDF(patient, prescription, xrays);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=Prescription_${id}.pdf`);
     res.send(pdfBuffer);

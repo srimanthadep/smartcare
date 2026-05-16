@@ -27,6 +27,7 @@ export const createPrescriptionSchema = z.object({
     status: z.enum(['Planned', 'In Progress', 'Completed', 'Cancelled']).optional().default('Planned'),
   })).optional().default([]),
   templateId: z.string().optional().nullable(),
+  xrayIds: z.array(z.string()).optional().default([]),
 });
 
 export const updatePrescriptionSchema = createPrescriptionSchema.partial();

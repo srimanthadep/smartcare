@@ -158,8 +158,21 @@ function drawSignatureBlock(doc, y, doctorName, doctorDetails) {
   }
 }
 
+async function downloadImage(url) {
+  if (!url) return null;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const arrayBuffer = await response.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+  } catch (error) {
+    console.error('PDF Service: Error downloading image:', error.message, 'URL:', url);
+    return null;
+  }
+}
+
 export const pdfService = {
-  async generatePrescriptionPDF(patient, prescription) {
+  async generatePrescriptionPDF(patient, prescription, xrays = []) {
     const { dbService } = await import('../../core/db/db.service.js');
     let doctorDetails = { qualifications: 'BDS, MDS', registration_number: 'A-4428' };
     try {
@@ -169,7 +182,7 @@ export const pdfService = {
       }
     } catch (e) { }
 
-    return new Promise((resolve) => {
+    return new Promise(async (resolve) => {
       const doc = new PDFDocument({ size: 'A4', margins: { top: 40, bottom: 0, left: 40, right: 40 } });
       let buffers = [];
       doc.on('data', buffers.push.bind(buffers));
@@ -257,6 +270,111 @@ export const pdfService = {
       }
 
       drawSignatureBlock(doc, sigY, prescription.doctorName, doctorDetails);
+
+      drawProfessionalFooter(doc);
+
+      // Append X-Rays if any
+      if (xrays && xrays.length > 0) {
+        for (const xray of xrays) {
+          doc.addPage();
+          drawProfessionalHeader(doc, "X-RAY ATTACHMENT");
+          
+          let curY = 110;
+          doc.fillColor(P.primaryDark).font('Helvetica-Bold').fontSize(11).text(`${xray.type} X-Ray - ${new Date(xray.takenDate || xray.createdAt).toLocaleDateString('en-GB')}`, 40, curY);
+          curY += 20;
+
+          const imgBuffer = await downloadImage(xray.fileUrl);
+          if (imgBuffer) {
+            try {
+              // Maintain aspect ratio, max width 500, max height 400
+              doc.image(imgBuffer, 40, curY, { fit: [512, 400], align: 'center' });
+              curY += 410;
+            } catch (e) {
+              doc.fillColor(P.destructive).text('Error loading X-ray image.', 40, curY);
+              curY += 20;
+            }
+          }
+
+          if (xray.diagnosis) {
+            curY = drawSectionHeader(doc, "X-Ray Diagnosis", curY);
+            doc.fillColor(P.text).font('Helvetica').fontSize(9).text(xray.diagnosis, 50, curY, { width: W - 100 });
+            curY += (doc.heightOfString(xray.diagnosis, { width: W - 100 }) + 15);
+          }
+
+          if (xray.notes) {
+            curY = drawSectionHeader(doc, "X-Ray Notes", curY);
+            doc.fillColor(P.text).font('Helvetica').fontSize(9).text(xray.notes, 50, curY, { width: W - 100 });
+          }
+
+          drawProfessionalFooter(doc);
+        }
+      }
+
+      doc.end();
+    });
+  },
+
+  async generateXRayReportPDF(patient, xray) {
+    const { dbService } = await import('../../core/db/db.service.js');
+    let doctorDetails = { qualifications: 'BDS, MDS', registration_number: 'A-4428' };
+    
+    return new Promise(async (resolve) => {
+      const doc = new PDFDocument({ size: 'A4', margins: { top: 40, bottom: 0, left: 40, right: 40 } });
+      let buffers = [];
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
+
+      const startY = drawProfessionalHeader(doc, "RADIOLOGY REPORT");
+      let y = startY + 20;
+      const W = doc.page.width;
+
+      // Patient Snapshot
+      doc.fillColor(P.muted).font('Helvetica-Bold').fontSize(8).text('PATIENT NAME:', 40, y);
+      doc.fillColor(P.text).font('Helvetica').fontSize(9).text((patient.name || 'Unknown Patient').toUpperCase(), 120, y);
+      y += 12;
+      doc.fillColor(P.muted).font('Helvetica-Bold').text('PATIENT ID:', 40, y);
+      doc.fillColor(P.text).font('Helvetica').text(patient.id || 'N/A', 120, y);
+      y += 12;
+      doc.fillColor(P.muted).font('Helvetica-Bold').text('AGE / GENDER:', 40, y);
+      doc.fillColor(P.text).font('Helvetica').text(`${patient.age || '-'}Y / ${patient.gender || '-'}`, 120, y);
+      y += 12;
+      doc.fillColor(P.muted).font('Helvetica-Bold').text('DATE:', 40, y);
+      doc.fillColor(P.text).font('Helvetica').text(new Date(xray.takenDate || xray.createdAt).toLocaleDateString('en-GB'), 120, y);
+
+      y += 30;
+
+      // X-Ray Type Header
+      doc.fillColor(P.primaryDark).font('Helvetica-Bold').fontSize(14).text(`${xray.type} X-Ray Investigation`, 40, y);
+      y += 25;
+
+      // Image
+      const imgBuffer = await downloadImage(xray.fileUrl);
+      if (imgBuffer) {
+        try {
+          doc.image(imgBuffer, 40, y, { fit: [512, 350], align: 'center' });
+          y += 360;
+        } catch (e) {
+          doc.fillColor(P.destructive).text('Error loading image.', 40, y);
+          y += 20;
+        }
+      }
+
+      // Diagnosis
+      if (xray.diagnosis) {
+        y = drawSectionHeader(doc, "Clinical Diagnosis", y);
+        doc.fillColor(P.text).font('Helvetica').fontSize(10).text(xray.diagnosis, 50, y, { width: W - 100 });
+        y += (doc.heightOfString(xray.diagnosis, { width: W - 100 }) + 20);
+      }
+
+      // Notes
+      if (xray.notes) {
+        y = drawSectionHeader(doc, "Clinical Notes / Findings", y);
+        doc.fillColor(P.text).font('Helvetica').fontSize(10).text(xray.notes, 50, y, { width: W - 100 });
+      }
+
+      // Signature Area
+      const sigY = doc.page.height - 110;
+      drawSignatureBlock(doc, sigY, xray.reviewedBy || DOCTOR_NAME, doctorDetails);
 
       drawProfessionalFooter(doc);
       doc.end();

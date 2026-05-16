@@ -3,7 +3,7 @@ import { Medication } from "@/shared/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FileText, MessageCircle, Plus, Printer, Search, Share2, Trash2, Sparkles, Calendar as CalendarIcon } from "lucide-react";
+import { FileText, MessageCircle, Plus, Printer, Search, Share2, Trash2, Sparkles, Calendar as CalendarIcon, LayoutGrid, ScanLine } from "lucide-react";
 import { format } from "date-fns";
 import { Calendar } from "@/shared/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/popover";
@@ -113,15 +113,27 @@ const Prescriptions: React.FC = () => {
   const [nextVisitDate, setNextVisitDate] = useState("");
   const [treatmentPlan, setTreatmentPlan] = useState<any[]>([]);
   const [medicines, setMedicines] = useState<Medication[]>([{ name: "", dosage: "", frequency: "", duration: "" }]);
+  const [selectedXrayIds, setSelectedXrayIds] = useState<string[]>([]);
+
+  const patientXraysQuery = useQuery({
+    queryKey: ["patient-xrays", patientId],
+    queryFn: () => api.getPatientXrays(patientId),
+    enabled: !!patientId,
+  });
+  const patientXrays = patientXraysQuery.data || [];
   const filteredPrescriptions = useMemo(() => {
     const query = listQuery.trim().toLowerCase();
-    if (!query) {
-      return savedPrescriptions;
-    }
-    return savedPrescriptions.filter((item) => {
-      const patientName = (item.patientName ?? "").toLowerCase();
-      const id = (item.id ?? "").toLowerCase();
-      return patientName.includes(query) || id.includes(query);
+    const baseList = !query 
+      ? savedPrescriptions 
+      : savedPrescriptions.filter((item) => {
+          const patientName = (item.patientName ?? "").toLowerCase();
+          const id = (item.id ?? "").toLowerCase();
+          return patientName.includes(query) || id.includes(query);
+        });
+
+    return [...baseList].sort((a, b) => {
+      const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
+      return dateDiff !== 0 ? dateDiff : (b.id || "").localeCompare(a.id || "");
     });
   }, [savedPrescriptions, listQuery]);
 
@@ -142,7 +154,8 @@ const Prescriptions: React.FC = () => {
       diagnosis,
       nextVisitDate,
       treatmentPlan,
-      templateId
+      templateId,
+      selectedXrayIds
     };
     localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
   }, [patientId, selectedPatient, doctorName, date, medicines, notes,
@@ -165,6 +178,7 @@ const Prescriptions: React.FC = () => {
         if (draft.treatmentPlan) setTreatmentPlan(draft.treatmentPlan);
         if (draft.nextVisitDate) setNextVisitDate(draft.nextVisitDate);
         if (draft.templateId && draft.templateId !== 'none') setTemplateId(draft.templateId);
+        if (draft.selectedXrayIds) setSelectedXrayIds(draft.selectedXrayIds);
         toast.info("Draft restored from your last session");
       } catch (e) {
         console.error("Failed to restore draft", e);
@@ -198,6 +212,7 @@ const Prescriptions: React.FC = () => {
       setDiagnosis(px.diagnosis || "");
       setNextVisitDate(px.nextVisitDate || "");
       setTreatmentPlan(px.treatmentPlan || []);
+      setSelectedXrayIds(px.xrayIds || []);
       
       // Try to find the templateId from various property names
       const tid = px.templateId || (px as any).template_id;
@@ -225,16 +240,17 @@ const Prescriptions: React.FC = () => {
 
     const payload = {
       patientId,
-      patientName: patient.name,
+      patientName: patient?.name || "",
       doctorName,
       date,
       medicines: validMedicines,
       notes,
       chiefComplaint,
       diagnosis,
-      nextVisitDate,
+      nextVisitDate: nextVisitDate || null,
       treatmentPlan,
-      templateId: templateId === "none" ? null : templateId
+      templateId: templateId === "none" ? null : templateId,
+      xrayIds: selectedXrayIds
     };
 
     if (editId) {
@@ -426,7 +442,7 @@ const Prescriptions: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <Label>Doctor</Label>
-                <Select value={doctorName} onValueChange={setDoctorName} modal={false}>
+                <Select value={doctorName} onValueChange={setDoctorName}>
                   <SelectTrigger><SelectValue placeholder="Select doctor" /></SelectTrigger>
                   <SelectContent side="bottom" sideOffset={4} avoidCollisions={false}>
                     {bootstrap.doctors.map((doctor) => (
@@ -445,7 +461,6 @@ const Prescriptions: React.FC = () => {
                   key={`${editId}-${!!bootstrap}`}
                   value={templateId} 
                   onValueChange={(value) => (value === "none" ? setTemplateId("none") : applyTemplate(value))} 
-                  modal={false}
                 >
                   <SelectTrigger><SelectValue placeholder="Choose template" /></SelectTrigger>
                   <SelectContent side="bottom" sideOffset={4} avoidCollisions={false}>
@@ -498,7 +513,7 @@ const Prescriptions: React.FC = () => {
                           toast.error("Please enter a chief complaint first.");
                           return;
                         }
-                        generateAI.mutate({ patientId, context: chiefComplaint });
+                        generateAI.mutate({ patientId, chiefComplaint });
                       }}
                       disabled={generateAI.isPending}
                     >
@@ -792,6 +807,60 @@ const Prescriptions: React.FC = () => {
               </div>
             </div>
 
+            {/* 5. Attached X-Rays */}
+            {patientXrays.length > 0 && (
+              <div className="pt-4 border-t border-border/30">
+                <div className="flex items-center justify-between mb-3">
+                  <Label className="text-primary font-bold flex items-center gap-2">
+                    <ScanLine className="h-4 w-4" />
+                    5. Attach X-Rays
+                  </Label>
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight bg-secondary px-2 py-0.5 rounded">
+                    {selectedXrayIds.length} Selected
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                  {patientXrays.map((xray) => (
+                    <div
+                      key={xray.id}
+                      onClick={() => {
+                        setSelectedXrayIds(prev => 
+                          prev.includes(xray.id) 
+                            ? prev.filter(id => id !== xray.id) 
+                            : [...prev, xray.id]
+                        );
+                      }}
+                      className={cn(
+                        "relative aspect-square rounded-xl overflow-hidden border-2 cursor-pointer transition-all duration-300",
+                        selectedXrayIds.includes(xray.id) 
+                          ? "border-primary ring-2 ring-primary/20 shadow-md scale-[0.98]" 
+                          : "border-transparent opacity-60 hover:opacity-100"
+                      )}
+                    >
+                      <img 
+                        src={xray.thumbnailUrl || xray.fileUrl} 
+                        alt={xray.type}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className={cn(
+                        "absolute inset-0 flex items-center justify-center transition-opacity",
+                        selectedXrayIds.includes(xray.id) ? "bg-primary/20 opacity-100" : "bg-black/40 opacity-0"
+                      )}>
+                        {selectedXrayIds.includes(xray.id) && (
+                          <div className="bg-primary text-white p-1 rounded-full">
+                            <Plus className="w-3 h-3 rotate-45" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="absolute bottom-0 inset-x-0 bg-black/60 p-1">
+                        <p className="text-[8px] text-white font-bold text-center truncate">{xray.type}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-end">
               <p className="text-xs text-muted-foreground">{savedPrescriptions.length} prescriptions saved</p>
             </div>
@@ -882,6 +951,34 @@ const Prescriptions: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {selectedXrayIds.length > 0 && (
+                <div className="mt-4 rounded-lg border border-border/50 overflow-hidden">
+                  <div className="flex items-center gap-2 bg-indigo-50 px-4 py-2">
+                    <ScanLine className="h-4 w-4 text-indigo-600" />
+                    <p className="text-sm font-medium text-indigo-900">Attached X-Rays ({selectedXrayIds.length})</p>
+                  </div>
+                  <div className="p-4">
+                    <div className="grid grid-cols-4 gap-2">
+                      {patientXrays
+                        .filter(x => selectedXrayIds.includes(x.id))
+                        .map(xray => (
+                          <div key={xray.id} className="aspect-square rounded-lg border border-border/50 overflow-hidden relative group">
+                            <img 
+                              src={xray.thumbnailUrl || xray.fileUrl} 
+                              className="w-full h-full object-cover" 
+                              alt={xray.type}
+                            />
+                            <div className="absolute bottom-0 inset-x-0 bg-black/60 p-1">
+                              <p className="text-[8px] text-white font-bold text-center">{xray.type}</p>
+                            </div>
+                          </div>
+                        ))
+                      }
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="mt-4 rounded-lg border border-border/50 p-4">
                 <p className="text-xs text-muted-foreground">Notes</p>

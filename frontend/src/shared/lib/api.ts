@@ -269,7 +269,7 @@ export const api = {
   },
 
   searchMedicines(query: string) {
-    return apiFetch<import("@/types").MedicineSearchItem[]>(`/api/medicines/search${buildQuery({ q: query })}`);
+    return apiFetch<import("@/shared/types").MedicineSearchItem[]>(`/api/medicines/search${buildQuery({ q: query })}`);
   },
 
   generateAIPrescription(payload: Partial<Prescription>) {
@@ -621,5 +621,22 @@ export const api = {
     a.click();
     URL.revokeObjectURL(a.href);
     document.body.removeChild(a);
+  },
+
+  async downloadXrayReport(id: string) {
+    const token = localStorage.getItem("smartcare_token");
+    const response = await fetch(`${API_BASE_URL}/api/xrays/${id}/download`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+    if (!response.ok) throw new Error("Failed to download report");
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `XRay_Report_${id}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   },
 };

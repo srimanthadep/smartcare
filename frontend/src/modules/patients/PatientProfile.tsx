@@ -647,7 +647,10 @@ const PatientProfile: React.FC = () => {
             <CardContent>
               {invoices && invoices.length > 0 ? (
                 <div className="space-y-3">
-                  {invoices.map((inv) => (
+                  {[...(invoices || [])].sort((a, b) => {
+                    const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
+                    return dateDiff !== 0 ? dateDiff : (b.id || "").localeCompare(a.id || "");
+                  }).map((inv) => (
                     <div key={inv.id} className="flex items-center justify-between rounded-lg border border-border/50 p-4 transition-colors hover:bg-secondary/20">
                       <div className="flex items-center gap-4">
                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
@@ -808,7 +811,10 @@ const PatientProfile: React.FC = () => {
             <CardContent>
               {prescriptions && prescriptions.length > 0 ? (
                 <div className="space-y-3">
-                  {prescriptions.map((px) => (
+                  {[...(prescriptions || [])].sort((a, b) => {
+                    const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
+                    return dateDiff !== 0 ? dateDiff : (b.id || "").localeCompare(a.id || "");
+                  }).map((px) => (
                     <div key={px.id} className="flex items-center justify-between rounded-lg border border-border/50 p-4 transition-colors hover:bg-secondary/20">
                       <div className="flex items-center gap-4">
                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
@@ -947,7 +953,10 @@ const PatientProfile: React.FC = () => {
               {diagnoses.length === 0 ? (
                 <div className="py-8 text-center text-sm text-muted-foreground">No diagnoses recorded</div>
               ) : (
-                diagnoses.map((diagnosis) => (
+                [...diagnoses].sort((a, b) => {
+                  const dateDiff = new Date(b.recordedOn).getTime() - new Date(a.recordedOn).getTime();
+                  return dateDiff !== 0 ? dateDiff : (b.id || "").localeCompare(a.id || "");
+                }).map((diagnosis) => (
                   <div key={diagnosis.id} className="rounded-lg border border-border/50 bg-secondary/25 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>

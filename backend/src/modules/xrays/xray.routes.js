@@ -18,6 +18,9 @@ router.get('/', xrayController.getXrays);
 // Get single X-ray
 router.get('/:id', xrayController.getXray);
 
+// Download report
+router.get('/:id/download', xrayController.downloadXrayReport);
+
 // Upload new X-ray (multipart/form-data)
 // Note: validation runs AFTER multer parses the multipart body
 router.post(

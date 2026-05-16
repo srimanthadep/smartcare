@@ -84,6 +84,9 @@ const PatientXRayTab: React.FC<PatientXRayTabProps> = ({ patientId }) => {
       );
     }
     return true;
+  }).sort((a, b) => {
+    const dateDiff = new Date(b.takenDate || b.createdAt).getTime() - new Date(a.takenDate || a.createdAt).getTime();
+    return dateDiff !== 0 ? dateDiff : (b.id || "").localeCompare(a.id || "");
   });
 
   const handleCompareSelect = (xray: XRay) => {
@@ -100,8 +103,8 @@ const PatientXRayTab: React.FC<PatientXRayTabProps> = ({ patientId }) => {
 
   const handleDownload = (xray: XRay) => {
     toast.promise(
-      api.downloadXray(xray.fileUrl, `XRay_${xray.id}_${xray.type}.${xray.fileUrl.endsWith('.pdf') ? 'pdf' : 'jpg'}`),
-      { loading: "Downloading...", success: "Downloaded!", error: "Failed to download" }
+      api.downloadXrayReport(xray.id),
+      { loading: "Generating Report...", success: "Report Downloaded!", error: "Failed to generate report" }
     );
   };
 
@@ -245,7 +248,7 @@ const PatientXRayTab: React.FC<PatientXRayTabProps> = ({ patientId }) => {
       <XRayUploadModal
         open={uploadOpen}
         onClose={() => setUploadOpen(false)}
-        onUpload={(formData) => uploadMutation.mutateAsync(formData)}
+        onUpload={async (formData) => { await uploadMutation.mutateAsync(formData); }}
         patientId={patientId}
         isUploading={uploadMutation.isPending}
       />

@@ -435,3 +435,41 @@ export const analyzeXray = async (req, res, next) => {
     next(error);
   }
 };
+
+// ────────────────────────────────────────────────────────────────
+// GET /api/xrays/:id/download — Download professional report PDF
+// ────────────────────────────────────────────────────────────────
+export const downloadXrayReport = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { pdfService } = await import('../../shared/services/pdf.service.js');
+
+    // 1. Get X-ray and patient info
+    const result = await dbService.query(
+      `SELECT x.*, p.name as patient_name, p.age as patient_age, p.gender as patient_gender, p.phone as patient_phone
+       FROM xrays x LEFT JOIN patients p ON x.patient_id = p.id
+       WHERE x.id = $1 AND x.is_deleted = FALSE`,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'X-ray not found' });
+    }
+
+    const xray = dbService.mapRows('xrays', result.rows)[0];
+    const patient = {
+      id: xray.patientId,
+      name: xray.patientName,
+      age: xray.patientAge,
+      gender: xray.patientGender,
+      phone: xray.patientPhone
+    };
+
+    const pdfBuffer = await pdfService.generateXRayReportPDF(patient, xray);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=XRay_Report_${id}.pdf`);
+    res.send(pdfBuffer);
+  } catch (error) {
+    next(error);
+  }
+};

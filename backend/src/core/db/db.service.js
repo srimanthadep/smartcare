@@ -121,6 +121,7 @@ class DbService {
         diagnosis: r.diagnosis,
         nextVisitDate: r.next_visit_date ? new Date(r.next_visit_date).toLocaleDateString('en-CA') : null,
         templateId: r.template_id,
+        xrayIds: this.safeJsonParse(r.xray_ids, []),
         medicines: this.safeJsonParse(r.medicines, []),
         treatmentPlan: this.safeJsonParse(r.treatment_plan, [])
       }));
