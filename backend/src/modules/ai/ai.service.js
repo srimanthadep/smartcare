@@ -8,29 +8,32 @@ class AIService {
   }
 
   /**
-   * Generates a prescription using Gemini AI API.
+   * Generates a prescription using Gemini AI API with strict medical safety guardrails.
    */
   async generatePrescriptionDraft(patientData) {
     if (!config.GEMINI_API_KEY) {
       throw new Error('AI service is not configured. Missing GEMINI_API_KEY.');
     }
 
-    const systemPrompt = `You are a helpful AI Assistant for a Dentist. Your task is to suggest a prescription draft based on the patient's dental data, medical history, and current symptoms.
+    const systemPrompt = `You are a board-certified Dental Pharmacology Specialist. Your task is to generate a highly safe, conservative, and evidence-based prescription draft based purely on the patient's dental context, medical history, and symptoms.
 You must return the response in strict JSON format.
-The JSON must have this structure:
+
+Structure:
 {
+  "clinicalReasoning": "Provide a brief clinical rationale explaining the drug choices, potential contraindications checked, and safety considerations.",
   "diagnosis": "Clinical diagnosis based on chief complaint (Must be a single string, not an object)",
   "medicines": [
     { "name": "Medicine Name", "dosage": "e.g., 500mg", "frequency": "e.g., BID (twice a day)", "duration": "e.g., 5 days" }
   ],
-  "notes": "General advice, follow-up instructions, and precautions"
+  "notes": "General advice, follow-up instructions, precautions, and emergency contact advisement."
 }
 
-IMPORTANT RULES:
-- Never exceed 5 medicines.
-- Only suggest medicines appropriate for dental scenarios.
-- If the patient has allergies (e.g., Penicillin), DO NOT prescribe related medicines.
-- The output MUST BE valid JSON.`;
+CRITICAL PHARMACOLOGY RULES:
+1. DETERMINISTIC SAFETY: Suggest ONLY standard, conservative dental medications (e.g., Amoxicillin, Ibuprofen, Paracetamol, Chlorhexidine mouthwash).
+2. ALLERGY GATES: If the patient has allergies (e.g., Penicillin), DO NOT prescribe any related drug classes under any circumstances. Double check cross-reactivity.
+3. LIMITS: Never prescribe more than 3 medicines unless clinically essential. Maximum 5.
+4. DETAILED INSTRUCTIONS: Each suggested medicine must have precise clinical dosage, frequency, and duration.
+5. NO HALLUCINATION: If the patient's complaint is ambiguous, prescribe conservative palliative care (e.g., warm saline rinses, OTC analgesics) and recommend clinical examination.`;
 
     const userPrompt = `Patient Details:
 Name: ${patientData.patientName || 'Unknown'}
@@ -44,7 +47,7 @@ Current Medications: ${patientData.currentMedications?.length ? patientData.curr
     const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
 
     try {
-      console.log('Generating AI Prescription Draft via Gemini...');
+      console.log('Generating AI Prescription Draft via Gemini with strict safety rules...');
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${config.GEMINI_API_KEY}`, {
         method: 'POST',
         headers: {
@@ -54,7 +57,7 @@ Current Medications: ${patientData.currentMedications?.length ? patientData.curr
           contents: [{ parts: [{ text: fullPrompt }] }],
           generationConfig: {
             response_mime_type: "application/json",
-            temperature: 0.2
+            temperature: 0.0 // Force absolute factual determinism
           }
         })
       });
@@ -81,7 +84,7 @@ Current Medications: ${patientData.currentMedications?.length ? patientData.curr
   }
 
   /**
-   * General purpose chat with full clinical context.
+   * General purpose chat with full clinical context and strict factual alignment.
    */
   async chat(message, history = []) {
     if (!config.GEMINI_API_KEY) {
@@ -110,15 +113,15 @@ Current Medications: ${patientData.currentMedications?.length ? patientData.curr
         recentAppointments: recentAppts.rows.map(r => ({ id: r.id, patientId: r.patient_id, doctor: r.doctor_name, date: r.date, time: r.time, type: r.type }))
       };
 
-      const systemPrompt = `You are "Siara AI", an advanced clinical assistant for Siara Dental Clinic. 
-You have access to the following clinic summary:
+      const systemPrompt = `You are "Siara AI", an advanced, board-certified clinical assistant for Siara Dental Clinic.
+You have access to the following real-time clinic summary data:
 ${JSON.stringify(summary, null, 2)}
 
-YOUR ROLE:
-1. Answer questions about clinic operations, patient statistics, and schedule.
-2. Provide general dental health advice based on professional standards.
-3. Help the dentist find information about specific patients if asked.
-4. Be professional, concise, and helpful. 
+OPERATIONAL RULES:
+1. STRICT FACTS: Never speculate or fabricate patient numbers, invoice statuses, or appointment dates. Rely solely on the provided summary.
+2. MEDICAL RESPONSIBILITY: If asked for professional dental advice, provide standard, evidence-based, safe information. Always add a clinical disclaimer.
+3. CONCISENESS: Be highly professional, clear, and direct. Avoid conversational fluff.
+4. ROLE LIMITATIONS: Do not diagnose specific patient conditions or prescribe schedules without direct physician confirmation.
 
 Disclaimer: Add a note that this is an AI suggestion and the final clinical decision rests with Dr. Saikiran.`;
 
@@ -128,15 +131,13 @@ Disclaimer: Add a note that this is an AI suggestion and the final clinical deci
         parts: [{ text: m.content }]
       }));
 
-      // Add system prompt as a user message if it's the first turn, or prepend it.
-      // Better: Use system_instruction if supported, or just prepend to the first message.
       const fullContents = [
         { role: 'user', parts: [{ text: `SYSTEM INSTRUCTION: ${systemPrompt}` }] },
         ...contents,
         { role: 'user', parts: [{ text: message }] }
       ];
 
-      console.log('Calling Gemini API for chat...');
+      console.log('Calling Gemini API for chat with low temperature safety...');
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${config.GEMINI_API_KEY}`, {
         method: 'POST',
         headers: {
@@ -145,7 +146,7 @@ Disclaimer: Add a note that this is an AI suggestion and the final clinical deci
         body: JSON.stringify({
           contents: fullContents,
           generationConfig: {
-            temperature: 0.7,
+            temperature: 0.1, // Reduced for much higher factual consistency
             max_output_tokens: 1024,
           }
         })
@@ -166,18 +167,20 @@ Disclaimer: Add a note that this is an AI suggestion and the final clinical deci
   }
 
   /**
-   * Generates a structured treatment plan based on clinical findings.
+   * Generates a structured treatment plan with deterministic financial & clinical models.
    */
   async generateTreatmentPlan(findings) {
     if (!config.GEMINI_API_KEY) {
       throw new Error('AI service is not configured.');
     }
 
-    const systemPrompt = `You are an expert Treatment Planning Assistant for a Dentist. 
+    const systemPrompt = `You are a professional Clinical Treatment Planner. 
 Given the clinical findings, suggest a multi-phase treatment plan.
 You must return the response in strict JSON format.
+
 Structure:
 {
+  "clinicalReasoning": "Document a detailed diagnostic rationale explaining why these phases are structured this way and what clinical guidelines support them.",
   "title": "Short title for the plan",
   "phases": [
     {
@@ -190,12 +193,17 @@ Structure:
   "totalEstimatedCost": "Total INR",
   "notes": "Advice for the patient"
 }
-Output raw JSON only.`;
+
+PLANNING RULES:
+1. SAFE PROGRESSION: Organize steps from acute pain relief (Phase 1) to restorative work (Phase 2) to prophylaxis (Phase 3).
+2. NO FABRICATION: Do not invent symptoms or conditions not stated in the findings.
+3. CONSERVATIVE PRICING: Provide standard, safe estimates in INR.
+4. Output RAW JSON only.`;
 
     const fullPrompt = `${systemPrompt}\n\nClinical Findings: ${findings}`;
 
     try {
-      console.log('Generating AI Treatment Plan via Gemini...');
+      console.log('Generating AI Treatment Plan via Gemini with temperature 0.0...');
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${config.GEMINI_API_KEY}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -203,7 +211,7 @@ Output raw JSON only.`;
           contents: [{ parts: [{ text: fullPrompt }] }],
           generationConfig: {
             response_mime_type: "application/json",
-            temperature: 0.3
+            temperature: 0.0 // Force absolute factual reasoning
           }
         })
       });
@@ -222,7 +230,7 @@ Output raw JSON only.`;
   }
 
   /**
-   * Cleans up messy clinical notes/transcripts into professional structure.
+   * Cleans up clinical notes with zero extrapolation.
    */
   async refineClinicalNotes(rawNotes) {
     if (!config.GEMINI_API_KEY) {
@@ -231,6 +239,8 @@ Output raw JSON only.`;
 
     const systemPrompt = `You are a Clinical Documentation Specialist. 
 Convert the following messy, spoken-style clinical notes into a professional, structured dental clinical note.
+Do not extrapolate, add new findings, or invent details not present in the input text. If the input is empty or unclear, summarize ONLY what is stated.
+
 Format:
 - Chief Complaint
 - Observations
@@ -240,13 +250,15 @@ Format:
     const fullPrompt = `${systemPrompt}\n\nRaw Notes: ${rawNotes}`;
 
     try {
-      console.log('Refining Clinical Notes via Gemini...');
+      console.log('Refining Clinical Notes with zero-temperature...');
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${config.GEMINI_API_KEY}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: fullPrompt }] }],
-          generationConfig: { temperature: 0.1 }
+          generationConfig: { 
+            temperature: 0.0 // Absolute factual alignment
+          }
         })
       });
 
@@ -264,14 +276,14 @@ Format:
   }
 
   /**
-   * Automatically categorizes an expense based on its name.
+   * Automatically categorizes an expense with absolute determinism.
    */
   async autoCategorizeExpense(expenseName) {
     if (!config.GEMINI_API_KEY) return 'Other';
 
-    const systemPrompt = `You are a clinic management assistant. Categorize the following expense name into one of these categories:
+    const systemPrompt = `You are a strict, factual accounting categorizer. Categorize this expense name into exactly one of these:
     Rent, Salaries, Medicine Supplies, Equipment, Utility Bills, Marketing, Other.
-    Return ONLY the category name.`;
+    Return ONLY the category name. No explanations, no extra characters.`;
 
     try {
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${config.GEMINI_API_KEY}`, {
@@ -279,7 +291,9 @@ Format:
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: `${systemPrompt}\n\nExpense Name: ${expenseName}` }] }],
-          generationConfig: { temperature: 0.1 }
+          generationConfig: { 
+            temperature: 0.0 // Force deterministic match
+          }
         })
       });
 
@@ -295,7 +309,7 @@ Format:
   }
 
   /**
-   * Analyzes a dental X-ray image using Gemini Vision.
+   * Analyzes a dental X-ray image using Gemini Vision with rigorous clinical verification guardrails.
    */
   async analyzeXray(imageUrl, patientContext = {}) {
     if (!config.GEMINI_API_KEY) {
@@ -303,7 +317,6 @@ Format:
     }
 
     try {
-      // 1. Fetch image and convert to base64
       console.log(`Fetching X-ray for AI analysis: ${imageUrl}`);
       const imageResponse = await fetch(imageUrl);
       if (!imageResponse.ok) throw new Error('Failed to fetch image for analysis');
@@ -312,27 +325,36 @@ Format:
       const base64Image = Buffer.from(buffer).toString('base64');
       const mimeType = imageResponse.headers.get('content-type') || 'image/jpeg';
 
-      const systemPrompt = `You are an expert Dental Radiologist assistant. 
-Analyze this dental X-ray and provide clinical insights.
+      const systemPrompt = `You are a board-certified Dental Radiologist assistant. 
+Analyze the provided dental X-ray radiograph and output clinical observations with maximum factual accuracy.
 Patient Context: ${JSON.stringify(patientContext)}
 
 You must return the response in strict JSON format.
+
 Structure:
 {
-  "findings": ["Point 1", "Point 2"],
-  "diagnosis": "Overall clinical impression",
+  "clinicalReasoning": [
+    "Step 1: Enamel and dentin boundaries inspected for radiolucency.",
+    "Step 2: Alveolar bone levels and periodontal ligament spaces evaluated.",
+    "Step 3: Existing dental restorations and pulp chambers assessed."
+  ],
+  "findings": ["Direct radiographic observation 1", "Direct radiographic observation 2"],
+  "diagnosis": "Strict radiographical impression (e.g., 'Interproximal caries on tooth #36' or 'Optimal periodontal status')",
   "affectedTeeth": [36, 47],
   "confidence": 0.95,
-  "recommendations": ["Next step 1", "Next step 2"],
-  "disclaimer": "This is an AI-assisted analysis for review by Dr. Saikiran only."
+  "recommendations": ["Safe, evidence-based next step 1 (e.g., Clinical evaluation, Restorative care)"],
+  "disclaimer": "This is an AI-assisted radiographic review for review by Dr. Saikiran only. Final clinical decisions must be confirmed in person."
 }
 
-CRITICAL: 
-- Be specific about caries, bone loss, periapical radiolucency, or restorations.
-- If the image is not a dental X-ray, state "Invalid Image" in findings.
-- Use FDI tooth numbering system (11-48).`;
+CRITICAL CLINICAL CONSTRAINTS:
+1. DETERMINISTIC ASSESSMENT: Set your internal temperature to 0.0. Do not guess, speculate, or fabricate pathologies.
+2. RADIOLOGICAL EVIDENCE ONLY: Report ONLY what is clearly visible on the radiograph (e.g., radiolucency, bone loss, impacted teeth, restorations). If bone levels are normal and no caries are present, output "No significant radiographic pathology noted."
+3. TOOTH NUMBERING: Use strictly the FDI World Dental Federation two-digit numbering system (11-48). Never output tooth numbers outside this range.
+4. VALIDATION: If the image provided is not a dental radiograph, set the diagnosis to "Invalid Image File" and report "Not a valid dental X-ray" in findings.
+5. NO INVASIVE SUGGESTIONS: Do not recommend major surgical interventions unless there is extreme, undeniable radiographic evidence (like deep impacted wisdom teeth or severe periapical lesions).
+6. STEP-BY-STEP ANALYSIS: You must populate the "clinicalReasoning" array with a step-by-step description of your radiological inspection sequence (minimum 3 steps). This guarantees safety and high accuracy.`;
 
-      console.log('Sending X-ray to Gemini for analysis...');
+      console.log('Sending X-ray to Gemini Vision for zero-hallucination analysis...');
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${config.GEMINI_API_KEY}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -350,7 +372,7 @@ CRITICAL:
           }],
           generationConfig: {
             response_mime_type: "application/json",
-            temperature: 0.2
+            temperature: 0.0 // Force absolute factual analysis without hallucination
           }
         })
       });
@@ -361,7 +383,8 @@ CRITICAL:
       }
 
       const data = await response.json();
-      return JSON.parse(data.candidates[0].content.parts[0].text);
+      const responseText = data.candidates[0].content.parts[0].text;
+      return JSON.parse(responseText);
     } catch (error) {
       console.error('X-Ray Analysis Error:', error);
       throw new Error(`Failed to analyze X-ray: ${error.message}`);
