@@ -4,6 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
+import compression from 'compression';
 import { config } from './core/config/env.js';
 import routes from './routes/index.js';
 import { errorHandler } from './core/middleware/error.js';
@@ -18,6 +19,9 @@ import rateLimit from 'express-rate-limit';
 const app = express();
 const server = createServer(app);
 initSocket(server);
+
+// Enable payload compression for faster network responses
+app.use(compression());
 
 // Essential for Render/Vercel to correctly handle IP-based rate limiting
 app.set('trust proxy', 1);
