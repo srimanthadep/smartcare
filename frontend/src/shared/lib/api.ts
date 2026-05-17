@@ -647,4 +647,17 @@ export const api = {
   sendXrayEmail(id: string) {
     return apiFetch<{ message: string }>(`/api/xrays/${id}/send-email`, { method: "POST" });
   },
+
+  // ── Public Booking API ──
+  getPublicDoctors() {
+    return apiFetch<Doctor[]>("/api/public/doctors", { skipAuth: true });
+  },
+
+  createPublicAppointment(payload: any) {
+    return apiFetch<{ message: string; appointment: Appointment }>("/api/public/appointments", {
+      method: "POST",
+      body: JSON.stringify(payload),
+      skipAuth: true,
+    });
+  },
 };

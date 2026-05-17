@@ -47,11 +47,21 @@ export const updateTreatmentPlan = async (req, res, next) => {
     const params = [id];
     let i = 2;
 
-    const fields = { status, notes, phases, total_cost: totalCost };
-    for (const [key, value] of Object.entries(fields)) {
+    const COLUMN_MAP = {
+      status: 'status',
+      notes: 'notes',
+      phases: 'phases',
+      totalCost: 'total_cost',
+      total_cost: 'total_cost'
+    };
+
+    for (const [key, value] of Object.entries(req.body)) {
+      const dbCol = COLUMN_MAP[key];
+      if (!dbCol) continue;
+
       if (value !== undefined) {
-        updates.push(`${key} = $${i}`);
-        params.push(key === 'phases' ? JSON.stringify(value) : value);
+        updates.push(`${dbCol} = $${i}`);
+        params.push(dbCol === 'phases' ? JSON.stringify(value) : value);
         i++;
       }
     }

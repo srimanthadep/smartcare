@@ -120,3 +120,47 @@ export const deleteAppointment = async (req, res, next) => {
     next(error);
   }
 };
+
+export const createPublicAppointment = async (req, res, next) => {
+  try {
+    const { name, phone, doctorName, date, time, reason, notes } = req.body;
+    
+    // 1. Find or create patient
+    let patientId;
+    const patientRes = await dbService.query('SELECT id FROM patients WHERE phone = $1 AND is_deleted = FALSE', [phone]);
+    
+    if (patientRes.rows.length > 0) {
+      patientId = patientRes.rows[0].id;
+    } else {
+      patientId = await dbService.generateId('P', 'patients');
+      await dbService.query(
+        'INSERT INTO patients (id, name, phone, status) VALUES ($1, $2, $3, $4)',
+        [patientId, name, phone, 'Active']
+      );
+    }
+    
+    // 2. Create appointment
+    const apptId = await dbService.generateId('A', 'appointments');
+    const query = `
+      INSERT INTO appointments (id, patient_id, doctor_name, date, time, type, status, reason)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      RETURNING *
+    `;
+    const params = [apptId, patientId, doctorName, date, time, 'Consultation', 'Scheduled', reason || notes];
+    await dbService.query(query, params);
+    
+    // 3. Emit update for admin dashboard
+    const fullApptRes = await dbService.query(`
+      SELECT a.*, p.name as patient_name 
+      FROM appointments a JOIN patients p ON a.patient_id = p.id
+      WHERE a.id = $1
+    `, [apptId]);
+    
+    const appt = dbService.mapRows('appointments', fullApptRes.rows)[0];
+    emitEvent(SOCKET_EVENTS.APPOINTMENT_UPDATED, appt);
+    
+    res.status(201).json({ message: 'Appointment booked successfully', appointment: appt });
+  } catch (error) {
+    next(error);
+  }
+};

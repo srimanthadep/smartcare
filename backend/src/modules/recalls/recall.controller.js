@@ -40,7 +40,7 @@ export const updateRecall = async (req, res, next) => {
 
 export const deleteRecall = async (req, res, next) => {
   try {
-    const result = await dbService.query('DELETE FROM recalls WHERE id = $1 RETURNING id', [req.params.id]);
+    const result = await dbService.query('UPDATE recalls SET is_deleted = TRUE WHERE id = $1 RETURNING id', [req.params.id]);
     if (result.rows.length === 0) return res.status(404).json({ message: 'Recall not found' });
     res.json({ message: 'Recall deleted successfully' });
   } catch (error) { next(error); }

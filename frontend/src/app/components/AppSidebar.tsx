@@ -2,7 +2,7 @@ import React from 'react';
 import {
   LayoutDashboard, Users, CalendarDays, FileText, Receipt,
   Pill, Bot, Settings, Bell, Activity,
-  CalendarClock, History, Wallet, CalendarPlus, ScanLine
+  CalendarClock, History, Wallet, ScanLine, Shield
 } from 'lucide-react';
 import { NavLink } from '@/app/components/NavLink';
 import { useAuth } from '@/shared/contexts/AuthContext';
@@ -26,9 +26,9 @@ const allNavItems = [
   { title: 'AI Assistant', url: '/ai', icon: Bot, roles: ['doctor', 'admin'] },
   { title: 'Analytics', url: '/analytics', icon: Activity, roles: ['doctor', 'admin'] },
   { title: 'Activity Logs', url: '/logs', icon: History, roles: ['admin'] },
-  { title: 'Public Booking', url: '/book', icon: CalendarPlus, roles: ['doctor', 'admin'] },
   { title: 'Notifications', url: '/notifications', icon: Bell, roles: ['doctor', 'admin'] },
   { title: 'Settings', url: '/settings', icon: Settings, roles: ['doctor', 'admin'] },
+  { title: 'Admin Panel', url: '/admin', icon: Shield, roles: ['admin'] },
 ];
 
 export const AppSidebar: React.FC = () => {

@@ -149,6 +149,139 @@ export const runMigrations = async () => {
     CREATE INDEX IF NOT EXISTS idx_xrays_patient ON xrays (patient_id);
 
     ALTER TABLE prescriptions ADD COLUMN IF NOT EXISTS xray_ids JSONB DEFAULT '[]'::jsonb;
+
+    -- ══════════════════════════════════════════════════════════════════════════
+    -- Admin Panel Tables (Phase: Enterprise Admin)
+    -- ══════════════════════════════════════════════════════════════════════════
+
+    -- Advanced audit logs (replaces simple activity_logs for admin features)
+    CREATE TABLE IF NOT EXISTS audit_logs (
+        id TEXT PRIMARY KEY,
+        actor_id TEXT,
+        actor_name TEXT,
+        actor_role TEXT,
+        action TEXT NOT NULL,
+        entity_type TEXT,
+        entity_id TEXT,
+        patient_id TEXT,
+        patient_name TEXT,
+        metadata JSONB DEFAULT '{}'::jsonb,
+        old_data JSONB,
+        new_data JSONB,
+        ip_address TEXT,
+        user_agent TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- User sessions tracking
+    CREATE TABLE IF NOT EXISTS user_sessions (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        token_hash TEXT NOT NULL,
+        ip_address TEXT,
+        user_agent TEXT,
+        device_info JSONB DEFAULT '{}'::jsonb,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        last_active_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        expired_at TIMESTAMP WITH TIME ZONE
+    );
+
+    -- Login history
+    CREATE TABLE IF NOT EXISTS login_history (
+        id TEXT PRIMARY KEY,
+        user_id TEXT,
+        username TEXT,
+        success BOOLEAN DEFAULT TRUE,
+        ip_address TEXT,
+        user_agent TEXT,
+        device_info JSONB DEFAULT '{}'::jsonb,
+        failure_reason TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Admin notifications
+    CREATE TABLE IF NOT EXISTS admin_notifications (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL,
+        severity TEXT DEFAULT 'info',
+        title TEXT NOT NULL,
+        message TEXT,
+        metadata JSONB DEFAULT '{}'::jsonb,
+        is_read BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Backup history
+    CREATE TABLE IF NOT EXISTS backup_history (
+        id TEXT PRIMARY KEY,
+        status TEXT DEFAULT 'pending',
+        file_name TEXT,
+        file_size BIGINT,
+        triggered_by TEXT,
+        error_message TEXT,
+        started_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        completed_at TIMESTAMP WITH TIME ZONE
+    );
+
+    -- AI usage tracking
+    CREATE TABLE IF NOT EXISTS ai_usage_logs (
+        id TEXT PRIMARY KEY,
+        user_id TEXT,
+        user_name TEXT,
+        tool TEXT NOT NULL,
+        tokens_used INTEGER DEFAULT 0,
+        estimated_cost NUMERIC(10,6) DEFAULT 0,
+        response_time_ms INTEGER DEFAULT 0,
+        success BOOLEAN DEFAULT TRUE,
+        error_message TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Soft-delete tracking columns on entity tables
+    ALTER TABLE patients ADD COLUMN IF NOT EXISTS deleted_by TEXT;
+    ALTER TABLE patients ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
+    ALTER TABLE patients ADD COLUMN IF NOT EXISTS delete_reason TEXT;
+
+    ALTER TABLE invoices ADD COLUMN IF NOT EXISTS deleted_by TEXT;
+    ALTER TABLE invoices ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
+    ALTER TABLE invoices ADD COLUMN IF NOT EXISTS delete_reason TEXT;
+
+    ALTER TABLE appointments ADD COLUMN IF NOT EXISTS deleted_by TEXT;
+    ALTER TABLE appointments ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
+    ALTER TABLE appointments ADD COLUMN IF NOT EXISTS delete_reason TEXT;
+
+    ALTER TABLE prescriptions ADD COLUMN IF NOT EXISTS deleted_by TEXT;
+    ALTER TABLE prescriptions ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
+    ALTER TABLE prescriptions ADD COLUMN IF NOT EXISTS delete_reason TEXT;
+
+    ALTER TABLE expenses ADD COLUMN IF NOT EXISTS deleted_by TEXT;
+    ALTER TABLE expenses ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
+    ALTER TABLE expenses ADD COLUMN IF NOT EXISTS delete_reason TEXT;
+
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_by TEXT;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS delete_reason TEXT;
+
+    -- User status and login tracking
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active';
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP WITH TIME ZONE;
+
+    -- Admin indexes
+    CREATE INDEX IF NOT EXISTS idx_audit_logs_actor ON audit_logs(actor_id);
+    CREATE INDEX IF NOT EXISTS idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
+    CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
+    CREATE INDEX IF NOT EXISTS idx_user_sessions_user ON user_sessions(user_id);
+    CREATE INDEX IF NOT EXISTS idx_user_sessions_active ON user_sessions(is_active) WHERE is_active = TRUE;
+    CREATE INDEX IF NOT EXISTS idx_login_history_user ON login_history(user_id);
+    CREATE INDEX IF NOT EXISTS idx_login_history_created ON login_history(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_admin_notifications_read ON admin_notifications(is_read);
+    CREATE INDEX IF NOT EXISTS idx_admin_notifications_created ON admin_notifications(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_backup_history_created ON backup_history(started_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_ai_usage_created ON ai_usage_logs(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_users_status ON users(status) WHERE is_deleted = FALSE;
+    CREATE INDEX IF NOT EXISTS idx_users_role ON users(role) WHERE is_deleted = FALSE;
   `;
 
   try {

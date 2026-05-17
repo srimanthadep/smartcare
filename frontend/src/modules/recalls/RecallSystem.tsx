@@ -10,6 +10,7 @@ import {
   MessageSquare,
   Phone,
   Search,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -109,6 +110,14 @@ const RecallSystem: React.FC = () => {
     }
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.deleteRecall(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recalls"] });
+      toast.success("Recall deleted successfully");
+    }
+  });
+
   const markScheduled = (id: string) => {
     updateMutation.mutate({ id, payload: { status: "Scheduled" } });
     toast.success("Recall scheduled and ready for booking");
@@ -117,6 +126,12 @@ const RecallSystem: React.FC = () => {
   const markCompleted = (id: string) => {
     updateMutation.mutate({ id, payload: { status: "Completed" } });
     toast.success("Recall marked complete");
+  };
+
+  const deleteRecall = (id: string) => {
+    if (confirm("Are you sure you want to delete this recall?")) {
+      deleteMutation.mutate(id);
+    }
   };
 
   const sendReminder = (name: string, channel: "SMS" | "WhatsApp") => {
@@ -320,6 +335,16 @@ const RecallSystem: React.FC = () => {
                               Done
                             </Button>
                           ) : null}
+
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => deleteRecall(item.id)}
+                            title="Delete recall"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>

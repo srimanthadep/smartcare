@@ -23,6 +23,7 @@ import aiRoutes from '../modules/ai/ai.routes.js';
 
 // Shared / Core
 import backupRoutes from '../shared/services/backup.routes.js';
+import adminRoutes from '../modules/admin/admin.routes.js';
 import * as dashboardController from '../modules/dashboard/dashboard.controller.js';
 import * as adminController from '../modules/auth/admin.controller.js';
 import * as xrayController from '../modules/xrays/xray.controller.js';
@@ -31,6 +32,9 @@ import { dbService } from '../core/db/db.service.js';
 import { sendEmailJob, sendWhatsAppJob } from '../shared/queue/jobQueue.service.js';
 import { emailService } from '../shared/services/email.service.js';
 import { whatsappService } from '../modules/whatsapp/whatsapp.service.js';
+
+import * as doctorController from '../modules/doctors/doctor.controller.js';
+import * as appointmentController from '../modules/appointments/appointment.controller.js';
 
 const router = Router();
 
@@ -47,10 +51,20 @@ const aiRateLimit = rateLimit({
   message: { message: 'Too many AI requests, please try again after a minute' }
 });
 
+const publicRateLimit = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 50,
+  message: { message: 'Too many requests, please try again later' }
+});
+
 // Public Routes
 router.get('/', (req, res) => res.json({ status: 'ok', message: 'API is operational' }));
 router.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 router.use('/auth', authRateLimit, authRoutes);
+
+// Public Booking Routes
+router.get('/public/doctors', publicRateLimit, doctorController.getDoctors);
+router.post('/public/appointments', publicRateLimit, appointmentController.createPublicAppointment);
 
 // Protected Routes
 router.use(auth);
@@ -79,6 +93,7 @@ router.use('/ai', aiRateLimit, aiRoutes);
 router.use('/whatsapp', whatsappRoutes);
 router.use('/email', emailRoutes);
 router.use('/backup', backupRoutes);
+router.use('/admin', adminRoutes);
 
 // Shared Patient Scoped Routes
 router.get('/patients/:id/xrays', xrayController.getPatientXrays);

@@ -33,6 +33,19 @@ import PublicLayout from "@/app/components/PublicLayout";
 import PublicBooking from "@/modules/appointments/PublicBooking";
 import DoctorPublicProfile from "@/modules/doctors/DoctorPublicProfile";
 import InstallPromptBanner from "@/app/components/InstallPromptBanner";
+import AdminProtectedRoute from "@/modules/admin/components/AdminProtectedRoute";
+import AdminLayout from "@/modules/admin/components/AdminLayout";
+import AdminDashboard from "@/modules/admin/pages/AdminDashboard";
+import UserManagement from "@/modules/admin/pages/UserManagement";
+import AuditLogs from "@/modules/admin/pages/AuditLogs";
+import DeleteHistory from "@/modules/admin/pages/DeleteHistory";
+import QueueMonitor from "@/modules/admin/pages/QueueMonitor";
+import SystemHealth from "@/modules/admin/pages/SystemHealth";
+import SecurityCenter from "@/modules/admin/pages/SecurityCenter";
+import NotificationCenter from "@/modules/admin/pages/NotificationCenter";
+import BackupCenter from "@/modules/admin/pages/BackupCenter";
+import AIAnalytics from "@/modules/admin/pages/AIAnalytics";
+import AdminSettings from "@/modules/admin/pages/AdminSettings";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -80,6 +93,19 @@ const App = () => (
                 <Route path="notifications" element={<Notifications />} />
                 <Route path="logs" element={<ActivityLogs />} />
                 <Route path="settings" element={<Settings />} />
+              </Route>
+              <Route path="/admin" element={<AdminProtectedRoute><AdminLayout /></AdminProtectedRoute>}>
+                <Route index element={<AdminDashboard />} />
+                <Route path="users" element={<UserManagement />} />
+                <Route path="audit-logs" element={<AuditLogs />} />
+                <Route path="delete-history" element={<DeleteHistory />} />
+                <Route path="queue" element={<QueueMonitor />} />
+                <Route path="health" element={<SystemHealth />} />
+                <Route path="security" element={<SecurityCenter />} />
+                <Route path="notifications" element={<NotificationCenter />} />
+                <Route path="backups" element={<BackupCenter />} />
+                <Route path="ai-analytics" element={<AIAnalytics />} />
+                <Route path="settings" element={<AdminSettings />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>

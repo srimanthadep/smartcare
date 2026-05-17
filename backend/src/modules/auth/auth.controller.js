@@ -1,8 +1,10 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { dbService } from '../../core/db/db.service.js';
 import { config } from '../../core/config/env.js';
 import { logActivity } from '../../shared/queue/jobQueue.service.js';
+import { logLoginAttempt, createUserSession, logAudit } from '../admin/audit.service.js';
 
 export const login = async (req, res, next) => {
   try {
@@ -12,7 +14,14 @@ export const login = async (req, res, next) => {
     const user = userRes.rows[0];
 
     if (!user || !bcrypt.compareSync(password, user.password)) {
+      logLoginAttempt({ userId: user?.id, username, success: false, ipAddress: req.ip, userAgent: req.headers['user-agent'], failureReason: !user ? 'User not found' : 'Invalid password' }).catch(console.error);
       return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // Check if user is suspended
+    if (user.status === 'suspended') {
+      logLoginAttempt({ userId: user.id, username, success: false, ipAddress: req.ip, userAgent: req.headers['user-agent'], failureReason: 'Account suspended' }).catch(console.error);
+      return res.status(403).json({ message: 'Account suspended. Contact your administrator.' });
     }
 
     const token = jwt.sign(
@@ -22,6 +31,10 @@ export const login = async (req, res, next) => {
     );
 
     logActivity({ userId: user.id, userName: user.name, action: 'Login', details: 'User logged in successfully', ip: req.ip }).catch(console.error);
+    logLoginAttempt({ userId: user.id, username, success: true, ipAddress: req.ip, userAgent: req.headers['user-agent'] }).catch(console.error);
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    createUserSession({ userId: user.id, tokenHash, ipAddress: req.ip, userAgent: req.headers['user-agent'] }).catch(console.error);
+    dbService.query('UPDATE users SET last_login_at = NOW() WHERE id = $1', [user.id]).catch(console.error);
 
     res.cookie('AuthToken', token, {
       httpOnly: true,

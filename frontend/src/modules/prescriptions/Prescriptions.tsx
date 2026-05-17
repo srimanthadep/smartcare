@@ -163,6 +163,7 @@ const Prescriptions: React.FC = () => {
 
   // Restore draft on mount
   useEffect(() => {
+    hasRestored.current = true;
     if (editId) return;  // only skip for edit mode
     const saved = localStorage.getItem(DRAFT_KEY);
     if (saved) {
@@ -184,7 +185,6 @@ const Prescriptions: React.FC = () => {
         console.error("Failed to restore draft", e);
       }
     }
-    hasRestored.current = true;
   }, []);
 
 

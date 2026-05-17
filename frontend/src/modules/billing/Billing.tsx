@@ -575,12 +575,6 @@ const Billing: React.FC = () => {
               </p>
             </CardContent>
           </Card>
-        ) : patientInvoices.length === 0 ? (
-          <Card className="border-border/50">
-            <CardContent className="p-8 text-center text-muted-foreground">
-              No previous invoices found for this patient.
-            </CardContent>
-          </Card>
         ) : (
           <div className="space-y-3">
             {patientInvoices.map((invoice) => (

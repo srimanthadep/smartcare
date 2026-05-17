@@ -5,6 +5,13 @@ const queue = [];
 let activeCount = 0;
 const CONCURRENCY_LIMIT = 5;
 
+// ── Queue Stats Tracking ─────────────────────────────────────────────────────
+let completedCount = 0;
+let failedCount = 0;
+const recentCompleted = [];
+const recentFailed = [];
+const MAX_RECENT = 50;
+
 const processNext = async () => {
   if (activeCount >= CONCURRENCY_LIMIT || queue.length === 0) return;
   
@@ -20,9 +27,15 @@ const processNext = async () => {
     await job.fn();
     const duration = Date.now() - startTime;
     console.log(`[JobQueue] Completed job: ${job.label} in ${duration}ms (Active: ${activeCount - 1})`);
+    completedCount++;
+    recentCompleted.unshift({ id: `job_${Date.now()}`, name: job.label, duration, finishedOn: Date.now() });
+    if (recentCompleted.length > MAX_RECENT) recentCompleted.pop();
   } catch (err) {
     const duration = Date.now() - startTime;
     console.error(`[JobQueue] Error in job ${job.label} after ${duration}ms:`, err);
+    failedCount++;
+    recentFailed.unshift({ id: `job_${Date.now()}`, name: job.label, duration, failedReason: err.message, finishedOn: Date.now() });
+    if (recentFailed.length > MAX_RECENT) recentFailed.pop();
   } finally {
     activeCount--;
     setImmediate(processNext);
@@ -66,3 +79,15 @@ export const saveMedicines = (medicines) => {
     }
   });
 };
+
+// ── Queue Stats Export ────────────────────────────────────────────────────────
+export const getQueueStats = () => ({
+  pending: queue.length,
+  active: activeCount,
+  completed: completedCount,
+  failed: failedCount,
+  concurrencyLimit: CONCURRENCY_LIMIT,
+  recentCompleted: recentCompleted.slice(0, 20),
+  recentFailed: recentFailed.slice(0, 20),
+});
+

@@ -69,7 +69,8 @@ export const getXrays = async (req, res, next) => {
     const page = parseInt(req.query.page) || 1;
     const offset = (page - 1) * limit;
 
-    query += ` ORDER BY x.created_at DESC LIMIT ${limit} OFFSET ${offset}`;
+    params.push(limit, offset);
+    query += ` ORDER BY x.created_at DESC LIMIT $${params.length - 1} OFFSET $${params.length}`;
 
     const result = await dbService.query(query, params);
     res.json(dbService.mapRows('xrays', result.rows));

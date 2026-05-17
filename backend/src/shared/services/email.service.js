@@ -186,12 +186,12 @@ body { background:#f5f7fb; font-family:'Poppins', sans-serif; padding:40px 15px;
         subject: 'Welcome to Siara Dental - Creating Miles Of Smiles',
         html,
         attachments: [
-          {
+          ...(LOGO_BUFFER ? [{
             filename: 'logo.png',
             content: LOGO_BUFFER,
             cid: 'logo',
             disposition: 'inline'
-          }
+          }] : [])
         ]
       });
 
@@ -323,12 +323,12 @@ body { background:#f5f7fb; font-family:'Poppins', sans-serif; padding:40px 15px;
         subject: `New Prescription from Siara Dental - ${prescription.id}`,
         html,
         attachments: [
-          {
+          ...(LOGO_BUFFER ? [{
             filename: 'logo.png',
             content: LOGO_BUFFER,
             cid: 'logo',
             disposition: 'inline'
-          },
+          }] : []),
           {
             filename: `Prescription_${prescription.id}.pdf`,
             content: pdfBuffer,
@@ -454,12 +454,12 @@ body { background:#f5f7fb; font-family:'Poppins', sans-serif; padding:40px 15px;
         subject: `Invoice from Siara Dental - ${invoice.id}`,
         html,
         attachments: [
-          {
+          ...(LOGO_BUFFER ? [{
             filename: 'logo.png',
             content: LOGO_BUFFER,
             cid: 'logo',
             disposition: 'inline'
-          },
+          }] : []),
           {
             filename: `Invoice_${invoice.id}.pdf`,
             content: pdfBuffer,
@@ -566,12 +566,12 @@ body { background:#f5f7fb; font-family:'Poppins', sans-serif; padding:40px 15px;
         subject: `X-Ray Report from Siara Dental - ${xray.id}`,
         html,
         attachments: [
-          {
+          ...(LOGO_BUFFER ? [{
             filename: 'logo.png',
             content: LOGO_BUFFER,
             cid: 'logo',
             disposition: 'inline'
-          },
+          }] : []),
           {
             filename: `XRay_Report_${xray.id}.pdf`,
             content: pdfBuffer,

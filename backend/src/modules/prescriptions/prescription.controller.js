@@ -13,7 +13,7 @@ export const getPrescriptions = async (req, res, next) => {
 
     if (patientId) {
       params.push(patientId);
-      query += ' AND patient_id = $1';
+      query += ` AND patient_id = $${params.length}`;
     }
     // H4: Pagination
     const limit = parseInt(req.query.limit) || 200;
@@ -139,7 +139,7 @@ export const updatePrescription = async (req, res, next) => {
       if (!dbCol) continue;
 
       let finalValue = (key === 'medicines' || key === 'treatmentPlan' || key === 'treatment_plan' || key === 'xrayIds' || key === 'xray_ids') ? JSON.stringify(value) : value;
-      if (dbCol === 'next_visit_date' && finalValue === '') finalValue = null;
+      if (dbCol === 'next_visit_date' && !finalValue) finalValue = null;
       
       updates.push(`${dbCol} = $${i}`);
       params.push(finalValue);
