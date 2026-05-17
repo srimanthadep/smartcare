@@ -127,7 +127,8 @@ export const updateInvoice = async (req, res, next) => {
 export const deleteInvoice = async (req, res, next) => {
   try {
     const { id } = req.params;
-    await dbService.query('UPDATE invoices SET is_deleted = TRUE WHERE id = $1', [id]);
+    const actorId = req.user?.sub || null;
+    await dbService.query('UPDATE invoices SET is_deleted = TRUE, deleted_at = NOW(), deleted_by = $2 WHERE id = $1', [id, actorId]);
     emitEvent(SOCKET_EVENTS.INVOICE_UPDATED, { id, deleted: true });
     res.status(204).end();
   } catch (error) {

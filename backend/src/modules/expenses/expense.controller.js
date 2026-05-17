@@ -73,7 +73,8 @@ export const updateExpense = async (req, res, next) => {
 export const deleteExpense = async (req, res, next) => {
   try {
     const { id } = req.params;
-    await dbService.query('UPDATE expenses SET is_deleted = TRUE WHERE id = $1', [id]);
+    const actorId = req.user?.sub || null;
+    await dbService.query('UPDATE expenses SET is_deleted = TRUE, deleted_at = NOW(), deleted_by = $2 WHERE id = $1', [id, actorId]);
     res.json({ message: 'Expense deleted' });
   } catch (error) {
     next(error);

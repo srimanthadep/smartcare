@@ -92,6 +92,7 @@ const App = () => (
                 <Route path="ai" element={<AI />} />
                 <Route path="notifications" element={<Notifications />} />
                 <Route path="logs" element={<ActivityLogs />} />
+                <Route path="delete-history" element={<DeleteHistory />} />
                 <Route path="settings" element={<Settings />} />
               </Route>
               <Route path="/admin" element={<AdminProtectedRoute><AdminLayout /></AdminProtectedRoute>}>

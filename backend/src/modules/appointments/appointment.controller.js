@@ -112,7 +112,8 @@ export const updateAppointment = async (req, res, next) => {
 export const deleteAppointment = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const result = await dbService.query('UPDATE appointments SET is_deleted = TRUE WHERE id = $1 RETURNING id', [id]);
+    const actorId = req.user?.sub || null;
+    const result = await dbService.query('UPDATE appointments SET is_deleted = TRUE, deleted_at = NOW(), deleted_by = $2 WHERE id = $1 RETURNING id', [id, actorId]);
     if (result.rows.length === 0) return res.status(404).json({ message: 'Appointment not found' });
     emitEvent(SOCKET_EVENTS.APPOINTMENT_UPDATED, { id, deleted: true });
     res.status(204).end();

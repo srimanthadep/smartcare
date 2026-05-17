@@ -100,6 +100,29 @@ export interface SystemHealth {
     responseTimeMs: number;
     pool: { totalConnections: number; idleConnections: number; waitingClients: number };
   };
+  supabase: {
+    status: string;
+    databaseSize: string;
+    activeConnections: number;
+    tables: {
+      patients: number;
+      invoices: number;
+      appointments: number;
+      prescriptions: number;
+      auditLogs: number;
+    };
+  };
+  render: {
+    isRender: boolean;
+    serviceName: string;
+    serviceId: string;
+    instanceId: string;
+    externalUrl: string;
+    region: string;
+    memoryLimitBytes: number;
+    memoryUsageBytes: number;
+    memoryUsagePercent: string;
+  };
   system: {
     platform: string;
     uptime: number;

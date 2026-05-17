@@ -13,7 +13,24 @@ import { getQueueStats } from '../../shared/queue/jobQueue.service.js';
 
 const router = Router();
 
-// All admin routes require admin role
+// Recovery Authorization for Admin or Doctor
+const authorizeAdminOrDoctor = () => {
+  return (req, res, next) => {
+    if (req.user.role !== 'admin' && req.user.role !== 'doctor') {
+      return res.status(403).json({ message: 'Admin or Doctor access required' });
+    }
+    next();
+  };
+};
+
+// Recovery Center (Accessible by Doctor or Admin)
+router.get('/recovery/:entityType', authorizeAdminOrDoctor(), recovery.listDeleted);
+router.post('/recovery/:entityType/:id/restore', authorizeAdminOrDoctor(), recovery.restoreItem);
+router.delete('/recovery/:entityType/:id', authorizeAdminOrDoctor(), recovery.permanentDelete);
+router.post('/recovery/:entityType/bulk-restore', authorizeAdminOrDoctor(), recovery.bulkRestore);
+router.post('/recovery/:entityType/bulk-delete', authorizeAdminOrDoctor(), recovery.bulkPermanentDelete);
+
+// All other admin routes require strict admin role
 router.use(authorizeAdmin());
 
 // Dashboard
@@ -33,13 +50,8 @@ router.post('/users/:id/force-logout', users.forceLogout);
 // Audit Logs
 router.get('/audit-logs', audit.listAuditLogs);
 router.get('/audit-logs/filters', audit.getAuditFilters);
-
-// Recovery Center
-router.get('/recovery/:entityType', recovery.listDeleted);
-router.post('/recovery/:entityType/:id/restore', recovery.restoreItem);
-router.delete('/recovery/:entityType/:id', recovery.permanentDelete);
-router.post('/recovery/:entityType/bulk-restore', recovery.bulkRestore);
-router.post('/recovery/:entityType/bulk-delete', recovery.bulkPermanentDelete);
+router.get('/audit-logs/export/xlsx', audit.exportXLSX);
+router.get('/audit-logs/export/pdf', audit.exportPDF);
 
 // System Health
 router.get('/health', health.getHealth);

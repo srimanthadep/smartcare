@@ -18,7 +18,10 @@ import {
   Filter,
   X,
   FileDown,
-  Download
+  Download,
+  Calendar,
+  Clock,
+  Droplet
 } from "lucide-react";
 import { exportService } from '@/shared/lib/exportService';
 import { api } from '@/shared/lib/api';
@@ -61,6 +64,27 @@ const PatientList: React.FC = () => {
   const [page, setPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
   const [patientToDelete, setPatientToDelete] = useState<string | null>(null);
+
+  // Dynamic soft gradient avatar generator
+  const getAvatarGradient = (name: string) => {
+    const hash = Array.from(name).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const gradients = [
+      "from-blue-500/10 to-sky-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20",
+      "from-emerald-500/10 to-teal-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20",
+      "from-purple-500/10 to-pink-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20",
+      "from-orange-500/10 to-amber-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20",
+      "from-indigo-500/10 to-violet-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20",
+    ];
+    return gradients[hash % gradients.length];
+  };
+
+  // Professional gender coloring style
+  const getGenderStyle = (gender: string) => {
+    const lower = gender?.toLowerCase() || "";
+    if (lower === "male") return "bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/20";
+    if (lower === "female") return "bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20";
+    return "bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20";
+  };
 
   const handleExport = async (patientId: string, format: 'pdf' | 'excel') => {
     const toastId = toast.loading(`Gathering records & generating ${format.toUpperCase()}...`);
@@ -169,6 +193,21 @@ const PatientList: React.FC = () => {
     },
     onError: (err) => {
       toast.error(err instanceof Error ? err.message : "Failed to delete patient");
+    }
+  });
+
+  const toggleStatusMutation = useMutation({
+    mutationFn: ({ id, currentStatus }: { id: string; currentStatus: string }) => {
+      const nextStatus = currentStatus === "Active" ? "Inactive" : "Active";
+      return api.updatePatient(id, { status: nextStatus });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["patients"] });
+      const nextStatus = variables.currentStatus === "Active" ? "Inactive" : "Active";
+      toast.success(`Patient status updated to ${nextStatus}`);
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : "Failed to update status");
     }
   });
 
@@ -365,11 +404,28 @@ const PatientList: React.FC = () => {
                 <div className="flex items-center justify-between gap-2">
                   <div>
                     <p className="font-semibold">{patient.name}</p>
-                    <Badge variant="outline" className="mt-1 h-5 border-muted-foreground/30 px-1.5 py-0 text-[10px] uppercase text-muted-foreground">
-                      {patient.id}
-                    </Badge>
+                    <div className="flex items-center gap-1.5 mt-1 flex-nowrap">
+                      <Badge variant="outline" className="h-5 border-muted-foreground/30 px-1.5 py-0 text-[10px] uppercase text-muted-foreground">
+                        {patient.id}
+                      </Badge>
+                      <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${getGenderStyle(patient.gender)}`}>
+                        {patient.gender}
+                      </span>
+                      <span className="text-[10px] font-semibold text-muted-foreground bg-muted/60 border border-border/30 px-1.5 py-0.5 rounded-md">
+                        {patient.age} Yrs
+                      </span>
+                    </div>
                   </div>
-                  <StatusBadge status={patient.status} />
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleStatusMutation.mutate({ id: patient.id, currentStatus: patient.status });
+                    }}
+                    className="cursor-pointer hover:opacity-85 active:scale-95 transition-all"
+                    title="Click to toggle status"
+                  >
+                    <StatusBadge status={patient.status} className="pointer-events-none" />
+                  </div>
                 </div>
                 <p className="text-xs text-muted-foreground">{patient.phone}</p>
                 <p className="text-xs text-muted-foreground">Last visit: {patient.lastVisit || "N/A"}</p>
@@ -386,18 +442,18 @@ const PatientList: React.FC = () => {
         )}
       </div>
 
-      <Card className="hidden overflow-hidden md:block luxury-card">
+      <Card className="hidden overflow-hidden md:block luxury-card w-full">
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
+          <div className="w-full overflow-hidden">
+            <Table className="w-full table-auto">
               <TableHeader className="bg-muted/40">
                 <TableRow>
-                  <TableHead className="whitespace-nowrap">Patient Information</TableHead>
-                  <TableHead className="whitespace-nowrap">Status</TableHead>
-                  <TableHead className="whitespace-nowrap">Contact Details</TableHead>
-                  <TableHead className="whitespace-nowrap">Medical Info</TableHead>
-                  <TableHead className="text-right whitespace-nowrap">Last Interaction</TableHead>
-                  <TableHead className="w-[100px] text-right whitespace-nowrap">Actions</TableHead>
+                  <TableHead className="w-[30%]">Patient Information</TableHead>
+                  <TableHead className="w-[12%]">Status</TableHead>
+                  <TableHead className="w-[26%]">Contact Details</TableHead>
+                  <TableHead className="w-[18%]">Medical Info</TableHead>
+                  <TableHead className="w-[14%] text-right">Last Interaction</TableHead>
+                  <TableHead className="w-[80px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -405,50 +461,93 @@ const PatientList: React.FC = () => {
                   pageItems.map((patient) => (
                     <TableRow
                       key={patient.id}
-                      className="group transition-colors hover:bg-muted/20"
+                      className="group transition-all duration-200 hover:bg-muted/15 border-b border-border/40"
                     >
-                      <TableCell onClick={() => navigate(`/patients/${patient.id}`)} className="cursor-pointer">
+                      <TableCell onClick={() => navigate(`/patients/${patient.id}`)} className="cursor-pointer py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-bold">
-                            {patient.name.charAt(0)}
+                          <div className={`flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br font-bold shadow-xs transition-transform duration-200 group-hover:scale-105 ${getAvatarGradient(patient.name)}`}>
+                            {patient.name.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <p className="font-semibold text-foreground group-hover:text-primary transition-colors">{patient.name}</p>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <Badge variant="outline" className="text-[10px] h-4 px-1 py-0 font-normal border-muted-foreground/30 text-muted-foreground uppercase">{patient.id}</Badge>
-                              <span className="text-xs text-muted-foreground">{patient.age}y · {patient.gender}</span>
+                            <p className="text-sm font-semibold tracking-tight text-foreground group-hover:text-primary transition-colors">{patient.name}</p>
+                            <div className="flex items-center gap-1.5 mt-1 flex-nowrap">
+                              <Badge variant="outline" className="text-[10px] h-4.5 px-1.5 py-0 font-medium bg-primary/5 border-primary/20 text-primary tracking-wide uppercase">{patient.id}</Badge>
+                              <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${getGenderStyle(patient.gender)}`}>
+                                {patient.gender}
+                              </span>
+                              <span className="text-[10px] font-semibold text-muted-foreground bg-muted/60 border border-border/30 px-1.5 py-0.5 rounded-md whitespace-nowrap">
+                                {patient.age} Yrs
+                              </span>
                             </div>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell><StatusBadge status={patient.status} /></TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 text-sm text-foreground">
-                            <Phone className="h-3 w-3 text-muted-foreground" />
+                      <TableCell className="py-3.5">
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleStatusMutation.mutate({ id: patient.id, currentStatus: patient.status });
+                          }}
+                          className="cursor-pointer hover:opacity-80 active:scale-95 transition-all inline-block"
+                          title="Click to toggle Status"
+                        >
+                          <StatusBadge status={patient.status} className="shadow-xs scale-95 origin-left pointer-events-none" />
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-3.5">
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-2 text-xs font-semibold text-foreground/80 hover:text-primary transition-colors">
+                            <span className="p-1 rounded bg-muted/50 border border-border/30 group-hover:bg-background transition-colors">
+                              <Phone className="h-3 w-3 text-muted-foreground group-hover:text-primary transition-colors" />
+                            </span>
                             {patient.phone}
                           </div>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Mail className="h-3 w-3" />
-                            {patient.email || "No email"}
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary/80 transition-colors">
+                            <span className="p-1 rounded bg-muted/50 border border-border/30 group-hover:bg-background transition-colors">
+                              <Mail className="h-3 w-3 text-muted-foreground group-hover:text-primary transition-colors" />
+                            </span>
+                            <span className="truncate max-w-[160px] font-medium">{patient.email || "No email"}</span>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1.5">
-                          <Badge variant="secondary" className="bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400 border-none font-medium">
-                            {patient.bloodGroup}
-                          </Badge>
-                          {patient.allergies?.length > 0 && (
-                            <Badge variant="outline" className="text-[10px] border-amber-200 bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/50">
+                      <TableCell className="py-3.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {patient.bloodGroup ? (
+                            <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                              <Droplet className="h-3 w-3 fill-rose-500 stroke-rose-500 shrink-0" />
+                              {patient.bloodGroup}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-semibold text-muted-foreground bg-muted/40 border border-border/20 px-1.5 py-0.5 rounded-md">
+                              No BG Info
+                            </span>
+                          )}
+                          {patient.allergies?.length > 0 ? (
+                            <Badge variant="outline" className="text-[10px] font-semibold border-amber-200 bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/50 shadow-xs">
                               {patient.allergies.length} Allergies
                             </Badge>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                              No Allergies
+                            </span>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="text-sm font-medium text-foreground">{patient.lastVisit || "N/A"}</div>
-                        <div className="text-[10px] text-muted-foreground uppercase tracking-tighter">Registered: {new Date(patient.registeredOn).toLocaleDateString()}</div>
+                      <TableCell className="text-right py-3.5">
+                        {patient.lastVisit ? (
+                          <div className="flex items-center justify-end gap-1 text-xs font-semibold text-foreground/90">
+                            <Clock className="h-3 w-3 text-primary/75" />
+                            <span>{patient.lastVisit}</span>
+                          </div>
+                        ) : (
+                          <span className="inline-flex items-center text-[10px] font-semibold text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md border border-border/30">
+                            New Patient
+                          </span>
+                        )}
+                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground/80 justify-end mt-1 font-medium">
+                          <Calendar className="h-2.5 w-2.5 shrink-0" />
+                          <span>Reg: {new Date(patient.registeredOn).toLocaleDateString()}</span>
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>

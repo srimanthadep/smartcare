@@ -14,6 +14,7 @@ import {
   Settings,
   Users,
   Wallet,
+  Trash2,
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/shared/contexts/AuthContext";
@@ -41,6 +42,7 @@ const moreTabs = [
   { title: "AI Assistant", url: "/ai", icon: Bot, roles: ["doctor", "admin"] },
   { title: "Settings", url: "/settings", icon: Settings, roles: ["doctor", "admin"] },
   { title: "Activity Logs", url: "/logs", icon: Activity, roles: ["admin"] },
+  { title: "Delete History", url: "/delete-history", icon: Trash2, roles: ["doctor", "admin"] },
   { title: "Recall System", url: "/recalls", icon: CalendarClock, roles: ["doctor", "admin"] },
   { title: "X-Rays", url: "/xrays", icon: ScanLine, roles: ["doctor", "admin"] },
   { title: "Public Booking", url: "/book", icon: CalendarPlus, roles: ["doctor", "admin"] },

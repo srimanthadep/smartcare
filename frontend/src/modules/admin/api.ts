@@ -51,6 +51,42 @@ export const adminApi = {
     adminFetch<{ logs: AuditLog[]; total: number; page: number; limit: number }>(`/api/admin/audit-logs${buildQuery(params as any)}`),
   getAuditFilters: () =>
     adminFetch<{ actions: string[]; entityTypes: string[]; actors: { id: string; name: string; role: string }[] }>('/api/admin/audit-logs/filters'),
+  exportAuditLogsXLSX: async (params: { search?: string; action?: string; entityType?: string; actorId?: string; actorRole?: string; dateFrom?: string; dateTo?: string }) => {
+    const token = localStorage.getItem("smartcare_token");
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:3001"}/api/admin/audit-logs/export/xlsx${buildQuery(params as any)}`, {
+      headers: {
+        "Authorization": `Bearer ${token}`
+      }
+    });
+    if (!response.ok) throw new Error("Failed to export Excel logs");
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Activity_Logs_${new Date().toISOString().split('T')[0]}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  },
+  exportAuditLogsPDF: async (params: { search?: string; action?: string; entityType?: string; actorId?: string; actorRole?: string; dateFrom?: string; dateTo?: string }) => {
+    const token = localStorage.getItem("smartcare_token");
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:3001"}/api/admin/audit-logs/export/pdf${buildQuery(params as any)}`, {
+      headers: {
+        "Authorization": `Bearer ${token}`
+      }
+    });
+    if (!response.ok) throw new Error("Failed to export PDF logs");
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Activity_Logs_${new Date().toISOString().split('T')[0]}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  },
 
   // Recovery
   getDeletedItems: (entityType: string, params?: { search?: string; page?: number; limit?: number }) =>
@@ -61,6 +97,8 @@ export const adminApi = {
     adminFetch<{ message: string }>(`/api/admin/recovery/${entityType}/${id}`, { method: 'DELETE' }),
   bulkRestore: (entityType: string, ids: string[]) =>
     adminFetch<{ message: string; count: number }>(`/api/admin/recovery/${entityType}/bulk-restore`, { method: 'POST', body: JSON.stringify({ ids }) }),
+  bulkPermanentDelete: (entityType: string, ids: string[]) =>
+    adminFetch<{ message: string; count: number }>(`/api/admin/recovery/${entityType}/bulk-delete`, { method: 'POST', body: JSON.stringify({ ids }) }),
 
   // Health
   getHealth: () => adminFetch<SystemHealth>('/api/admin/health'),

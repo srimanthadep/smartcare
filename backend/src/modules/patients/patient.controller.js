@@ -204,11 +204,12 @@ export const deletePatient = async (req, res, next) => {
     
     // Cascading soft deletes for all associated patient data
     // We do this manually because database foreign key 'ON DELETE CASCADE' only works for actual row deletion (hard delete)
+    const actorId = req.user?.sub || null;
     await Promise.all([
-      dbService.query('UPDATE patients SET is_deleted = TRUE WHERE id = $1', [id]),
-      dbService.query('UPDATE appointments SET is_deleted = TRUE WHERE patient_id = $1', [id]),
-      dbService.query('UPDATE invoices SET is_deleted = TRUE WHERE patient_id = $1', [id]),
-      dbService.query('UPDATE prescriptions SET is_deleted = TRUE WHERE patient_id = $1', [id]),
+      dbService.query('UPDATE patients SET is_deleted = TRUE, deleted_at = NOW(), deleted_by = $2 WHERE id = $1', [id, actorId]),
+      dbService.query('UPDATE appointments SET is_deleted = TRUE, deleted_at = NOW(), deleted_by = $2 WHERE patient_id = $1', [id, actorId]),
+      dbService.query('UPDATE invoices SET is_deleted = TRUE, deleted_at = NOW(), deleted_by = $2 WHERE patient_id = $1', [id, actorId]),
+      dbService.query('UPDATE prescriptions SET is_deleted = TRUE, deleted_at = NOW(), deleted_by = $2 WHERE patient_id = $1', [id, actorId]),
       dbService.query('UPDATE dental_charts SET is_deleted = TRUE WHERE patient_id = $1', [id]),
       dbService.query('UPDATE treatment_plans SET is_deleted = TRUE WHERE patient_id = $1', [id]),
       dbService.query('UPDATE diagnoses SET is_deleted = TRUE WHERE patient_id = $1', [id]),

@@ -205,7 +205,8 @@ export const updatePrescription = async (req, res, next) => {
 export const deletePrescription = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const result = await dbService.query('UPDATE prescriptions SET is_deleted = TRUE WHERE id = $1 RETURNING id', [id]);
+    const actorId = req.user?.sub || null;
+    const result = await dbService.query('UPDATE prescriptions SET is_deleted = TRUE, deleted_at = NOW(), deleted_by = $2 WHERE id = $1 RETURNING id', [id, actorId]);
     if (result.rows.length === 0) return res.status(404).json({ message: 'Prescription not found' });
     
     try {

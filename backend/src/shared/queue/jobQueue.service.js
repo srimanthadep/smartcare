@@ -52,14 +52,25 @@ export const sendEmailJob = (label, fn) => enqueue(label, fn);
 
 export const logActivity = async ({ userId, userName, action, details, ip = '' }) => {
   const id = `LOG${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+  const auditId = `AUD${Date.now()}_${Math.floor(Math.random() * 10000)}`;
   const timestamp = new Date().toISOString();
   
   try {
+    // 1. Log to legacy table for safety
     await dbService.query(
       'INSERT INTO activity_logs (id, user_id, user_name, action, details, ip) VALUES ($1, $2, $3, $4, $5, $6)',
       [id, userId, userName, action, details, ip]
     );
+    
+    // 2. Log to audit_logs for unified auditing
+    await dbService.query(
+      `INSERT INTO audit_logs (id, actor_id, actor_name, actor_role, action, metadata, ip_address)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [auditId, userId, userName, 'user', action, JSON.stringify({ details }), ip]
+    );
+
     emitEvent(SOCKET_EVENTS.ACTIVITY_LOGGED, { id, userId, userName, action, details, ip, timestamp });
+    emitEvent('ADMIN_AUDIT_LOG', { id: auditId, actorName: userName, action, createdAt: timestamp });
   } catch (err) {
     console.error('[JobQueue] Failed to log activity:', err);
   }

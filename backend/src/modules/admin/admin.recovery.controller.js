@@ -30,30 +30,50 @@ export const listDeleted = async (req, res, next) => {
     const limitNum = Math.min(100, Math.max(1, parseInt(limit)));
     const offset = (pageNum - 1) * limitNum;
 
-    let where = 'WHERE is_deleted = TRUE';
+    let selectFields = 't.*';
+    let joinClause = '';
+    let searchCond = '';
+
+    const hasPatient = ['invoices', 'appointments', 'prescriptions'].includes(entityType);
+
+    let where = 'WHERE t.is_deleted = TRUE';
     const params = [];
     let paramIdx = 1;
 
-    if (search) {
-      // Search by name or id
-      where += ` AND (LOWER(COALESCE(name, '')) LIKE $${paramIdx} OR LOWER(id) LIKE $${paramIdx})`;
-      params.push(`%${search.toLowerCase()}%`);
-      paramIdx++;
+    if (hasPatient) {
+      selectFields = 't.*, p.name AS patient_name';
+      joinClause = 'LEFT JOIN patients p ON t.patient_id = p.id';
+      if (search) {
+        searchCond = ` AND (LOWER(COALESCE(p.name, '')) LIKE $${paramIdx} OR LOWER(t.id) LIKE $${paramIdx})`;
+        params.push(`%${search.toLowerCase()}%`);
+        paramIdx++;
+      }
+    } else {
+      if (search) {
+        searchCond = ` AND (LOWER(COALESCE(t.name, '')) LIKE $${paramIdx} OR LOWER(t.id) LIKE $${paramIdx})`;
+        params.push(`%${search.toLowerCase()}%`);
+        paramIdx++;
+      }
     }
 
+    if (searchCond) {
+      where += searchCond;
+    }
+
+    const queryStr = `SELECT ${selectFields} FROM ${entity.table} t ${joinClause} ${where} ORDER BY COALESCE(t.deleted_at, t.created_at, NOW()) DESC LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`;
+    const countStr = `SELECT COUNT(*) FROM ${entity.table} t ${joinClause} ${where}`;
+
     const [itemsRes, countRes] = await Promise.all([
-      dbService.query(
-        `SELECT * FROM ${entity.table} ${where} ORDER BY deleted_at DESC NULLS LAST LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
-        [...params, limitNum, offset]
-      ),
-      dbService.query(`SELECT COUNT(*) FROM ${entity.table} ${where}`, params),
+      dbService.query(queryStr, [...params, limitNum, offset]),
+      dbService.query(countStr, params),
     ]);
 
     const items = dbService.mapRows(entity.table, itemsRes.rows).map(item => ({
       ...item,
       deletedBy: item.deleted_by,
-      deletedAt: item.deleted_at,
+      deletedAt: item.deleted_at || item.created_at || new Date().toISOString(),
       deleteReason: item.delete_reason,
+      patientName: item.patient_name || item.patientName
     }));
 
     res.json({
