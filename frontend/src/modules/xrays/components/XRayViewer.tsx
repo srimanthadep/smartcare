@@ -8,7 +8,7 @@ import {
   ZoomIn, ZoomOut, RotateCw, Maximize2, Sun, Contrast,
   Download, Printer, X, CheckCircle, Clock, RotateCcw,
   Sparkles, AlertCircle, BrainCircuit, ScanLine,
-  MessageCircle, Mail
+  MessageCircle, Mail, Edit, Save
 } from "lucide-react";
 import { Slider } from "@/shared/ui/slider";
 import type { XRay } from "@/shared/types";
@@ -36,10 +36,47 @@ const XRayViewer: React.FC<XRayViewerProps> = ({
   onSendEmail,
   onUpdate 
 }) => {
+  const viewerRef = React.useRef<HTMLDivElement>(null);
   const [rotation, setRotation] = useState(0);
   const [brightness, setBrightness] = useState(100);
   const [contrast, setContrast] = useState(100);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedDiagnosis, setEditedDiagnosis] = useState("");
+  const [editedNotes, setEditedNotes] = useState("");
+  const [editedType, setEditedType] = useState<XRay["type"]>("IOPA");
+  const [isSaving, setIsSaving] = useState(false);
+
+  React.useEffect(() => {
+    if (xray) {
+      setEditedDiagnosis(xray.diagnosis || "");
+      setEditedNotes(xray.notes || "");
+      setEditedType(xray.type || "IOPA");
+      setIsEditing(false);
+    }
+  }, [xray]);
+
+  const handleSaveChanges = async () => {
+    if (!xray) return;
+    setIsSaving(true);
+    const loadingToastId = toast.loading("Saving X-ray details...");
+    
+    try {
+      const updated = await api.updateXray(xray.id, {
+        diagnosis: editedDiagnosis,
+        notes: editedNotes,
+        type: editedType
+      });
+      
+      if (onUpdate) onUpdate(updated);
+      toast.success("X-ray details updated successfully!", { id: loadingToastId });
+      setIsEditing(false);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update X-ray details", { id: loadingToastId });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   if (!xray) return null;
 
@@ -92,7 +129,7 @@ const XRayViewer: React.FC<XRayViewerProps> = ({
         <DialogTitle className="sr-only">X-Ray Viewer - {xray.id}</DialogTitle>
         <DialogDescription className="sr-only">Detailed view and AI analysis of patient X-ray</DialogDescription>
         
-        <div className="flex h-full w-full flex-col lg:flex-row overflow-hidden">
+        <div ref={viewerRef} className="flex h-full w-full flex-col lg:flex-row overflow-hidden bg-background">
           {/* Main viewer area */}
           <div className="relative flex-1 flex flex-col bg-black/95 overflow-hidden min-h-0 min-w-0">
             {/* Top toolbar */}
@@ -197,8 +234,13 @@ const XRayViewer: React.FC<XRayViewerProps> = ({
                           <div className="mx-2 h-6 w-px bg-white/20" />
                           <Button variant="ghost" size="icon" className="h-9 w-9 text-white/80 hover:text-white hover:bg-white/10 rounded-full"
                             onClick={() => {
-                              const el = document.querySelector('[data-viewer-fullscreen]');
-                              if (el) el.requestFullscreen?.();
+                              if (viewerRef.current) {
+                                if (document.fullscreenElement) {
+                                  document.exitFullscreen?.();
+                                } else {
+                                  viewerRef.current.requestFullscreen?.();
+                                }
+                              }
                             }}>
                             <Maximize2 className="h-4 w-4" />
                           </Button>
@@ -212,7 +254,7 @@ const XRayViewer: React.FC<XRayViewerProps> = ({
           </div>
 
           {/* Right panel — metadata */}
-          <div className="w-full lg:w-[380px] h-full flex flex-col border-l border-border bg-background shrink-0 overflow-hidden" data-viewer-fullscreen>
+          <div className="w-full lg:w-[380px] h-full flex flex-col border-l border-border bg-background shrink-0 overflow-hidden">
             <div className="p-5 flex-1 overflow-y-auto space-y-6 custom-scrollbar">
               <div>
                 <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
@@ -348,62 +390,155 @@ const XRayViewer: React.FC<XRayViewerProps> = ({
               <div className="h-px bg-border" />
 
               {/* Metadata */}
-              <div className="space-y-3">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Type</p>
-                  <Badge variant="outline">{xray.type}</Badge>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <Edit className="h-3.5 w-3.5 text-primary" />
+                    Clinical Findings
+                  </h3>
+                  {!isEditing ? (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-7 px-2 text-[11px] text-primary hover:text-primary hover:bg-primary/5 gap-1"
+                      onClick={() => setIsEditing(true)}
+                    >
+                      <Edit className="h-3 w-3" /> Edit
+                    </Button>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 px-2 text-[11px] text-muted-foreground hover:bg-muted"
+                        onClick={() => {
+                          setIsEditing(false);
+                          setEditedDiagnosis(xray.diagnosis || "");
+                          setEditedNotes(xray.notes || "");
+                          setEditedType(xray.type || "IOPA");
+                        }}
+                        disabled={isSaving}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        variant="default" 
+                        size="sm" 
+                        className="h-7 px-2 text-[11px] bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-1"
+                        onClick={handleSaveChanges}
+                        disabled={isSaving}
+                      >
+                        <Save className="h-3 w-3" />
+                        {isSaving ? "Saving..." : "Save"}
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Date Taken</p>
-                  <p className="text-sm">{xray.takenDate}</p>
-                </div>
+                {isEditing ? (
+                  <div className="space-y-4 pt-1">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">X-Ray Type</label>
+                      <select
+                        value={editedType}
+                        onChange={(e) => setEditedType(e.target.value as any)}
+                        className="w-full h-9 rounded-md border border-input bg-background px-3 py-1.5 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      >
+                        <option value="IOPA">IOPA</option>
+                        <option value="OPG">OPG</option>
+                        <option value="CBCT">CBCT</option>
+                        <option value="Bitewing">Bitewing</option>
+                        <option value="Cephalometric">Cephalometric</option>
+                      </select>
+                    </div>
 
-                {xray.toothNumbers.length > 0 && (
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Teeth</p>
-                    <div className="flex flex-wrap gap-1">
-                      {xray.toothNumbers.map((t) => (
-                        <Badge key={t} variant="secondary" className="text-xs">#{t}</Badge>
-                      ))}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Clinical Diagnosis</label>
+                      <textarea
+                        value={editedDiagnosis}
+                        onChange={(e) => setEditedDiagnosis(e.target.value)}
+                        placeholder="Enter clinical diagnosis findings..."
+                        rows={3}
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring min-h-[80px]"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Clinical Notes</label>
+                      <textarea
+                        value={editedNotes}
+                        onChange={(e) => setEditedNotes(e.target.value)}
+                        placeholder="Enter clinical notes and treatment history..."
+                        rows={4}
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring min-h-[100px]"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3.5 pt-1">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Type</p>
+                      <Badge variant="outline">{xray.type}</Badge>
+                    </div>
+
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Date Taken</p>
+                      <p className="text-sm font-medium">{xray.takenDate}</p>
+                    </div>
+
+                    {xray.toothNumbers && xray.toothNumbers.length > 0 && (
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Teeth Covered</p>
+                        <div className="flex flex-wrap gap-1">
+                          {xray.toothNumbers.map((t) => (
+                            <Badge key={t} variant="secondary" className="text-xs">#{t}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Clinical Diagnosis</p>
+                      {xray.diagnosis ? (
+                        <p className="text-xs bg-muted/40 p-2.5 rounded-lg border border-border/30 text-foreground/90 whitespace-pre-wrap leading-relaxed">{xray.diagnosis}</p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground italic bg-muted/20 p-2 rounded-lg border border-dashed border-border">No diagnosis entered yet</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Clinical Notes</p>
+                      {xray.notes ? (
+                        <p className="text-xs bg-muted/40 p-2.5 rounded-lg border border-border/30 text-foreground/90 whitespace-pre-wrap leading-relaxed">{xray.notes}</p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground italic bg-muted/20 p-2 rounded-lg border border-dashed border-border">No clinical notes entered yet</p>
+                      )}
+                    </div>
+
+                    {xray.tags && xray.tags.length > 0 && (
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Tags</p>
+                        <div className="flex flex-wrap gap-1">
+                          {xray.tags.map((tag) => (
+                            <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/55">
+                      <div>
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-0.5">Uploaded By</p>
+                        <p className="text-xs font-medium text-foreground/80">{xray.uploadedBy}</p>
+                      </div>
+
+                      <div>
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mb-0.5">Upload Date</p>
+                        <p className="text-xs font-medium text-foreground/80">{xray.createdAt ? new Date(xray.createdAt).toLocaleDateString() : ""}</p>
+                      </div>
                     </div>
                   </div>
                 )}
-
-                {xray.diagnosis && (
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Diagnosis</p>
-                    <p className="text-sm text-foreground/90 whitespace-pre-wrap">{xray.diagnosis}</p>
-                  </div>
-                )}
-
-                {xray.notes && (
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Notes</p>
-                    <p className="text-sm text-foreground/90 whitespace-pre-wrap">{xray.notes}</p>
-                  </div>
-                )}
-
-                {xray.tags.length > 0 && (
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Tags</p>
-                    <div className="flex flex-wrap gap-1">
-                      {xray.tags.map((tag) => (
-                        <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Uploaded By</p>
-                  <p className="text-sm">{xray.uploadedBy}</p>
-                </div>
-
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Upload Date</p>
-                  <p className="text-sm">{xray.createdAt ? new Date(xray.createdAt).toLocaleDateString() : ""}</p>
-                </div>
               </div>
             </div>
           </div>
