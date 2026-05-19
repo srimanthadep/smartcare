@@ -19,9 +19,18 @@ let qrCode = null;
 const formatPhone = (phone) => {
   if (!phone) return null;
   let cleaned = phone.replace(/\D/g, '');
+  if (cleaned.length === 11 && cleaned.startsWith('0')) cleaned = '91' + cleaned.slice(1);
   if (cleaned.length === 10) cleaned = '91' + cleaned;
   if (cleaned.startsWith('91') && cleaned.length === 12) return `${cleaned}@s.whatsapp.net`;
   return null;
+};
+
+const resolveJid = (phone, action, recipientName) => {
+  const jid = formatPhone(phone);
+  if (!jid) {
+    console.warn(`[WhatsApp] ${action} skipped: invalid or missing phone for ${recipientName || 'unknown recipient'} (${phone || 'empty'})`);
+  }
+  return jid;
 };
 
 export const initWhatsApp = async () => {
@@ -64,8 +73,6 @@ export const initWhatsApp = async () => {
   }
 };
 
-export const getSocket = () => sock;
-
 export const disconnectWhatsApp = async () => {
   try { if (sock) { await sock.logout(); sock = null; } } catch (err) {}
   connectionStatus = 'disconnected'; qrCode = null;
@@ -77,57 +84,64 @@ export const disconnectWhatsApp = async () => {
 };
 
 export const getStatus = () => ({ status: connectionStatus, qr: qrCode });
+export const getSocket = () => sock;
+export const isWhatsAppReady = () => connectionStatus === 'connected' && Boolean(sock);
 
 // High-level API: enqueue sends into sqlite-backed queues
 export const whatsappService = {
   async sendWelcome(patient) {
     try {
-      const jid = formatPhone(patient.phone);
+      const jid = resolveJid(patient.phone, 'sendWelcome', patient.name);
       if (!jid) return;
       const payload = { jid, message: `Welcome to Siara Dental Clinic, ${patient.name}! 🦷 Your registration is confirmed.` };
-      sqliteQueue.enqueue('text', 'sendWelcome', payload);
+      const queueId = sqliteQueue.enqueue('text', 'sendWelcome', payload);
+      console.log(`[WhatsApp] Queued welcome message ${queueId} for ${jid}`);
     } catch (error) { console.error('enqueue sendWelcome failed:', error); }
   },
 
   async sendInvoice(patient, invoice) {
     try {
-      const jid = formatPhone(patient.phone);
+      const jid = resolveJid(patient.phone, 'sendInvoice', patient.name);
       if (!jid) return;
       const pdfBuffer = await pdfService.generateInvoicePDF(patient, invoice, { lightweight: true });
       const hash = mediaCacheService.hashBuffer(pdfBuffer);
       const cached = mediaCacheService.getByHash(hash);
       if (cached) {
         const payload = { jid, cacheHash: hash, fileName: `Invoice_${invoice.id}.pdf`, mimetype: 'application/pdf', caption: `Hello ${patient.name}, your invoice of ₹${invoice.total} (Invoice #${invoice.id}) from Siara Dental Clinic is ready.` };
-        sqliteQueue.enqueue('media', 'sendInvoice', payload, { dedupKey: `invoice:${invoice.id}:${patient.id}` });
+        const queueId = sqliteQueue.enqueue('media', 'sendInvoice', payload, { dedupKey: `invoice:${invoice.id}:${patient.id}` });
+        console.log(`[WhatsApp] Queued invoice ${invoice.id} as media job ${queueId} for ${jid}`);
       } else {
         await mediaCacheService.storeBuffer(pdfBuffer, 'application/pdf', `Invoice_${invoice.id}.pdf`);
         const payload = { jid, buffer: pdfBuffer.toString('base64'), fileName: `Invoice_${invoice.id}.pdf`, mimetype: 'application/pdf', caption: `Hello ${patient.name}, your invoice of ₹${invoice.total} (Invoice #${invoice.id}) from Siara Dental Clinic is ready.` };
-        sqliteQueue.enqueue('media', 'sendInvoice', payload, { dedupKey: `invoice:${invoice.id}:${patient.id}` });
+        const queueId = sqliteQueue.enqueue('media', 'sendInvoice', payload, { dedupKey: `invoice:${invoice.id}:${patient.id}` });
+        console.log(`[WhatsApp] Queued invoice ${invoice.id} as media job ${queueId} for ${jid}`);
       }
     } catch (error) { console.error('enqueue sendInvoice failed:', error); }
   },
 
   async sendPrescription(patient, prescription) {
     try {
-      const jid = formatPhone(patient.phone);
+      const jid = resolveJid(patient.phone, 'sendPrescription', patient.name);
       if (!jid) return;
       const pdfBuffer = await pdfService.generatePrescriptionPDF(patient, prescription, [], { lightweight: true });
       const hash = mediaCacheService.hashBuffer(pdfBuffer);
       const cached = mediaCacheService.getByHash(hash);
       if (cached) {
         const payload = { jid, cacheHash: hash, fileName: `Prescription_${prescription.id}.pdf`, mimetype: 'application/pdf', caption: `Hello ${patient.name}, your prescription from Siara Dental Clinic (Date: ${prescription.date}) is ready.` };
-        sqliteQueue.enqueue('media', 'sendPrescription', payload, { dedupKey: `presc:${prescription.id}:${patient.id}` });
+        const queueId = sqliteQueue.enqueue('media', 'sendPrescription', payload, { dedupKey: `presc:${prescription.id}:${patient.id}` });
+        console.log(`[WhatsApp] Queued prescription ${prescription.id} as media job ${queueId} for ${jid}`);
       } else {
         await mediaCacheService.storeBuffer(pdfBuffer, 'application/pdf', `Prescription_${prescription.id}.pdf`);
         const payload = { jid, buffer: pdfBuffer.toString('base64'), fileName: `Prescription_${prescription.id}.pdf`, mimetype: 'application/pdf', caption: `Hello ${patient.name}, your prescription from Siara Dental Clinic (Date: ${prescription.date}) is ready.` };
-        sqliteQueue.enqueue('media', 'sendPrescription', payload, { dedupKey: `presc:${prescription.id}:${patient.id}` });
+        const queueId = sqliteQueue.enqueue('media', 'sendPrescription', payload, { dedupKey: `presc:${prescription.id}:${patient.id}` });
+        console.log(`[WhatsApp] Queued prescription ${prescription.id} as media job ${queueId} for ${jid}`);
       }
     } catch (error) { console.error('enqueue sendPrescription failed:', error); }
   },
 
   async sendXrayReport(patient, xray) {
     try {
-      const jid = formatPhone(patient.phone);
+      const jid = resolveJid(patient.phone, 'sendXrayReport', patient.name);
       if (!jid) return;
       const pdfBuffer = await pdfService.generateXRayReportPDF(patient, xray, { lightweight: true });
       const hash = mediaCacheService.hashBuffer(pdfBuffer);
@@ -154,21 +168,24 @@ export const whatsappService = {
 
       if (cached) {
         const payload = { jid, cacheHash: hash, thumbHash, fileName: `XRay_Report_${xray.id}.pdf`, mimetype: 'application/pdf', caption: `Hello ${patient.name}, your diagnostic X-Ray report from Siara Dental Clinic (${xray.type}) is ready.` };
-        sqliteQueue.enqueue('media', 'sendXrayReport', payload, { dedupKey: `xray:${xray.id}:${patient.id}` });
+        const queueId = sqliteQueue.enqueue('media', 'sendXrayReport', payload, { dedupKey: `xray:${xray.id}:${patient.id}` });
+        console.log(`[WhatsApp] Queued X-ray report ${xray.id} as media job ${queueId} for ${jid}`);
       } else {
         await mediaCacheService.storeBuffer(pdfBuffer, 'application/pdf', `XRay_Report_${xray.id}.pdf`);
         const payload = { jid, buffer: pdfBuffer.toString('base64'), thumbHash, fileName: `XRay_Report_${xray.id}.pdf`, mimetype: 'application/pdf', caption: `Hello ${patient.name}, your diagnostic X-Ray report from Siara Dental Clinic (${xray.type}) is ready.` };
-        sqliteQueue.enqueue('media', 'sendXrayReport', payload, { dedupKey: `xray:${xray.id}:${patient.id}` });
+        const queueId = sqliteQueue.enqueue('media', 'sendXrayReport', payload, { dedupKey: `xray:${xray.id}:${patient.id}` });
+        console.log(`[WhatsApp] Queued X-ray report ${xray.id} as media job ${queueId} for ${jid}`);
       }
     } catch (error) { console.error('enqueue sendXrayReport failed:', error); }
   },
 
   async sendReminder(appt) {
     try {
-      const jid = formatPhone(appt.phone);
+      const jid = resolveJid(appt.phone, 'sendReminder', appt.name);
       if (!jid) return;
       const payload = { jid, message: `⏰ Reminder: Hello ${appt.name}, your ${appt.type || 'dental'} appointment at Siara Dental Clinic is tomorrow at ${appt.time}. Please arrive 5 minutes early.` };
-      sqliteQueue.enqueue('text', 'sendReminder', payload);
+      const queueId = sqliteQueue.enqueue('text', 'sendReminder', payload);
+      console.log(`[WhatsApp] Queued reminder ${queueId} for ${jid}`);
     } catch (error) { console.error('enqueue sendReminder failed:', error); }
   }
 };
@@ -194,8 +211,7 @@ export const performSend = async (job, socket) => {
         const buffer = Buffer.from(payload.buffer, 'base64');
         return await socket.sendMessage(payload.jid, { document: buffer, fileName: payload.fileName, mimetype: payload.mimetype, caption: payload.caption });
       }
-      // If no buffer present, assume cached provider will be used by worker
-      return { ok: true };
+      throw new Error(`Missing media buffer for ${action}`);
     }
     default:
       throw new Error(`Unknown action ${action}`);

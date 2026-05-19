@@ -103,10 +103,18 @@ class SqliteQueue {
     stmt.run(String(errorMsg || ''), now, id);
   }
 
-  requeue(id) {
+  requeue(id, delayMs = 0, errorMsg = null) {
     const now = Date.now();
-    const stmt = this.db.prepare(`UPDATE queues SET status = 'pending', updated_at = ?, run_at = ? WHERE id = ?`);
-    stmt.run(now, now, id);
+    const runAt = now + Math.max(0, delayMs);
+    const stmt = errorMsg
+      ? this.db.prepare(`UPDATE queues SET status = 'pending', last_error = ?, updated_at = ?, run_at = ? WHERE id = ?`)
+      : this.db.prepare(`UPDATE queues SET status = 'pending', updated_at = ?, run_at = ? WHERE id = ?`);
+
+    if (errorMsg) {
+      stmt.run(String(errorMsg), now, runAt, id);
+    } else {
+      stmt.run(now, runAt, id);
+    }
   }
 
   stats() {

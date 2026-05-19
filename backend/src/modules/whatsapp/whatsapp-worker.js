@@ -1,54 +1,27 @@
-import makeWASocket from '@whiskeysockets/baileys';
-import { usePostgresAuthState } from './whatsapp.auth.js';
-import { getSocket } from './whatsapp.service.js';
 import { sqliteQueue } from '../../shared/queue/sqliteQueue.service.js';
-import { performSend } from './whatsapp.service.js';
+import { getSocket, getStatus, initWhatsApp, performSend } from './whatsapp.service.js';
 import { mediaCacheService } from '../../shared/services/mediaCache.service.js';
 import { cloudinary, getThumbnailUrl } from '../../core/config/cloudinary.js';
 
-// Socket pool configuration
 const SOCKET_NAMES = ['invoices', 'reminders', 'reports'];
-const sockets = new Map();
 const rateLimits = new Map();
+const WAIT_FOR_CONNECTION_MS = 30000;
+const STALE_JOB_MS = 5 * 60 * 1000;
 
 const createSocketFor = async (name) => {
-  // Prefer reusing the main service socket when available
-  const mainSock = getSocket();
-  if (mainSock) {
-    if (!sockets.has(name)) {
-      sockets.set(name, mainSock);
-      // ensure rateLimits entry
-      rateLimits.set(name, { tokens: 5, lastRefill: Date.now(), rate: 5 });
-    }
-    return mainSock;
+  if (!rateLimits.has(name)) {
+    rateLimits.set(name, { tokens: 5, lastRefill: Date.now(), rate: 5 });
   }
 
-  if (sockets.has(name)) return sockets.get(name);
-  // Fallback: create a lightweight socket using shared auth state (rare)
-  const { state, saveCreds } = await usePostgresAuthState('default-session');
-  const sock = makeWASocket({ auth: state, printQRInTerminal: false });
-  sock.ev.on('creds.update', saveCreds);
-  sock.ev.on('connection.update', (u) => {
-    if (u.connection === 'open') console.log(`[WhatsApp ${name}] connected`);
-    if (u.connection === 'close') console.log(`[WhatsApp ${name}] connection closed`);
-  });
+  const { status } = getStatus();
+  const socket = getSocket();
+  if (status === 'connected' && socket) return socket;
 
-  // simple token bucket: tokens refill every second
-  rateLimits.set(name, { tokens: 5, lastRefill: Date.now(), rate: 5 });
+  if (status === 'disconnected') {
+    initWhatsApp().catch((err) => console.error('[WhatsApp Worker] reconnect failed:', err.message));
+  }
 
-  // warm the socket periodically, but only when the socket is fully initialized
-  setInterval(() => {
-    try {
-      const me = sock.user || (sock.auth && sock.auth.creds && sock.auth.creds.me) || (sock.authState && sock.authState.creds && sock.authState.creds.me);
-      if (!me) return;
-      if (typeof sock.sendPresenceUpdate === 'function') sock.sendPresenceUpdate('available');
-    } catch (e) {
-      console.warn('[WhatsApp Worker] presence ping failed', e && e.message);
-    }
-  }, 20000);
-
-  sockets.set(name, sock);
-  return sock;
+  return null;
 };
 
 const selectSocket = (action) => {
@@ -80,9 +53,14 @@ const processTextQueue = async () => {
     if (!job) return;
     const name = selectSocket(job.action || 'text');
     const socket = await createSocketFor(name);
+    if (!socket) {
+      sqliteQueue.requeue(job.id, WAIT_FOR_CONNECTION_MS, 'WhatsApp is not connected');
+      console.warn(`[WhatsApp Worker] ${job.action} job ${job.id} waiting for connected WhatsApp session`);
+      return;
+    }
     if (!ensureRate(name)) {
       // delay requeue slightly
-      sqliteQueue.requeue(job.id);
+      sqliteQueue.requeue(job.id, 1000);
       return;
     }
     try {
@@ -142,7 +120,12 @@ const processMediaQueue = async () => {
     if (!job) return;
     const name = selectSocket(job.action || 'media');
     const socket = await createSocketFor(name);
-    if (!ensureRate(name)) { sqliteQueue.requeue(job.id); return; }
+    if (!socket) {
+      sqliteQueue.requeue(job.id, WAIT_FOR_CONNECTION_MS, 'WhatsApp is not connected');
+      console.warn(`[WhatsApp Worker] ${job.action} job ${job.id} waiting for connected WhatsApp session`);
+      return;
+    }
+    if (!ensureRate(name)) { sqliteQueue.requeue(job.id, 1000); return; }
 
     try {
       // If cached, handle smart sending
@@ -232,10 +215,27 @@ const processBackgroundQueue = async () => {
   }
 };
 
+const recoverStaleJobs = () => {
+  const now = Date.now();
+  const cutoff = now - STALE_JOB_MS;
+  const info = sqliteQueue.db
+    .prepare(`UPDATE queues SET status = 'pending', run_at = ?, updated_at = ?, last_error = COALESCE(last_error, 'Recovered stale in-progress job') WHERE status = 'in_progress' AND updated_at < ?`)
+    .run(now, now, cutoff);
+
+  if (info.changes > 0) {
+    console.warn(`[WhatsApp Worker] Recovered ${info.changes} stale in-progress queue job(s)`);
+  }
+};
+
 export const startWhatsAppWorker = () => {
-  console.log('[WhatsApp Worker] starting queues (text + media) with socket pool');
-  // Start by ensuring sockets are created
-  SOCKET_NAMES.forEach(n => createSocketFor(n).catch(e => console.error('socket init', n, e)));
+  console.log('[WhatsApp Worker] starting queues (text + media) with default WhatsApp session');
+  SOCKET_NAMES.forEach((name) => {
+    if (!rateLimits.has(name)) {
+      rateLimits.set(name, { tokens: 5, lastRefill: Date.now(), rate: 5 });
+    }
+  });
+  recoverStaleJobs();
+  setInterval(recoverStaleJobs, 60000);
   // Text: faster loop (~5/sec)
   setInterval(processTextQueue, 200);
   // Media: slower loop (~1/sec)

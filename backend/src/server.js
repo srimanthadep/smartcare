@@ -128,13 +128,10 @@ const startServer = async () => {
   initScheduler();
 
   // 2b. Start WhatsApp worker (SQLite-backed queues)
-  // Preload auth/session state into memory for worker sockets
+  // Preload the single QR-linked WhatsApp auth state used by the worker.
   try {
     await usePostgresAuthState('default-session');
-    await usePostgresAuthState('session-invoices');
-    await usePostgresAuthState('session-reminders');
-    await usePostgresAuthState('session-reports');
-    console.log('✅ WhatsApp auth states preloaded');
+    console.log('✅ WhatsApp auth state preloaded');
   } catch (e) {
     console.warn('WhatsApp auth preload warning:', e.message);
   }
@@ -176,4 +173,3 @@ const gracefulShutdown = async (signal) => {
 
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
