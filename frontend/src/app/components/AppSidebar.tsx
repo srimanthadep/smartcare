@@ -2,8 +2,7 @@ import React from 'react';
 import {
   LayoutDashboard, Users, CalendarDays, FileText, Receipt,
   Pill, Bot, Settings, Bell, Activity,
-  CalendarClock, History, Wallet, ScanLine, Shield, Trash2,
-  GitFork
+  CalendarClock, History, Wallet, ScanLine, Shield, Trash2
 } from 'lucide-react';
 import { NavLink } from '@/app/components/NavLink';
 import { useAuth } from '@/shared/contexts/AuthContext';
@@ -23,7 +22,6 @@ const allNavItems = [
   { title: 'Expenses', url: '/expenses', icon: Wallet, roles: ['doctor', 'admin'] },
   { title: 'Dental Supplies', url: '/pharmacy', icon: Pill, roles: ['doctor', 'admin'] },
   { title: 'Recall System', url: '/recalls', icon: CalendarClock, roles: ['doctor', 'admin'] },
-  { title: 'Referral System', url: '/referrals', icon: GitFork, roles: ['doctor', 'admin'] },
   { title: 'X-Rays', url: '/xrays', icon: ScanLine, roles: ['doctor', 'admin'] },
   { title: 'AI Assistant', url: '/ai', icon: Bot, roles: ['doctor', 'admin'] },
   { title: 'Analytics', url: '/analytics', icon: Activity, roles: ['doctor', 'admin'] },
