@@ -1,5 +1,6 @@
 import makeWASocket from '@whiskeysockets/baileys';
 import { usePostgresAuthState } from './whatsapp.auth.js';
+import { getSocket } from './whatsapp.service.js';
 import { sqliteQueue } from '../../shared/queue/sqliteQueue.service.js';
 import { performSend } from './whatsapp.service.js';
 import { mediaCacheService } from '../../shared/services/mediaCache.service.js';
@@ -11,8 +12,20 @@ const sockets = new Map();
 const rateLimits = new Map();
 
 const createSocketFor = async (name) => {
+  // Prefer reusing the main service socket when available
+  const mainSock = getSocket();
+  if (mainSock) {
+    if (!sockets.has(name)) {
+      sockets.set(name, mainSock);
+      // ensure rateLimits entry
+      rateLimits.set(name, { tokens: 5, lastRefill: Date.now(), rate: 5 });
+    }
+    return mainSock;
+  }
+
   if (sockets.has(name)) return sockets.get(name);
-  const { state, saveCreds } = await usePostgresAuthState(`session-${name}`);
+  // Fallback: create a lightweight socket using shared auth state (rare)
+  const { state, saveCreds } = await usePostgresAuthState('default-session');
   const sock = makeWASocket({ auth: state, printQRInTerminal: false });
   sock.ev.on('creds.update', saveCreds);
   sock.ev.on('connection.update', (u) => {

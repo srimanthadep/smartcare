@@ -64,6 +64,8 @@ export const initWhatsApp = async () => {
   }
 };
 
+export const getSocket = () => sock;
+
 export const disconnectWhatsApp = async () => {
   try { if (sock) { await sock.logout(); sock = null; } } catch (err) {}
   connectionStatus = 'disconnected'; qrCode = null;
