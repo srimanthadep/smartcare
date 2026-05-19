@@ -61,26 +61,24 @@ const P = {
 };
 
 // --- Helpers ---
-function drawProfessionalHeader(doc, label) {
+function drawProfessionalHeader(doc, label, lightweight = false) {
   const pageWidth = 612; // Standard US Letter width in points (approx)
   // PDFKit default is 72 points per inch. A4 is 595.28 x 841.89 points.
   const W = doc.page.width;
   const H = 85;
 
-  // Background Header Area
-  doc.rect(0, 0, W, H).fill(P.bg);
+  if (!lightweight) {
+    // Background Header Area
+    doc.rect(0, 0, W, H).fill(P.bg);
 
-  // Top Primary Border
-  doc.rect(0, 0, W, 3).fill(P.primary);
+    // Top Primary Border
+    doc.rect(0, 0, W, 3).fill(P.primary);
+  }
 
   const assets = getAssets();
-  // Logo
-  if (assets.logo) {
-    try {
-      doc.image(assets.logo, 40, 15, { width: 55 });
-    } catch (e) {
-      console.error('PDF Service: Error drawing logo image:', e.message);
-    }
+  // Logo (omit for lightweight)
+  if (!lightweight && assets.logo) {
+    try { doc.image(assets.logo, 40, 15, { width: 55 }); } catch (e) { console.error('PDF Service: Error drawing logo image:', e.message); }
   }
 
   // Clinic Info
@@ -99,9 +97,11 @@ function drawProfessionalHeader(doc, label) {
   doc.fillColor(P.primaryDark).font('Helvetica-Bold').text(`${CLINIC_WEB} | ${CLINIC_PHONE}`, 0, 55, { align: 'right', width: W - 40 });
 
   // Document Badge
-  const badgeW = 100;
-  doc.roundedRect(W - 40 - badgeW, 68, badgeW, 15, 2).fill(P.primary);
-  doc.fillColor(P.white).font('Helvetica-Bold').fontSize(10).text(label, W - 40 - badgeW, 71.5, { width: badgeW, align: 'center', characterSpacing: 1 });
+  if (!lightweight) {
+    const badgeW = 100;
+    doc.roundedRect(W - 40 - badgeW, 68, badgeW, 15, 2).fill(P.primary);
+    doc.fillColor(P.white).font('Helvetica-Bold').fontSize(10).text(label, W - 40 - badgeW, 71.5, { width: badgeW, align: 'center', characterSpacing: 1 });
+  }
 
   return H;
 }
@@ -164,7 +164,16 @@ async function downloadImage(url) {
     const response = await fetch(url);
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     const arrayBuffer = await response.arrayBuffer();
-    return Buffer.from(arrayBuffer);
+    const buf = Buffer.from(arrayBuffer);
+    try {
+      // Attempt to optimize image size for PDFs (max width 1200px, quality 75)
+      const sharp = await import('sharp');
+      const optimized = await sharp.default(buf).resize({ width: 1200, withoutEnlargement: true }).jpeg({ quality: 75 }).toBuffer();
+      return optimized;
+    } catch (e) {
+      // If sharp not available or fails, return original buffer
+      return buf;
+    }
   } catch (error) {
     console.error('PDF Service: Error downloading image:', error.message, 'URL:', url);
     return null;
@@ -172,7 +181,7 @@ async function downloadImage(url) {
 }
 
 export const pdfService = {
-  async generatePrescriptionPDF(patient, prescription, xrays = []) {
+  async generatePrescriptionPDF(patient, prescription, xrays = [], opts = {}) {
     const { dbService } = await import('../../core/db/db.service.js');
     let doctorDetails = { qualifications: 'BDS, MDS', registration_number: 'A-4428' };
     try {
@@ -188,7 +197,7 @@ export const pdfService = {
       doc.on('data', buffers.push.bind(buffers));
       doc.on('end', () => resolve(Buffer.concat(buffers)));
 
-      const startY = drawProfessionalHeader(doc, "PRESCRIPTION");
+      const startY = drawProfessionalHeader(doc, "PRESCRIPTION", !!opts.lightweight);
       let y = startY + 20;
       const W = doc.page.width;
 
@@ -314,7 +323,7 @@ export const pdfService = {
     });
   },
 
-  async generateXRayReportPDF(patient, xray) {
+  async generateXRayReportPDF(patient, xray, opts = {}) {
     const { dbService } = await import('../../core/db/db.service.js');
     let doctorDetails = { qualifications: 'BDS, MDS', registration_number: 'A-4428' };
     
@@ -324,7 +333,7 @@ export const pdfService = {
       doc.on('data', buffers.push.bind(buffers));
       doc.on('end', () => resolve(Buffer.concat(buffers)));
 
-      const startY = drawProfessionalHeader(doc, "RADIOLOGY REPORT");
+      const startY = drawProfessionalHeader(doc, "RADIOLOGY REPORT", !!opts.lightweight);
       let y = startY + 20;
       const W = doc.page.width;
 
@@ -381,14 +390,14 @@ export const pdfService = {
     });
   },
 
-  async generateInvoicePDF(patient, invoice) {
+  async generateInvoicePDF(patient, invoice, opts = {}) {
     return new Promise((resolve) => {
       const doc = new PDFDocument({ size: 'A4', margins: { top: 40, bottom: 0, left: 40, right: 40 } });
       let buffers = [];
       doc.on('data', buffers.push.bind(buffers));
       doc.on('end', () => resolve(Buffer.concat(buffers)));
 
-      const startY = drawProfessionalHeader(doc, "TAX INVOICE");
+      const startY = drawProfessionalHeader(doc, "TAX INVOICE", !!opts.lightweight);
       let y = startY + 20;
       const W = doc.page.width;
 

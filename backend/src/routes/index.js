@@ -20,6 +20,7 @@ import expenseRoutes from '../modules/expenses/expense.routes.js';
 import doctorRoutes from '../modules/doctors/doctor.routes.js';
 import recallRoutes from '../modules/recalls/recall.routes.js';
 import aiRoutes from '../modules/ai/ai.routes.js';
+import referralRoutes from '../modules/referrals/referral.routes.js';
 
 // Shared / Core
 import backupRoutes from '../shared/services/backup.routes.js';
@@ -90,6 +91,7 @@ router.use('/expenses', expenseRoutes);
 router.use('/doctors', doctorRoutes);
 router.use('/recalls', recallRoutes);
 router.use('/ai', aiRateLimit, aiRoutes);
+router.use('/referrals', referralRoutes);
 router.use('/whatsapp', whatsappRoutes);
 router.use('/email', emailRoutes);
 router.use('/backup', backupRoutes);

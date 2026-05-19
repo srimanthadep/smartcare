@@ -33,6 +33,7 @@ const AI = lazy(() => import("@/modules/ai/AI"));
 const Notifications = lazy(() => import("@/modules/notifications/Notifications"));
 const Settings = lazy(() => import("@/modules/settings/Settings"));
 const RecallSystem = lazy(() => import("@/modules/recalls/RecallSystem"));
+const Referrals = lazy(() => import("@/modules/referrals/pages/Referrals"));
 const ActivityLogs = lazy(() => import("@/modules/analytics/ActivityLogs"));
 const XRays = lazy(() => import("@/modules/xrays/XRays"));
 const NotFound = lazy(() => import("@/app/NotFound"));
@@ -101,6 +102,7 @@ const App = () => (
                   <Route path="pharmacy" element={<Pharmacy />} />
                   <Route path="expenses" element={<Expenses />} />
                   <Route path="recalls" element={<RecallSystem />} />
+                  <Route path="referrals" element={<Referrals />} />
                   <Route path="xrays" element={<XRays />} />
                   <Route path="analytics" element={<Analytics />} />
                   <Route path="ai" element={<AI />} />

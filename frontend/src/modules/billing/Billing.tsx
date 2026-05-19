@@ -269,8 +269,11 @@ const Billing: React.FC = () => {
               }
               const invoice = allInvoices.find(i => i.id === editId);
               if (invoice) {
-                pdfService.generateInvoicePDF(patient, invoice);
-                toast.success("Invoice generated");
+                toast.promise(api.downloadInvoice(invoice.id), {
+                  loading: 'Preparing PDF...',
+                  success: 'Downloaded!',
+                  error: 'Failed to download'
+                });
               } else {
                 toast.error("Invoice data not found");
               }
@@ -662,12 +665,11 @@ const Billing: React.FC = () => {
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => {
-                                const patient = patients.find(p => p.id === invoice.patientId);
-                                if (patient) {
-                                  pdfService.generateInvoicePDF(patient, invoice);
-                                } else {
-                                  toast.error("Patient details not found");
-                                }
+                                toast.promise(api.downloadInvoice(invoice.id), {
+                                  loading: 'Preparing PDF...',
+                                  success: 'Downloaded!',
+                                  error: 'Failed to download'
+                                });
                               }}>
                                 <FileDown className="h-4 w-4" />
                               </Button>

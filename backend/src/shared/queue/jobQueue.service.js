@@ -1,5 +1,6 @@
 import { dbService } from '../../core/db/db.service.js';
 import { emitEvent, SOCKET_EVENTS } from '../sockets/socket.service.js';
+import { sqliteQueue } from './sqliteQueue.service.js';
 
 const queue = [];
 let activeCount = 0;
@@ -51,28 +52,11 @@ export const sendWhatsAppJob = (label, fn) => enqueue(label, fn);
 export const sendEmailJob = (label, fn) => enqueue(label, fn);
 
 export const logActivity = async ({ userId, userName, action, details, ip = '' }) => {
-  const id = `LOG${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-  const auditId = `AUD${Date.now()}_${Math.floor(Math.random() * 10000)}`;
-  const timestamp = new Date().toISOString();
-  
+  // Enqueue activity logging to background queue for non-blocking behavior
   try {
-    // 1. Log to legacy table for safety
-    await dbService.query(
-      'INSERT INTO activity_logs (id, user_id, user_name, action, details, ip) VALUES ($1, $2, $3, $4, $5, $6)',
-      [id, userId, userName, action, details, ip]
-    );
-    
-    // 2. Log to audit_logs for unified auditing
-    await dbService.query(
-      `INSERT INTO audit_logs (id, actor_id, actor_name, actor_role, action, metadata, ip_address)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [auditId, userId, userName, 'user', action, JSON.stringify({ details }), ip]
-    );
-
-    emitEvent(SOCKET_EVENTS.ACTIVITY_LOGGED, { id, userId, userName, action, details, ip, timestamp });
-    emitEvent('ADMIN_AUDIT_LOG', { id: auditId, actorName: userName, action, createdAt: timestamp });
+    sqliteQueue.enqueue('background', 'logActivity', { userId, userName, action, details, ip });
   } catch (err) {
-    console.error('[JobQueue] Failed to log activity:', err);
+    console.error('[JobQueue] Failed to enqueue activity log:', err);
   }
 };
 

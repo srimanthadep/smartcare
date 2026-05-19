@@ -282,6 +282,116 @@ export const runMigrations = async () => {
     CREATE INDEX IF NOT EXISTS idx_ai_usage_created ON ai_usage_logs(created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_users_status ON users(status) WHERE is_deleted = FALSE;
     CREATE INDEX IF NOT EXISTS idx_users_role ON users(role) WHERE is_deleted = FALSE;
+
+    -- Referral Management System
+    CREATE TABLE IF NOT EXISTS referral_sources (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL,
+        contact_name TEXT,
+        phone TEXT,
+        email TEXT,
+        address TEXT,
+        commission_type TEXT NOT NULL DEFAULT 'percentage',
+        commission_value NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+        status TEXT NOT NULL DEFAULT 'active',
+        total_referrals INTEGER DEFAULT 0,
+        total_revenue NUMERIC(12, 2) DEFAULT 0.00,
+        is_deleted BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_referral_sources_type ON referral_sources(type) WHERE is_deleted = FALSE;
+    CREATE INDEX IF NOT EXISTS idx_referral_sources_status ON referral_sources(status) WHERE is_deleted = FALSE;
+
+    CREATE TABLE IF NOT EXISTS patient_referrals (
+        id TEXT PRIMARY KEY,
+        patient_id TEXT REFERENCES patients(id),
+        patient_name TEXT NOT NULL,
+        patient_phone TEXT,
+        patient_email TEXT,
+        source_id TEXT NOT NULL REFERENCES referral_sources(id),
+        referred_to_doctor_id TEXT REFERENCES doctors(id),
+        status TEXT NOT NULL DEFAULT 'received',
+        notes TEXT,
+        treatment_plan_id TEXT REFERENCES treatment_plans(id),
+        estimated_revenue NUMERIC(12, 2) DEFAULT 0.00,
+        actual_revenue NUMERIC(12, 2) DEFAULT 0.00,
+        conversion_date TIMESTAMP WITH TIME ZONE,
+        is_deleted BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_patient_referrals_source ON patient_referrals(source_id);
+    CREATE INDEX IF NOT EXISTS idx_patient_referrals_status ON patient_referrals(status) WHERE is_deleted = FALSE;
+    CREATE INDEX IF NOT EXISTS idx_patient_referrals_patient ON patient_referrals(patient_id);
+
+    CREATE TABLE IF NOT EXISTS referral_activities (
+        id TEXT PRIMARY KEY,
+        referral_id TEXT NOT NULL REFERENCES patient_referrals(id) ON DELETE CASCADE,
+        activity_type TEXT NOT NULL,
+        description TEXT NOT NULL,
+        actor_name TEXT NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_referral_activities_referral ON referral_activities(referral_id);
+
+    CREATE TABLE IF NOT EXISTS referral_commissions (
+        id TEXT PRIMARY KEY,
+        referral_id TEXT NOT NULL REFERENCES patient_referrals(id) ON DELETE CASCADE,
+        source_id TEXT NOT NULL REFERENCES referral_sources(id),
+        invoice_id TEXT REFERENCES invoices(id) ON DELETE SET NULL,
+        commission_amount NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+        status TEXT NOT NULL DEFAULT 'pending',
+        notes TEXT,
+        released_at TIMESTAMP WITH TIME ZONE,
+        released_by TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_referral_commissions_source ON referral_commissions(source_id);
+    CREATE INDEX IF NOT EXISTS idx_referral_commissions_status ON referral_commissions(status);
+
+    CREATE TABLE IF NOT EXISTS referral_rewards (
+        id TEXT PRIMARY KEY,
+        referral_id TEXT NOT NULL REFERENCES patient_referrals(id) ON DELETE CASCADE,
+        patient_id TEXT NOT NULL REFERENCES patients(id),
+        reward_type TEXT NOT NULL DEFAULT 'points',
+        reward_value NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+        status TEXT NOT NULL DEFAULT 'available',
+        redeemed_at TIMESTAMP WITH TIME ZONE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_referral_rewards_patient ON referral_rewards(patient_id);
+
+    CREATE TABLE IF NOT EXISTS referral_documents (
+        id TEXT PRIMARY KEY,
+        referral_id TEXT NOT NULL REFERENCES patient_referrals(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        file_url TEXT NOT NULL,
+        cloudinary_public_id TEXT,
+        file_type TEXT DEFAULT 'document',
+        uploaded_by TEXT NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS referral_notes (
+        id TEXT PRIMARY KEY,
+        referral_id TEXT NOT NULL REFERENCES patient_referrals(id) ON DELETE CASCADE,
+        author_name TEXT NOT NULL,
+        content TEXT NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS referral_status_history (
+        id TEXT PRIMARY KEY,
+        referral_id TEXT NOT NULL REFERENCES patient_referrals(id) ON DELETE CASCADE,
+        old_status TEXT,
+        new_status TEXT NOT NULL,
+        changed_by TEXT NOT NULL,
+        notes TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
   `;
 
   try {

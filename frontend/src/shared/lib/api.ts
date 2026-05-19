@@ -660,4 +660,100 @@ export const api = {
       skipAuth: true,
     });
   },
+
+  // ── Referral Management System API ──
+  getReferralSources() {
+    return apiFetch<any[]>("/api/referrals/sources");
+  },
+
+  createReferralSource(payload: any) {
+    return apiFetch<any>("/api/referrals/sources", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  updateReferralSource(id: string, payload: any) {
+    return apiFetch<any>(`/api/referrals/sources/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  deleteReferralSource(id: string) {
+    return apiFetch<{ message: string }>(`/api/referrals/sources/${id}`, {
+      method: "DELETE",
+    });
+  },
+
+  getPatientReferrals() {
+    return apiFetch<any[]>("/api/referrals/patient-referrals");
+  },
+
+  createPatientReferral(payload: any) {
+    return apiFetch<any>("/api/referrals/patient-referrals", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  updatePatientReferral(id: string, payload: any) {
+    return apiFetch<any>(`/api/referrals/patient-referrals/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  deletePatientReferral(id: string) {
+    return apiFetch<{ message: string }>(`/api/referrals/patient-referrals/${id}`, {
+      method: "DELETE",
+    });
+  },
+
+  getReferralCommissions() {
+    return apiFetch<any[]>("/api/referrals/commissions");
+  },
+
+  updateReferralCommission(id: string, payload: any) {
+    return apiFetch<any>(`/api/referrals/commissions/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  getReferralRewards() {
+    return apiFetch<any[]>("/api/referrals/rewards");
+  },
+
+  redeemReferralReward(id: string) {
+    return apiFetch<any>(`/api/referrals/rewards/${id}/redeem`, {
+      method: "PUT",
+    });
+  },
+
+  getReferralAnalytics() {
+    return apiFetch<any>("/api/referrals/analytics");
+  },
+
+  getReferralActivities(id: string) {
+    return apiFetch<any[]>(`/api/referrals/patient-referrals/${id}/activities`);
+  },
+
+  createReferralActivity(id: string, payload: any) {
+    return apiFetch<any>(`/api/referrals/patient-referrals/${id}/activities`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  getReferralNotes(id: string) {
+    return apiFetch<any[]>(`/api/referrals/patient-referrals/${id}/notes`);
+  },
+
+  createReferralNote(id: string, content: string) {
+    return apiFetch<any>(`/api/referrals/patient-referrals/${id}/notes`, {
+      method: "POST",
+      body: JSON.stringify({ content }),
+    });
+  },
 };

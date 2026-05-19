@@ -6,6 +6,7 @@ import { AppHeader } from '@/app/components/AppHeader';
 import { CommandPalette } from '@/app/components/CommandPalette';
 import MobileBottomNav from '@/app/components/MobileBottomNav';
 import { useRealTimeUpdates } from '@/shared/hooks/useRealTimeUpdates';
+import { GeminiAssistant } from '@/app/components/GeminiAssistant';
 
 const AppLayout: React.FC = () => {
   useRealTimeUpdates();
@@ -33,6 +34,7 @@ const AppLayout: React.FC = () => {
           </main>
         </div>
         <CommandPalette open={isCommandPaletteOpen} onOpenChange={setIsCommandPaletteOpen} />
+        <GeminiAssistant />
         <MobileBottomNav />
       </div>
     </SidebarProvider>

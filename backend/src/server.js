@@ -13,6 +13,8 @@ import { dbService } from './core/db/db.service.js';
 import { initSocket } from './shared/sockets/socket.service.js';
 import { runMigrations } from './core/db/migration.service.js';
 import { initScheduler } from './shared/services/scheduler.service.js';
+import { startWhatsAppWorker } from './modules/whatsapp/whatsapp-worker.js';
+import { usePostgresAuthState } from './modules/whatsapp/whatsapp.auth.js';
 
 import rateLimit from 'express-rate-limit';
 
@@ -124,6 +126,20 @@ const startServer = async () => {
 
   // 2. Initialize Scheduler
   initScheduler();
+
+  // 2b. Start WhatsApp worker (SQLite-backed queues)
+  // Preload auth/session state into memory for worker sockets
+  try {
+    await usePostgresAuthState('default-session');
+    await usePostgresAuthState('session-invoices');
+    await usePostgresAuthState('session-reminders');
+    await usePostgresAuthState('session-reports');
+    console.log('✅ WhatsApp auth states preloaded');
+  } catch (e) {
+    console.warn('WhatsApp auth preload warning:', e.message);
+  }
+
+  startWhatsAppWorker();
 
   // 3. Start HTTP server
   server.listen(config.PORT, () => {
