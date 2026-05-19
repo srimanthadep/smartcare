@@ -146,7 +146,11 @@ function drawSignatureBlock(doc, y, doctorName, doctorDetails) {
   // Stamp
   if (assets.stamp) {
     try {
-      doc.image(assets.stamp, sigX + 160, y - 45, { width: 80 });
+      // Draw stamp only once per document (guard against accidental double-draws)
+      if (!doc.__siara_stamp_drawn) {
+        doc.image(assets.stamp, sigX + 160, y - 45, { width: 80 });
+        doc.__siara_stamp_drawn = true;
+      }
     } catch (e) {
       console.error('PDF Service: Error drawing stamp in block:', e.message);
     }

@@ -270,7 +270,11 @@ export const pdfService = {
     try {
       await ensureRuntimeStampLoaded();
       const stampSrc = runtimeStampDataUrl || stamp;
-      doc.addImage(stampSrc as any, "PNG", sigX + 85, sigY - 30, 30, 30);
+      // draw stamp only once per document
+      if (!(doc as any).__siara_stamp_drawn) {
+        doc.addImage(stampSrc as any, "PNG", sigX + 85, sigY - 30, 30, 30);
+        (doc as any).__siara_stamp_drawn = true;
+      }
     } catch (e) {
       console.error("Stamp failed", e);
     }
@@ -413,7 +417,10 @@ export const pdfService = {
     try {
       await ensureRuntimeStampLoaded();
       const stampSrc = runtimeStampDataUrl || stamp;
-      doc.addImage(stampSrc as any, "PNG", sigX + 90, sigY - 45, 35, 35);
+      if (!(doc as any).__siara_stamp_drawn) {
+        doc.addImage(stampSrc as any, "PNG", sigX + 90, sigY - 45, 35, 35);
+        (doc as any).__siara_stamp_drawn = true;
+      }
     } catch (e) {
       console.error("Stamp failed", e);
     }
