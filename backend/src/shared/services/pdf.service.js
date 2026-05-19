@@ -21,7 +21,9 @@ function findAssetsDir(startDir) {
 const ASSETS_DIR = findAssetsDir(__dirname);
 const LOGO_PATH = path.join(ASSETS_DIR, 'logo.png');
 const SIGN_PATH = path.join(ASSETS_DIR, 'sign.png');
-const STAMP_PATH = path.join(ASSETS_DIR, 'stamp.png');
+// Prefer a root-level stamp.png if the user placed one at the project root
+const ROOT_STAMP_PATH = path.join(process.cwd(), 'stamp.png');
+const STAMP_PATH = fs.existsSync(ROOT_STAMP_PATH) ? ROOT_STAMP_PATH : path.join(ASSETS_DIR, 'stamp.png');
 
 console.log('PDF Service: Using ASSETS_DIR:', ASSETS_DIR);
 console.log('PDF Service: Logo exists:', fs.existsSync(LOGO_PATH));

@@ -127,6 +127,35 @@ const startServer = async () => {
   // 2. Initialize Scheduler
   initScheduler();
 
+  // Copy user-provided root stamp.png into backend and frontend public folders so both generators include it
+  try {
+    const fs = await import('fs');
+    const rootStamp = path.join(process.cwd(), 'stamp.png');
+    const backendStamp = path.join(process.cwd(), 'backend', 'assets', 'stamp.png');
+    const frontendStamp = path.join(process.cwd(), 'frontend', 'public', 'stamp.png');
+    if (fs.existsSync(rootStamp)) {
+      try {
+        fs.copyFileSync(rootStamp, backendStamp);
+        console.log('Copied root stamp.png to backend/assets/stamp.png');
+      } catch (e) {
+        console.warn('Failed to copy root stamp to backend assets:', e.message);
+      }
+      try {
+        // Ensure frontend public folder exists
+        const frontDir = path.join(process.cwd(), 'frontend', 'public');
+        if (!fs.existsSync(frontDir)) fs.mkdirSync(frontDir, { recursive: true });
+        fs.copyFileSync(rootStamp, frontendStamp);
+        console.log('Copied root stamp.png to frontend/public/stamp.png');
+      } catch (e) {
+        console.warn('Failed to copy root stamp to frontend public:', e.message);
+      }
+    } else {
+      console.log('No root stamp.png found to copy');
+    }
+  } catch (e) {
+    console.warn('Stamp copy routine failed:', e.message);
+  }
+
   // 2b. Start WhatsApp worker (SQLite-backed queues)
   // Preload the single QR-linked WhatsApp auth state used by the worker.
   try {

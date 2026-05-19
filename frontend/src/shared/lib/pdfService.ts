@@ -5,6 +5,29 @@ import logo from "@/assets/logo.png";
 import sign from "@/assets/sign.png";
 import stamp from "@/assets/stamp.png";
 
+// If the user placed a `stamp.png` at the project root or public root, prefer that
+let runtimeStampDataUrl: string | null = null;
+async function ensureRuntimeStampLoaded() {
+  if (typeof window === 'undefined') return; // only run in browser
+  if (runtimeStampDataUrl) return;
+  try {
+    const resp = await fetch('/stamp.png');
+    if (!resp.ok) return;
+    const blob = await resp.blob();
+    return await new Promise<void>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        runtimeStampDataUrl = reader.result as string;
+        resolve();
+      };
+      reader.onerror = () => resolve();
+      reader.readAsDataURL(blob);
+    });
+  } catch (e) {
+    // ignore
+  }
+}
+
 // ─── Clinic Constants ────────────────────────────────────────────────────────
 const CLINIC_NAME = "SIARA DENTAL";
 const CLINIC_TAGLINE = "CREATING MILES OF SMILES";
@@ -243,9 +266,11 @@ export const pdfService = {
       console.error("Signature failed", e);
     }
 
-    // Stamp
+    // Stamp (prefer runtime /stamp.png if present)
     try {
-      doc.addImage(stamp, "PNG", sigX + 85, sigY - 30, 30, 30);
+      await ensureRuntimeStampLoaded();
+      const stampSrc = runtimeStampDataUrl || stamp;
+      doc.addImage(stampSrc as any, "PNG", sigX + 85, sigY - 30, 30, 30);
     } catch (e) {
       console.error("Stamp failed", e);
     }
@@ -264,7 +289,7 @@ export const pdfService = {
     doc.save(`Prescription_${patient.name.replace(/\s+/g, '_')}_${prescription.id}.pdf`);
   },
 
-  generateInvoicePDF(patient: Patient, invoice: Invoice) {
+  async generateInvoicePDF(patient: Patient, invoice: Invoice) {
     const doc = new jsPDF({ unit: "mm", format: "a4" });
     const W = doc.internal.pageSize.getWidth();
     const H = doc.internal.pageSize.getHeight();
@@ -384,9 +409,11 @@ export const pdfService = {
       console.error("Signature failed", e);
     }
 
-    // Stamp
+    // Stamp (prefer runtime /stamp.png if present)
     try {
-      doc.addImage(stamp, "PNG", sigX + 90, sigY - 45, 35, 35);
+      await ensureRuntimeStampLoaded();
+      const stampSrc = runtimeStampDataUrl || stamp;
+      doc.addImage(stampSrc as any, "PNG", sigX + 90, sigY - 45, 35, 35);
     } catch (e) {
       console.error("Stamp failed", e);
     }
