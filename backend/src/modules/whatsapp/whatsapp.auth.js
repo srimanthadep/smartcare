@@ -103,3 +103,18 @@ export const usePostgresAuthState = async (sessionId) => {
     saveCreds: () => writeData(creds, 'creds'),
   };
 };
+
+export const hasPostgresAuthState = async (sessionId) => {
+  try {
+    const res = await dbService.query(
+      'SELECT 1 FROM whatsapp_sessions WHERE id = $1 LIMIT 1',
+      [`${sessionId}-creds`]
+    );
+    return res.rows.length > 0;
+  } catch (error) {
+    if (error?.code !== '42P01') {
+      console.error('Error checking whatsapp session:', error.message);
+    }
+    return false;
+  }
+};

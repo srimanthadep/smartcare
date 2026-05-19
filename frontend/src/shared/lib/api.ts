@@ -417,7 +417,7 @@ export const api = {
   },
 
   getWhatsAppStatus() {
-    return apiFetch<{ status: string; qr: string | null }>("/api/whatsapp/status");
+    return apiFetch<{ status: string; qr: string | null; hasSavedSession?: boolean }>("/api/whatsapp/status");
   },
 
   connectWhatsApp() {

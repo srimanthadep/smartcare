@@ -2,7 +2,7 @@ import { dbService } from '../../core/db/db.service.js';
 import { emitEvent, SOCKET_EVENTS } from '../../shared/sockets/socket.service.js';
 import { logActivity, saveMedicines, sendEmailJob, sendWhatsAppJob } from '../../shared/queue/jobQueue.service.js';
 import { emailService } from '../../shared/services/email.service.js';
-import { whatsappService } from '../whatsapp/whatsapp.service.js';
+import { ensureWhatsAppReadyForQueue, formatPhone, whatsappService } from '../whatsapp/whatsapp.service.js';
 import { pdfService } from '../../shared/services/pdf.service.js';
 
 export const getPrescriptions = async (req, res, next) => {
@@ -237,10 +237,27 @@ export const sendWhatsApp = async (req, res, next) => {
     const patient = dbService.mapRows('patients', patientRes.rows)[0];
 
     if (!patient) return res.status(404).json({ message: 'Patient not found' });
+    if (!formatPhone(patient.phone)) {
+      return res.status(400).json({ message: 'Patient phone number is missing or invalid for WhatsApp. Use a 10-digit Indian mobile number.' });
+    }
 
-    // Queue WhatsApp message instead of waiting
-    sendWhatsAppJob('wa-prescription', () => whatsappService.sendPrescription(patient, prescription));
-    res.json({ message: 'WhatsApp message queued for delivery' });
+    const readiness = await ensureWhatsAppReadyForQueue();
+    if (!readiness.canQueue) {
+      return res.status(409).json({
+        message: 'WhatsApp is not connected on this deployment. Open Settings, scan the WhatsApp QR code on the deployed app, then try again.',
+      });
+    }
+
+    const queued = await whatsappService.sendPrescription(patient, prescription);
+    if (!queued?.queued) {
+      return res.status(500).json({ message: queued?.error || 'Failed to queue WhatsApp prescription' });
+    }
+
+    res.status(202).json({
+      message: readiness.connected
+        ? 'Prescription queued for WhatsApp delivery'
+        : 'Prescription queued. WhatsApp is reconnecting and will send it shortly.',
+    });
   } catch (error) {
     next(error);
   }

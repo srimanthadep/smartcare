@@ -1,11 +1,15 @@
 import { Router } from 'express';
 import { getStatus, initWhatsApp, disconnectWhatsApp } from './whatsapp.service.js';
+import { hasPostgresAuthState } from './whatsapp.auth.js';
 import { auth, authorize } from '../../core/middleware/auth.js';
 
 const router = Router();
 
-router.get('/status', auth, (req, res) => {
-  res.json(getStatus());
+router.get('/status', auth, async (req, res) => {
+  res.json({
+    ...getStatus(),
+    hasSavedSession: await hasPostgresAuthState('default-session'),
+  });
 });
 
 router.post('/connect', auth, async (req, res) => {

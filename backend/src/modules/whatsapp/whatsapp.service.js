@@ -1,5 +1,5 @@
 import makeWASocket, { DisconnectReason } from '@whiskeysockets/baileys';
-import { usePostgresAuthState } from './whatsapp.auth.js';
+import { hasPostgresAuthState, usePostgresAuthState } from './whatsapp.auth.js';
 import QRCode from 'qrcode';
 import path from 'path';
 import fs from 'fs';
@@ -16,7 +16,7 @@ let sock = null;
 let connectionStatus = 'disconnected';
 let qrCode = null;
 
-const formatPhone = (phone) => {
+export const formatPhone = (phone) => {
   if (!phone) return null;
   let cleaned = phone.replace(/\D/g, '');
   if (cleaned.length === 11 && cleaned.startsWith('0')) cleaned = '91' + cleaned.slice(1);
@@ -87,6 +87,26 @@ export const getStatus = () => ({ status: connectionStatus, qr: qrCode });
 export const getSocket = () => sock;
 export const isWhatsAppReady = () => connectionStatus === 'connected' && Boolean(sock);
 
+export const getWhatsAppReadiness = async () => {
+  const hasSavedSession = await hasPostgresAuthState('default-session');
+  return {
+    status: connectionStatus,
+    connected: isWhatsAppReady(),
+    hasSavedSession,
+  };
+};
+
+export const ensureWhatsAppReadyForQueue = async () => {
+  const readiness = await getWhatsAppReadiness();
+  if (!readiness.connected && readiness.hasSavedSession && connectionStatus === 'disconnected') {
+    initWhatsApp().catch((err) => console.error('[WhatsApp] reconnect failed:', err.message));
+  }
+  return {
+    ...readiness,
+    canQueue: readiness.connected || readiness.hasSavedSession,
+  };
+};
+
 // High-level API: enqueue sends into sqlite-backed queues
 export const whatsappService = {
   async sendWelcome(patient) {
@@ -122,7 +142,7 @@ export const whatsappService = {
   async sendPrescription(patient, prescription) {
     try {
       const jid = resolveJid(patient.phone, 'sendPrescription', patient.name);
-      if (!jid) return;
+      if (!jid) return { queued: false, error: 'Invalid or missing WhatsApp phone number' };
       const pdfBuffer = await pdfService.generatePrescriptionPDF(patient, prescription, [], { lightweight: true });
       const hash = mediaCacheService.hashBuffer(pdfBuffer);
       const cached = mediaCacheService.getByHash(hash);
@@ -130,13 +150,18 @@ export const whatsappService = {
         const payload = { jid, cacheHash: hash, fileName: `Prescription_${prescription.id}.pdf`, mimetype: 'application/pdf', caption: `Hello ${patient.name}, your prescription from Siara Dental Clinic (Date: ${prescription.date}) is ready.` };
         const queueId = sqliteQueue.enqueue('media', 'sendPrescription', payload, { dedupKey: `presc:${prescription.id}:${patient.id}` });
         console.log(`[WhatsApp] Queued prescription ${prescription.id} as media job ${queueId} for ${jid}`);
+        return { queued: true, queueId };
       } else {
         await mediaCacheService.storeBuffer(pdfBuffer, 'application/pdf', `Prescription_${prescription.id}.pdf`);
         const payload = { jid, buffer: pdfBuffer.toString('base64'), fileName: `Prescription_${prescription.id}.pdf`, mimetype: 'application/pdf', caption: `Hello ${patient.name}, your prescription from Siara Dental Clinic (Date: ${prescription.date}) is ready.` };
         const queueId = sqliteQueue.enqueue('media', 'sendPrescription', payload, { dedupKey: `presc:${prescription.id}:${patient.id}` });
         console.log(`[WhatsApp] Queued prescription ${prescription.id} as media job ${queueId} for ${jid}`);
+        return { queued: true, queueId };
       }
-    } catch (error) { console.error('enqueue sendPrescription failed:', error); }
+    } catch (error) {
+      console.error('enqueue sendPrescription failed:', error);
+      return { queued: false, error: error.message };
+    }
   },
 
   async sendXrayReport(patient, xray) {

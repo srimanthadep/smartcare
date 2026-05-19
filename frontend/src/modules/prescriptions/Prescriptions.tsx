@@ -330,8 +330,8 @@ const Prescriptions: React.FC = () => {
               }
               toast.promise(api.sendPrescriptionWhatsapp(editId), {
                 loading: 'Sending prescription via WhatsApp...',
-                success: 'Prescription sent successfully!',
-                error: 'Failed to send WhatsApp message'
+                success: 'Prescription queued for WhatsApp delivery',
+                error: (error) => error instanceof Error ? error.message : 'Failed to queue WhatsApp message'
               });
             }}
           >
@@ -405,8 +405,8 @@ const Prescriptions: React.FC = () => {
                     onClick={() =>
                       toast.promise(api.sendPrescriptionWhatsapp(item.id), {
                         loading: "Sending prescription via WhatsApp...",
-                        success: "Prescription sent successfully!",
-                        error: "Failed to send WhatsApp message",
+                        success: "Prescription queued for WhatsApp delivery",
+                        error: (error) => error instanceof Error ? error.message : "Failed to queue WhatsApp message",
                       })
                     }
                   >

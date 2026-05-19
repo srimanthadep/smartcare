@@ -27,6 +27,7 @@ After the blueprint starts, you MUST manually set the following secret keys in t
 - **CORS Errors**: Ensure the `CORS_ORIGINS` in your Render Backend settings exactly matches your Frontend URL.
 - **AI Failures**: Ensure `MISTRAL_API_KEY` is correctly set in the environment.
 - **Frontend Connectivity**: The `VITE_API_BASE_URL` is automatically linked via the Blueprint, but you can manually override it if needed.
+- **WhatsApp prescriptions not sending**: Localhost and Render use different database schemas (`smartcare_dev` locally, `smartcare_prod` in production), so the WhatsApp QR session linked on localhost is not available in deployment. Open the deployed app, go to Settings, connect WhatsApp, and scan the QR code from the deployed backend. If a prescription still does not send, check Render logs for `[WhatsApp Worker]` messages and confirm the patient has a valid 10-digit Indian mobile number.
 
 ---
 **Note**: The first deployment might take 3-5 minutes as Render builds the frontend and installs dependencies.
