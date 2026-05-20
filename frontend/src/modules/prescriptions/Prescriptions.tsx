@@ -481,14 +481,8 @@ const Prescriptions: React.FC = () => {
                 <AutocorrectTextarea
                   value={chiefComplaint}
                   onChange={(e) => {
-                    const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
                     let val = e.target.value;
-                    val = val.split(' ').map((word, index) => {
-                      if (index > 0 && minorWords.includes(word.toLowerCase())) {
-                        return word.toLowerCase();
-                      }
-                      return word.charAt(0).toUpperCase() + word.slice(1);
-                    }).join(' ');
+                    val = val.split('\n').map(line => line.charAt(0).toUpperCase() + line.slice(1)).join('\n');
                     setChiefComplaint(val);
                   }}
                   placeholder="e.g. Severe toothache, Bleeding gums"
@@ -525,14 +519,8 @@ const Prescriptions: React.FC = () => {
                 <AutocorrectTextarea
                   value={diagnosis}
                   onChange={(e) => {
-                    const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
                     let val = e.target.value;
-                    val = val.split(' ').map((word, index) => {
-                      if (index > 0 && minorWords.includes(word.toLowerCase())) {
-                        return word.toLowerCase();
-                      }
-                      return word.charAt(0).toUpperCase() + word.slice(1);
-                    }).join(' ');
+                    val = val.split('\n').map(line => line.charAt(0).toUpperCase() + line.slice(1)).join('\n');
                     setDiagnosis(val);
                   }}
                   placeholder="e.g. Acute Pulpitis, Periodontitis"
@@ -580,14 +568,8 @@ const Prescriptions: React.FC = () => {
                           placeholder="Phase Name (e.g. Root Canal Treatment)"
                           value={phase.name}
                           onChange={(e) => {
-                            const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
                             let val = e.target.value;
-                            val = val.split(' ').map((word, index) => {
-                              if (index > 0 && minorWords.includes(word.toLowerCase())) {
-                                return word.toLowerCase();
-                              }
-                              return word.charAt(0).toUpperCase() + word.slice(1);
-                            }).join(' ');
+                            val = val.charAt(0).toUpperCase() + val.slice(1);
                             setTreatmentPlan(treatmentPlan.map((p, i) => i === idx ? { ...p, name: val } : p));
                           }}
                           className="h-8 text-sm font-medium"
@@ -606,14 +588,8 @@ const Prescriptions: React.FC = () => {
                           placeholder="Description / Tooth Numbers"
                           value={phase.description}
                           onChange={(e) => {
-                            const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
                             let val = e.target.value;
-                            val = val.split(' ').map((word, index) => {
-                              if (index > 0 && minorWords.includes(word.toLowerCase())) {
-                                return word.toLowerCase();
-                              }
-                              return word.charAt(0).toUpperCase() + word.slice(1);
-                            }).join(' ');
+                            val = val.charAt(0).toUpperCase() + val.slice(1);
                             setTreatmentPlan(treatmentPlan.map((p, i) => i === idx ? { ...p, description: val } : p));
                           }}
                           className="h-8 text-xs bg-white/50"
@@ -673,42 +649,24 @@ const Prescriptions: React.FC = () => {
                     <div className="space-y-2">
                       <Label>Dosage</Label>
                       <Input value={medicine.dosage} onChange={(event) => {
-                        const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
                         let val = event.target.value;
-                        val = val.split(' ').map((word, index) => {
-                          if (index > 0 && minorWords.includes(word.toLowerCase())) {
-                            return word.toLowerCase();
-                          }
-                          return word.charAt(0).toUpperCase() + word.slice(1);
-                        }).join(' ');
+                        val = val.charAt(0).toUpperCase() + val.slice(1);
                         setMedicines((current) => current.map((item, itemIndex) => (itemIndex === index ? { ...item, dosage: val } : item)));
                       }} placeholder="e.g. 1 tab" />
                     </div>
                     <div className="space-y-2">
                       <Label>Frequency</Label>
                       <Input value={medicine.frequency} onChange={(event) => {
-                        const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
                         let val = event.target.value;
-                        val = val.split(' ').map((word, index) => {
-                          if (index > 0 && minorWords.includes(word.toLowerCase())) {
-                            return word.toLowerCase();
-                          }
-                          return word.charAt(0).toUpperCase() + word.slice(1);
-                        }).join(' ');
+                        val = val.charAt(0).toUpperCase() + val.slice(1);
                         setMedicines((current) => current.map((item, itemIndex) => (itemIndex === index ? { ...item, frequency: val } : item)));
                       }} placeholder="e.g. BID" />
                     </div>
                     <div className="space-y-2">
                       <Label>Duration</Label>
                       <Input value={medicine.duration} onChange={(event) => {
-                        const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
                         let val = event.target.value;
-                        val = val.split(' ').map((word, index) => {
-                          if (index > 0 && minorWords.includes(word.toLowerCase())) {
-                            return word.toLowerCase();
-                          }
-                          return word.charAt(0).toUpperCase() + word.slice(1);
-                        }).join(' ');
+                        val = val.charAt(0).toUpperCase() + val.slice(1);
                         setMedicines((current) => current.map((item, itemIndex) => (itemIndex === index ? { ...item, duration: val } : item)));
                       }} placeholder="e.g. 5 days" />
                     </div>
@@ -737,14 +695,8 @@ const Prescriptions: React.FC = () => {
                 <AutocorrectTextarea
                   value={notes}
                   onChange={(event) => {
-                    const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
                     let val = event.target.value;
-                    val = val.split(' ').map((word, index) => {
-                      if (index > 0 && minorWords.includes(word.toLowerCase())) {
-                        return word.toLowerCase();
-                      }
-                      return word.charAt(0).toUpperCase() + word.slice(1);
-                    }).join(' ');
+                    val = val.split('\n').map(line => line.charAt(0).toUpperCase() + line.slice(1)).join('\n');
                     setNotes(val);
                   }}
                   placeholder="General clinical advice, follow-up instructions, warnings..."
@@ -903,14 +855,14 @@ const Prescriptions: React.FC = () => {
                 <div className="p-4 space-y-4">
                   <div>
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">1. Chief Complaint</p>
-                    <p className="mt-1 text-sm font-medium text-destructive">{chiefComplaint || "-"}</p>
+                    <p className="mt-1 text-sm font-medium text-destructive whitespace-pre-wrap">{chiefComplaint || "-"}</p>
                   </div>
 
                   <Separator className="opacity-50" />
 
                   <div>
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">2. Diagnosis</p>
-                    <p className="mt-1 text-sm">{diagnosis || "-"}</p>
+                    <p className="mt-1 text-sm whitespace-pre-wrap">{diagnosis || "-"}</p>
                   </div>
 
                   <Separator className="opacity-50" />

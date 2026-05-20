@@ -390,14 +390,8 @@ const PatientProfile: React.FC = () => {
                   <Input 
                     value={conditionsDraft} 
                     onChange={(e) => {
-                      const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
                       let val = e.target.value;
-                      val = val.split(' ').map((word, index) => {
-                        if (index > 0 && minorWords.includes(word.toLowerCase())) {
-                          return word.toLowerCase();
-                        }
-                        return word.charAt(0).toUpperCase() + word.slice(1);
-                      }).join(' ');
+                      val = val.charAt(0).toUpperCase() + val.slice(1);
                       setConditionsDraft(val);
                     }}
                     placeholder="Enter conditions separated by commas..."
@@ -455,14 +449,8 @@ const PatientProfile: React.FC = () => {
                   <Input 
                     value={allergiesDraft} 
                     onChange={(e) => {
-                      const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
                       let val = e.target.value;
-                      val = val.split(' ').map((word, index) => {
-                        if (index > 0 && minorWords.includes(word.toLowerCase())) {
-                          return word.toLowerCase();
-                        }
-                        return word.charAt(0).toUpperCase() + word.slice(1);
-                      }).join(' ');
+                      val = val.charAt(0).toUpperCase() + val.slice(1);
                       setAllergiesDraft(val);
                     }}
                     placeholder="Enter allergies separated by commas..."
@@ -579,14 +567,8 @@ const PatientProfile: React.FC = () => {
                   <AutocorrectTextarea 
                     value={notesDraft}
                     onChange={(e) => {
-                      const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
                       let val = e.target.value;
-                      val = val.split(' ').map((word, index) => {
-                        if (index > 0 && minorWords.includes(word.toLowerCase())) {
-                          return word.toLowerCase();
-                        }
-                        return word.charAt(0).toUpperCase() + word.slice(1);
-                      }).join(' ');
+                      val = val.split('\n').map(line => line.charAt(0).toUpperCase() + line.slice(1)).join('\n');
                       setNotesDraft(val);
                     }}
                     className="min-h-[100px] text-sm"

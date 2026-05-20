@@ -1,6 +1,6 @@
 import { dbService } from '../../core/db/db.service.js';
 import { emitEvent, SOCKET_EVENTS } from '../../shared/sockets/socket.service.js';
-import { sendEmailJob, sendWhatsAppJob } from '../../shared/queue/jobQueue.service.js';
+import { sendEmailJob } from '../../shared/queue/jobQueue.service.js';
 import { emailService } from '../../shared/services/email.service.js';
 import { whatsappService } from '../whatsapp/whatsapp.service.js';
 import { pdfService } from '../../shared/services/pdf.service.js';
@@ -60,7 +60,7 @@ export const createInvoice = async (req, res, next) => {
       sendEmailJob('email-invoice', () => emailService.sendInvoiceEmail(patient, invoice));
     }
     if (patient) {
-      sendWhatsAppJob('wa-invoice', () => whatsappService.sendInvoice(patient, invoice));
+      whatsappService.sendInvoice(patient, invoice);
     }
 
     emitEvent(SOCKET_EVENTS.INVOICE_UPDATED, invoice);
@@ -113,7 +113,7 @@ export const updateInvoice = async (req, res, next) => {
         sendEmailJob('email-invoice', () => emailService.sendInvoiceEmail(patient, invoice));
       }
       if (patient) {
-        sendWhatsAppJob('wa-invoice', () => whatsappService.sendInvoice(patient, invoice));
+        whatsappService.sendInvoice(patient, invoice);
       }
     }
 

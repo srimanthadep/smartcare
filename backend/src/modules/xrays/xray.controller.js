@@ -481,7 +481,6 @@ export const downloadXrayReport = async (req, res, next) => {
 export const sendXrayWhatsapp = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { sendWhatsAppJob } = await import('../../shared/queue/jobQueue.service.js');
     const { whatsappService } = await import('../whatsapp/whatsapp.service.js');
 
     const result = await dbService.query(
@@ -509,7 +508,7 @@ export const sendXrayWhatsapp = async (req, res, next) => {
       return res.status(400).json({ message: 'Patient phone number is missing' });
     }
 
-    sendWhatsAppJob('wa-xray-report', () => whatsappService.sendXrayReport(patient, xray));
+    whatsappService.sendXrayReport(patient, xray);
 
     logActivity({
       userId: req.user.sub,

@@ -280,14 +280,8 @@ const Expenses: React.FC = () => {
                       required 
                       className="rounded-xl border-border/60 bg-muted/40 focus:bg-background focus:ring-1 focus:ring-orange-500/30 transition-all h-11"
                       onChange={(e) => {
-                        const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
                         let val = e.target.value;
-                        val = val.split(' ').map((word, index) => {
-                          if (index > 0 && minorWords.includes(word.toLowerCase())) {
-                            return word.toLowerCase();
-                          }
-                          return word.charAt(0).toUpperCase() + word.slice(1);
-                        }).join(' ');
+                        val = val.charAt(0).toUpperCase() + val.slice(1);
                         e.target.value = val;
                       }}
                     />

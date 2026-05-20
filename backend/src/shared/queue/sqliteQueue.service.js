@@ -39,9 +39,13 @@ class SqliteQueue {
       this.db.exec(`ALTER TABLE queues ADD COLUMN run_at INTEGER`);
       this.db.exec(`UPDATE queues SET run_at = created_at WHERE run_at IS NULL`);
     }
+    if (!colNames.includes('jid')) {
+      this.db.exec(`ALTER TABLE queues ADD COLUMN jid TEXT`);
+    }
 
-    // Create index referencing run_at after ensuring column exists
+    // Create indexes after ensuring columns exist
     this.db.exec(`CREATE INDEX IF NOT EXISTS idx_queues_type_status_runat ON queues(type, status, run_at, created_at)`);
+    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_queues_jid ON queues(jid, type, status)`);
 
     // Additional helper tables
     this.db.exec(`
@@ -72,12 +76,13 @@ class SqliteQueue {
     const now = Date.now();
     const runAt = opts.runAt || now;
     const dedupKey = opts.dedupKey || null;
+    const jid = payload?.jid || null;
     if (dedupKey) {
       const exists = this.db.prepare(`SELECT id FROM queues WHERE dedup_key = ? AND status = 'pending'`).get(dedupKey);
       if (exists) return exists.id;
     }
-    const stmt = this.db.prepare(`INSERT INTO queues (type, action, payload, dedup_key, run_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`);
-    const info = stmt.run(type, action, JSON.stringify(payload || {}), dedupKey, runAt, now, now);
+    const stmt = this.db.prepare(`INSERT INTO queues (type, action, payload, dedup_key, jid, run_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+    const info = stmt.run(type, action, JSON.stringify(payload || {}), dedupKey, jid, runAt, now, now);
     return info.lastInsertRowid;
   }
 

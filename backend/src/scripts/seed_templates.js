@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 
 // Load templates from the file provided by the user
-const DATA_PATH = 'c:\\Users\\srima\\Desktop\\Projects\\SmartCare\\final_prescription_templates.json';
+const DATA_PATH = path.join(process.cwd(), 'final_prescription_templates.json');
 
 async function seed() {
   try {

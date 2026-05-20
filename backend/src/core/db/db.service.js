@@ -191,6 +191,21 @@ class DbService {
         updatedAt: r.updated_at,
       }));
     }
+    if (table === 'diagnoses') {
+      return rows.map(r => ({
+        ...r,
+        patientId: r.patient_id,
+        recordedOn: r.recorded_on ? new Date(r.recorded_on).toLocaleDateString('en-CA') : null
+      }));
+    }
+    if (table === 'reports') {
+      return rows.map(r => ({
+        ...r,
+        patientId: r.patient_id,
+        previewUrl: r.preview_url,
+        date: r.date ? new Date(r.date).toLocaleDateString('en-CA') : null
+      }));
+    }
     return rows;
   }
 

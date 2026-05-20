@@ -182,7 +182,8 @@ export const pdfService = {
       setC(doc, P.text);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
-      const lines = doc.splitTextToSize(prescription.chiefComplaint, W - 35);
+      const normalized = prescription.chiefComplaint.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      const lines = doc.splitTextToSize(normalized, W - 35);
       doc.text(lines, 20, y);
       y += (lines.length * 5) + 10;
     }
@@ -193,7 +194,8 @@ export const pdfService = {
       setC(doc, P.text);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
-      const lines = doc.splitTextToSize(prescription.diagnosis, W - 35);
+      const normalized = prescription.diagnosis.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      const lines = doc.splitTextToSize(normalized, W - 35);
       doc.text(lines, 20, y);
       y += (lines.length * 5) + 10;
     }
@@ -243,7 +245,8 @@ export const pdfService = {
       y = drawSectionHeader(doc, "Advice & Notes", y, W);
       setC(doc, P.text);
       doc.setFontSize(10);
-      const lines = doc.splitTextToSize(prescription.notes, W - 35);
+      const normalized = prescription.notes.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      const lines = doc.splitTextToSize(normalized, W - 35);
       doc.text(lines, 20, y);
       y += (lines.length * 5) + 15;
     }

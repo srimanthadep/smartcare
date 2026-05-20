@@ -10,7 +10,7 @@ const router = Router();
 router.use(auth);
 
 router.get('/', patientController.getPatients);
-router.get('/:id', patientController.getPatient);
+router.get('/:id', patientController.getPatientById);
 router.post('/', validate(createPatientSchema), patientController.createPatient);
 router.patch('/:id', validate(updatePatientSchema), patientController.updatePatient);
 router.delete('/:id', patientController.deletePatient);

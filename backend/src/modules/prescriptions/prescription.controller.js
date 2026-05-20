@@ -1,6 +1,6 @@
 import { dbService } from '../../core/db/db.service.js';
 import { emitEvent, SOCKET_EVENTS } from '../../shared/sockets/socket.service.js';
-import { logActivity, saveMedicines, sendEmailJob, sendWhatsAppJob } from '../../shared/queue/jobQueue.service.js';
+import { logActivity, saveMedicines, sendEmailJob } from '../../shared/queue/jobQueue.service.js';
 import { emailService } from '../../shared/services/email.service.js';
 import { ensureWhatsAppReadyForQueue, formatPhone, whatsappService } from '../whatsapp/whatsapp.service.js';
 import { pdfService } from '../../shared/services/pdf.service.js';

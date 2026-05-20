@@ -225,14 +225,16 @@ export const pdfService = {
       // Clinical Details
       if (prescription.chiefComplaint) {
         y = drawSectionHeader(doc, "Chief Complaint", y);
-        doc.fillColor(P.text).font('Helvetica').fontSize(9).text(prescription.chiefComplaint, 50, y, { width: W - 100 });
-        y += (doc.heightOfString(prescription.chiefComplaint, { width: W - 100 }) + 15);
+        const normalized = prescription.chiefComplaint.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        doc.fillColor(P.text).font('Helvetica').fontSize(9).text(normalized, 50, y, { width: W - 100 });
+        y += (doc.heightOfString(normalized, { width: W - 100 }) + 15);
       }
 
       if (prescription.diagnosis) {
         y = drawSectionHeader(doc, "Diagnosis", y);
-        doc.fillColor(P.text).font('Helvetica').fontSize(9).text(prescription.diagnosis, 50, y, { width: W - 100 });
-        y += (doc.heightOfString(prescription.diagnosis, { width: W - 100 }) + 15);
+        const normalized = prescription.diagnosis.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        doc.fillColor(P.text).font('Helvetica').fontSize(9).text(normalized, 50, y, { width: W - 100 });
+        y += (doc.heightOfString(normalized, { width: W - 100 }) + 15);
       }
 
       // Treatment Plan
@@ -275,7 +277,8 @@ export const pdfService = {
       if (prescription.notes) {
         y += 15;
         y = drawSectionHeader(doc, "Advice & Notes", y);
-        doc.fillColor(P.text).font('Helvetica').fontSize(9).text(prescription.notes, 50, y, { width: W - 100 });
+        const normalized = prescription.notes.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        doc.fillColor(P.text).font('Helvetica').fontSize(9).text(normalized, 50, y, { width: W - 100 });
       }
 
       // Signature Area

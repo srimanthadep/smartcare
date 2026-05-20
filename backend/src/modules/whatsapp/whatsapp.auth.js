@@ -14,16 +14,6 @@ SELECT COUNT(*) FROM whatsapp_sessions;
 */
 
 export const usePostgresAuthState = async (sessionId) => {
-  // 1. Ensure the created_at column exists
-  try {
-    await dbService.query(`
-      ALTER TABLE whatsapp_sessions 
-      ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
-    `);
-  } catch (err) {
-    console.error('Error ensuring created_at column:', err);
-  }
-
   const writeData = async (data, id) => {
     const json = JSON.stringify(data, BufferJSON.replacer);
     await dbService.query(

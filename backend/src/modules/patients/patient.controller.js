@@ -1,6 +1,6 @@
 import { dbService } from '../../core/db/db.service.js';
 import { emitEvent, SOCKET_EVENTS } from '../../shared/sockets/socket.service.js';
-import { logActivity, sendEmailJob, sendWhatsAppJob } from '../../shared/queue/jobQueue.service.js';
+import { logActivity, sendEmailJob } from '../../shared/queue/jobQueue.service.js';
 import { emailService } from '../../shared/services/email.service.js';
 import { whatsappService } from '../whatsapp/whatsapp.service.js';
 
@@ -8,53 +8,82 @@ export const getPatients = async (req, res, next) => {
   try {
     const { search, status, gender, from, to } = req.query;
 
-    let whereClause = 'WHERE is_deleted = FALSE';
+    let query = `
+      SELECT p.*, 
+             COALESCE(COUNT(DISTINCT a.id), 0) as total_appointments,
+             COALESCE(COUNT(DISTINCT i.id), 0) as total_invoices
+      FROM patients p
+      LEFT JOIN appointments a ON p.id = a.patient_id AND a.is_deleted = FALSE
+      LEFT JOIN invoices i ON p.id = i.patient_id AND i.is_deleted = FALSE
+      WHERE p.is_deleted = FALSE
+    `;
+    let countQuery = `
+      SELECT COUNT(DISTINCT p.id) as total
+      FROM patients p
+      WHERE p.is_deleted = FALSE
+    `;
+    
     const params = [];
+    const countParams = [];
+    let i = 1;
 
     if (search) {
-      params.push(`%${search.toLowerCase()}%`);
-      whereClause += ` AND (LOWER(name) LIKE $${params.length} OR LOWER(id) LIKE $${params.length})`;
-    }
-    if (status && status !== 'all') {
-      params.push(status);
-      whereClause += ` AND status = $${params.length}`;
-    }
-    if (gender && gender !== 'all') {
-      params.push(gender);
-      whereClause += ` AND gender = $${params.length}`;
-    }
-    if (from) {
-      params.push(from);
-      whereClause += ` AND registered_on >= $${params.length}`;
-    }
-    if (to) {
-      params.push(to);
-      whereClause += ` AND registered_on <= $${params.length}`;
+      params.push(`%${search}%`);
+      countParams.push(`%${search}%`);
+      const filter = ` AND (p.name ILIKE $${i} OR p.phone ILIKE $${i} OR p.id ILIKE $${i})`;
+      query += filter;
+      countQuery += filter;
+      i++;
     }
 
-    const limit = parseInt(req.query.limit) || 100;
+    if (status && status !== 'all') {
+      params.push(status);
+      countParams.push(status);
+      const filter = ` AND p.status = $${i}`;
+      query += filter;
+      countQuery += filter;
+      i++;
+    }
+
+    if (gender && gender !== 'all') {
+      params.push(gender);
+      countParams.push(gender);
+      const filter = ` AND p.gender = $${i}`;
+      query += filter;
+      countQuery += filter;
+      i++;
+    }
+
+    if (from && to) {
+      params.push(from, to);
+      countParams.push(from, to);
+      const filter = ` AND p.registered_on BETWEEN $${i} AND $${i+1}`;
+      query += filter;
+      countQuery += filter;
+      i += 2;
+    }
+
+    // H4: Pagination
+    const limit = parseInt(req.query.limit) || 200;
     const page = parseInt(req.query.page) || 1;
     const offset = (page - 1) * limit;
 
-    const dataQuery = `
-      SELECT * FROM patients 
-      ${whereClause} 
-      ORDER BY registered_on DESC, id DESC 
-      LIMIT ${limit} OFFSET ${offset}
-    `;
-    
-    const countQuery = `SELECT COUNT(*) FROM patients ${whereClause}`;
+    query += ` GROUP BY p.id`;
 
-    const [dataResult, countResult] = await Promise.all([
-      dbService.query(dataQuery, params),
-      dbService.query(countQuery, params)
+    params.push(limit);
+    query += ` ORDER BY p.registered_on DESC, p.created_at DESC LIMIT $${params.length}`;
+    params.push(offset);
+    query += ` OFFSET $${params.length}`;
+
+    const [result, countResult] = await Promise.all([
+      dbService.query(query, params),
+      dbService.query(countQuery, countParams)
     ]);
 
-    const rows = dbService.mapRows('patients', dataResult.rows);
-    const total = parseInt(countResult.rows[0].count);
+    const total = parseInt(countResult.rows[0]?.total || 0);
 
     res.json({
-      patients: rows,
+      patients: dbService.mapRows('patients', result.rows),
       total,
       page,
       limit
@@ -64,22 +93,27 @@ export const getPatients = async (req, res, next) => {
   }
 };
 
-export const getPatient = async (req, res, next) => {
+export const getPatientById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    
     const [patientRes, diagnosesRes, reportsRes] = await Promise.all([
-      dbService.query('SELECT * FROM patients WHERE id = $1', [id]),
-      dbService.query('SELECT * FROM diagnoses WHERE patient_id = $1', [id]).catch(() => ({ rows: [] })),
-      dbService.query('SELECT * FROM reports WHERE patient_id = $1', [id]).catch(() => ({ rows: [] }))
+      dbService.query('SELECT * FROM patients WHERE id = $1 AND is_deleted = FALSE', [id]),
+      dbService.query('SELECT * FROM diagnoses WHERE patient_id = $1 AND is_deleted = FALSE', [id]),
+      dbService.query('SELECT * FROM reports WHERE patient_id = $1 AND is_deleted = FALSE', [id])
     ]);
-    
-    if (patientRes.rows.length === 0) return res.status(404).json({ message: 'Patient not found' });
+
+    if (patientRes.rows.length === 0) {
+      return res.status(404).json({ message: 'Patient not found' });
+    }
+
+    const patient = dbService.mapRows('patients', patientRes.rows)[0];
+    const diagnoses = dbService.mapRows('diagnoses', diagnosesRes.rows);
+    const reports = dbService.mapRows('reports', reportsRes.rows);
 
     res.json({
-      patient: dbService.mapRows('patients', patientRes.rows)[0],
-      diagnoses: diagnosesRes.rows,
-      reports: reportsRes.rows
+      patient,
+      diagnoses,
+      reports
     });
   } catch (error) {
     next(error);
@@ -88,10 +122,14 @@ export const getPatient = async (req, res, next) => {
 
 export const createPatient = async (req, res, next) => {
   try {
-    const id = await dbService.generateId('P', 'patients');
-    const { name, age, gender, phone, email, bloodGroup, status, address, allergies, conditions, medications, notes, consultationFee, chiefComplaint, dentalHistory } = req.body;
+    const id = await dbService.generateId('PAT', 'patients');
+    const {
+      name, age, gender, phone, email, bloodGroup, status, registeredOn,
+      address, allergies, conditions, medications, notes, consultationFee,
+      chiefComplaint, dentalHistory
+    } = req.body;
     
-    const registeredOn = req.body.registeredOn || new Date().toISOString().slice(0, 10);
+    const regOn = registeredOn || new Date().toISOString().slice(0, 10);
 
     const query = `
       INSERT INTO patients (
@@ -103,7 +141,7 @@ export const createPatient = async (req, res, next) => {
     `;
 
     const params = [
-      id, name, age, gender, phone, email, bloodGroup, status || 'Active', registeredOn,
+      id, name, age, gender, phone, email, bloodGroup, status || 'Active', regOn,
       address, allergies || [], conditions || [], JSON.stringify(medications || []), notes,
       consultationFee || 300, chiefComplaint, JSON.stringify(dentalHistory || {})
     ];
@@ -121,7 +159,7 @@ export const createPatient = async (req, res, next) => {
     if (patient.email) {
       sendEmailJob('email-welcome', () => emailService.sendWelcomeEmail(patient));
     }
-    sendWhatsAppJob('wa-welcome', () => whatsappService.sendWelcome(patient));
+    whatsappService.sendWelcome(patient);
 
     // Auto-create Consultation Fee Invoice
     const fee = consultationFee || 300;
@@ -131,15 +169,17 @@ export const createPatient = async (req, res, next) => {
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `;
-    const invParams = [invId, patient.id, registeredOn, JSON.stringify([{ description: "Consultation Fee", amount: fee }]), fee, "Pending", 0];
+    const invParams = [invId, patient.id, regOn, JSON.stringify([{ description: "Consultation Fee", amount: fee }]), fee, "Pending", 0];
     const invRes = await dbService.query(invQuery, invParams);
     const invoice = dbService.mapRows('invoices', invRes.rows)[0];
 
-    // Invoice email + WhatsApp
+    // Invoice email + WhatsApp (Disabled: new patient registration only sends welcome message)
+    /*
     if (patient.email) {
       sendEmailJob('email-invoice', () => emailService.sendInvoiceEmail(patient, invoice));
     }
-    sendWhatsAppJob('wa-invoice', () => whatsappService.sendInvoice(patient, invoice));
+    whatsappService.sendInvoice(patient, invoice);
+    */
     
     emitEvent(SOCKET_EVENTS.INVOICE_UPDATED, invoice);
     emitEvent(SOCKET_EVENTS.PATIENT_UPDATED, patient);

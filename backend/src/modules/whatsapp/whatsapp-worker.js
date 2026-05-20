@@ -25,7 +25,6 @@ const createSocketFor = async (name) => {
 };
 
 const selectSocket = (action) => {
-  // simple mapping: invoices->invoices, reminders->reminders, media->reports fallback
   if (action.toLowerCase().includes('invoice')) return 'invoices';
   if (action.toLowerCase().includes('remind')) return 'reminders';
   return 'reports';
@@ -59,20 +58,17 @@ const processTextQueue = async () => {
       return;
     }
     if (!ensureRate(name)) {
-      // delay requeue slightly
       sqliteQueue.requeue(job.id, 1000);
       return;
     }
     try {
-      // Batch pending text messages for same JID within a short window
+      // Batch pending text messages for same JID using indexed jid lookups
       let finalJob = job;
       try {
         const jid = job.payload && job.payload.jid;
         if (jid) {
-          const likePattern = `%"jid":"${jid}"%`;
-          const others = sqliteQueue.db.prepare(`SELECT * FROM queues WHERE type = 'text' AND status = 'pending' AND payload LIKE ?`).all(likePattern);
+          const others = sqliteQueue.db.prepare(`SELECT * FROM queues WHERE type = 'text' AND status = 'pending' AND jid = ?`).all(jid);
           if (others && others.length > 0) {
-            // combine messages
             const parts = [job.payload.message || ''];
             const idsToMark = [];
             for (const o of others) {
@@ -82,13 +78,11 @@ const processTextQueue = async () => {
                 idsToMark.push(o.id);
               } catch (e) {}
             }
-            // mark other pending messages done to avoid duplicates
             if (idsToMark.length) {
               const now = Date.now();
               const stmt = sqliteQueue.db.prepare(`UPDATE queues SET status = 'done', updated_at = ? WHERE id = ?`);
               idsToMark.forEach(i => stmt.run(now, i));
             }
-            // create a combined job payload
             finalJob = { ...job, payload: { ...job.payload, message: parts.join('\n\n') } };
           }
         }
@@ -99,7 +93,6 @@ const processTextQueue = async () => {
       sqliteQueue.addAck(job.id, res?.key?.id || res?.messageId || String(Date.now()), 'sent');
     } catch (err) {
       console.error('[WhatsApp Worker] text job failed:', err.message);
-      // retry with backoff based on attempts
       const attempts = job.attempts + 1;
       const delays = [5000, 30000, 120000];
       if (attempts <= delays.length) {
@@ -128,33 +121,31 @@ const processMediaQueue = async () => {
     if (!ensureRate(name)) { sqliteQueue.requeue(job.id, 1000); return; }
 
     try {
-      // If cached, handle smart sending
-        if (job.payload) {
-          // If this job has a thumbnail reference (e.g., XRay), prefer sending thumbnail + link
-          if (job.payload.thumbHash) {
-            const thumb = mediaCacheService.getByHash(job.payload.thumbHash);
-            const pdfCached = job.payload.cacheHash ? mediaCacheService.getByHash(job.payload.cacheHash) : null;
-            if (thumb && thumb.provider === 'cloudinary' && thumb.provider_id) {
-              const thumbUrl = getThumbnailUrl(cloudinary.url(thumb.provider_id), 'image') || cloudinary.url(thumb.provider_id);
-              const pdfLink = pdfCached && pdfCached.provider === 'cloudinary' && pdfCached.provider_id ? cloudinary.url(pdfCached.provider_id) : null;
-              const caption = (job.payload.caption || '') + (pdfLink ? `\n\nView full report: ${pdfLink}` : '');
-              const res = await socket.sendMessage(job.payload.jid, { image: { url: thumbUrl }, caption });
-              sqliteQueue.markDone(job.id);
-              sqliteQueue.addAck(job.id, res?.key?.id || res?.messageId || String(Date.now()), 'sent');
-              return;
-            }
-            if (thumb && thumb.data) {
-              job.payload.thumbBuffer = thumb.data; // base64
-            }
+      if (job.payload) {
+        if (job.payload.thumbHash) {
+          const thumb = mediaCacheService.getByHash(job.payload.thumbHash);
+          const pdfCached = job.payload.cacheHash ? mediaCacheService.getByHash(job.payload.cacheHash) : null;
+          if (thumb && thumb.provider === 'cloudinary' && thumb.provider_id) {
+            const thumbUrl = getThumbnailUrl(cloudinary.url(thumb.provider_id), 'image') || cloudinary.url(thumb.provider_id);
+            const pdfLink = pdfCached && pdfCached.provider === 'cloudinary' && pdfCached.provider_id ? cloudinary.url(pdfCached.provider_id) : null;
+            const caption = (job.payload.caption || '') + (pdfLink ? `\n\nView full report: ${pdfLink}` : '');
+            const res = await socket.sendMessage(job.payload.jid, { image: { url: thumbUrl }, caption });
+            sqliteQueue.markDone(job.id);
+            sqliteQueue.addAck(job.id, res?.key?.id || res?.messageId || String(Date.now()), 'sent');
+            return;
           }
-
-          if (job.payload.cacheHash) {
-            const cached = mediaCacheService.getByHash(job.payload.cacheHash);
-            if (cached && cached.data) {
-              job.payload.buffer = cached.data; // base64
-            }
+          if (thumb && thumb.data) {
+            job.payload.thumbBuffer = thumb.data;
           }
         }
+
+        if (job.payload.cacheHash) {
+          const cached = mediaCacheService.getByHash(job.payload.cacheHash);
+          if (cached && cached.data) {
+            job.payload.buffer = cached.data;
+          }
+        }
+      }
       const res = await performSend(job, socket);
       sqliteQueue.markDone(job.id);
       sqliteQueue.addAck(job.id, res?.key?.id || res?.messageId || String(Date.now()), 'sent');
@@ -181,7 +172,6 @@ const processBackgroundQueue = async () => {
     try {
       if (job.action === 'logActivity') {
         const { userId, userName, action, details, ip } = job.payload || {};
-        // perform DB writes directly here to avoid blocking callers
         const id = `LOG${Date.now()}_${Math.floor(Math.random() * 1000)}`;
         const auditId = `AUD${Date.now()}_${Math.floor(Math.random() * 10000)}`;
         const timestamp = new Date().toISOString();
@@ -193,7 +183,6 @@ const processBackgroundQueue = async () => {
           `INSERT INTO audit_logs (id, actor_id, actor_name, actor_role, action, metadata, ip_address) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
           [auditId, userId, userName, 'user', action, JSON.stringify({ details }), ip]
         );
-        // emit events
         const { emitEvent, SOCKET_EVENTS } = await import('../../shared/sockets/socket.service.js');
         emitEvent(SOCKET_EVENTS.ACTIVITY_LOGGED, { id, userId, userName, action, details, ip, timestamp });
         emitEvent('ADMIN_AUDIT_LOG', { id: auditId, actorName: userName, action, createdAt: timestamp });
@@ -218,12 +207,27 @@ const processBackgroundQueue = async () => {
 const recoverStaleJobs = () => {
   const now = Date.now();
   const cutoff = now - STALE_JOB_MS;
-  const info = sqliteQueue.db
-    .prepare(`UPDATE queues SET status = 'pending', run_at = ?, updated_at = ?, last_error = COALESCE(last_error, 'Recovered stale in-progress job') WHERE status = 'in_progress' AND updated_at < ?`)
-    .run(now, now, cutoff);
 
-  if (info.changes > 0) {
-    console.warn(`[WhatsApp Worker] Recovered ${info.changes} stale in-progress queue job(s)`);
+  const staleJobs = sqliteQueue.db
+    .prepare(`SELECT id FROM queues WHERE status = 'in_progress' AND updated_at < ?`)
+    .all(cutoff);
+
+  for (const job of staleJobs) {
+    const ack = sqliteQueue.db
+      .prepare(`SELECT status FROM ack_tracking WHERE queue_id = ? AND status = 'sent' LIMIT 1`)
+      .get(job.id);
+
+    if (ack) {
+      console.log(`[WhatsApp Worker] Stale job ${job.id} already marked sent in ack_tracking. Marking done.`);
+      sqliteQueue.db
+        .prepare(`UPDATE queues SET status = 'done', updated_at = ? WHERE id = ?`)
+        .run(now, job.id);
+    } else {
+      console.warn(`[WhatsApp Worker] Recovering stale job ${job.id} back to pending.`);
+      sqliteQueue.db
+        .prepare(`UPDATE queues SET status = 'pending', run_at = ?, updated_at = ?, last_error = 'Recovered stale in-progress job' WHERE id = ?`)
+        .run(now, now, job.id);
+    }
   }
 };
 
@@ -236,10 +240,23 @@ export const startWhatsAppWorker = () => {
   });
   recoverStaleJobs();
   setInterval(recoverStaleJobs, 60000);
-  // Text: faster loop (~5/sec)
+  // Text: fast loop (200ms)
   setInterval(processTextQueue, 200);
-  // Media: slower loop (~1/sec)
-  setInterval(processMediaQueue, 1000);
-  // Background tasks (async logging etc.)
+  // Media: fast loop (200ms)
+  setInterval(processMediaQueue, 200);
+  // Background tasks
   setInterval(processBackgroundQueue, 500);
+
+  // Keepalive socket ping (every 45 seconds)
+  setInterval(async () => {
+    try {
+      const socket = getSocket();
+      if (socket && socket.user) {
+        console.log('[WhatsApp Worker] Sending keepalive presence ping...');
+        await socket.sendPresenceUpdate('available');
+      }
+    } catch (e) {
+      console.warn('[WhatsApp Worker] Keepalive ping failed:', e.message);
+    }
+  }, 45000);
 };

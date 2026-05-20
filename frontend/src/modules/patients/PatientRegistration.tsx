@@ -123,13 +123,7 @@ const PatientRegistration: React.FC = () => {
     const capitalizeFields: (keyof typeof form)[] = ["name", "address", "chiefComplaint", "allergies", "conditions", "notes", "dentalHistory"];
 
     if (capitalizeFields.includes(key)) {
-      const minorWords = ["a", "an", "the", "and", "as", "at", "but", "by", "for", "if", "in", "nor", "of", "on", "or", "so", "to", "up", "yet"];
-      finalValue = value.split(' ').map((word, index) => {
-        if (index > 0 && minorWords.includes(word.toLowerCase())) {
-          return word.toLowerCase();
-        }
-        return word.charAt(0).toUpperCase() + word.slice(1);
-      }).join(' ');
+      finalValue = value.split('\n').map(line => line.charAt(0).toUpperCase() + line.slice(1)).join('\n');
     }
 
     setForm((current) => ({ ...current, [key]: finalValue }));

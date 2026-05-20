@@ -1,6 +1,7 @@
 import express from 'express';
 import { createServer } from 'http';
 import cors from 'cors';
+import path from 'path';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
@@ -60,15 +61,14 @@ app.use(cors({
 }));
 
 // Standard Middlewares
-app.use(morgan('dev'));
+if (config.NODE_ENV === 'production') {
+  app.use(morgan('combined'));
+} else {
+  app.use(morgan('dev'));
+}
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-  next();
-});
 
 // Health Check & Ping Routes
 app.get('/', (req, res) => {
@@ -130,9 +130,11 @@ const startServer = async () => {
   // Copy user-provided root stamp.png into backend and frontend public folders so both generators include it
   try {
     const fs = await import('fs');
-    const rootStamp = path.join(process.cwd(), 'stamp.png');
-    const backendStamp = path.join(process.cwd(), 'backend', 'assets', 'stamp.png');
-    const frontendStamp = path.join(process.cwd(), 'frontend', 'public', 'stamp.png');
+    const isInsideBackend = process.cwd().endsWith('backend');
+    const rootDir = isInsideBackend ? path.join(process.cwd(), '..') : process.cwd();
+    const rootStamp = path.join(rootDir, 'stamp.png');
+    const backendStamp = path.join(rootDir, 'backend', 'assets', 'stamp.png');
+    const frontendStamp = path.join(rootDir, 'frontend', 'public', 'stamp.png');
     if (fs.existsSync(rootStamp)) {
       try {
         fs.copyFileSync(rootStamp, backendStamp);
@@ -156,13 +158,19 @@ const startServer = async () => {
     console.warn('Stamp copy routine failed:', e.message);
   }
 
-  // 2b. Start WhatsApp worker (SQLite-backed queues)
-  // Preload the single QR-linked WhatsApp auth state used by the worker.
+  // 2b. Start WhatsApp worker (SQLite-backed queues) and auto-reconnect if session exists
   try {
-    await usePostgresAuthState('default-session');
-    console.log('✅ WhatsApp auth state preloaded');
+    const { hasPostgresAuthState } = await import('./modules/whatsapp/whatsapp.auth.js');
+    const { initWhatsApp } = await import('./modules/whatsapp/whatsapp.service.js');
+    const hasSession = await hasPostgresAuthState('default-session');
+    if (hasSession) {
+      console.log('🔄 Saved WhatsApp session found. Auto-reconnecting socket...');
+      initWhatsApp().catch(err => console.error('[WhatsApp Startup] Auto-reconnect failed:', err.message));
+    } else {
+      console.log('ℹ️ No saved WhatsApp session found. Awaiting QR code scan.');
+    }
   } catch (e) {
-    console.warn('WhatsApp auth preload warning:', e.message);
+    console.warn('WhatsApp startup auto-reconnection error:', e.message);
   }
 
   startWhatsAppWorker();
