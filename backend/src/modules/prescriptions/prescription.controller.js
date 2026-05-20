@@ -1,6 +1,6 @@
 import { dbService } from '../../core/db/db.service.js';
 import { emitEvent, SOCKET_EVENTS } from '../../shared/sockets/socket.service.js';
-import { logActivity, saveMedicines, sendEmailJob } from '../../shared/queue/jobQueue.service.js';
+import { logActivity, saveMedicines, sendEmailJob, sendWhatsAppJob } from '../../shared/queue/jobQueue.service.js';
 import { emailService } from '../../shared/services/email.service.js';
 import { ensureWhatsAppReadyForQueue, formatPhone, whatsappService } from '../whatsapp/whatsapp.service.js';
 import { pdfService } from '../../shared/services/pdf.service.js';
@@ -144,6 +144,10 @@ export const updatePrescription = async (req, res, next) => {
       updates.push(`${dbCol} = $${i}`);
       params.push(finalValue);
       i++;
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ message: 'No fields to update' });
     }
 
     const query = `UPDATE prescriptions SET ${updates.join(', ')} WHERE id = $1 RETURNING *`;

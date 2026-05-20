@@ -78,8 +78,8 @@ function drawProfessionalHeader(doc, label, lightweight = false) {
   }
 
   const assets = getAssets();
-  // Logo (omit for lightweight)
-  if (!lightweight && assets.logo) {
+  // Logo (always draw if present)
+  if (assets.logo) {
     try { doc.image(assets.logo, 40, 15, { width: 55 }); } catch (e) { console.error('PDF Service: Error drawing logo image:', e.message); }
   }
 

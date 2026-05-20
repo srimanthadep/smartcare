@@ -346,7 +346,7 @@ const PatientProfile: React.FC = () => {
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
         <EditableField label="Phone" value={patient.phone} onSave={(value) => updatePatient.mutate({ phone: value })} />
         <EditableField label="Email" value={patient.email} type="email" onSave={(value) => updatePatient.mutate({ email: value })} />
-        <EditableField label="Address" value={patient.address} onSave={(value) => updatePatient.mutate({ address: value })} />
+        <EditableField label="Address" value={patient.address} type="textarea" onSave={(value) => updatePatient.mutate({ address: value })} />
       </div>
 
       <Tabs defaultValue="overview">

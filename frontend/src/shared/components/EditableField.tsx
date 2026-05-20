@@ -1,13 +1,15 @@
 import React, { useMemo, useState } from 'react';
 import { Input } from '@/shared/ui/input';
+import { Textarea } from '@/shared/ui/textarea';
 import { Button } from '@/shared/ui/button';
 import { Check, Pencil, X } from 'lucide-react';
+import { cn } from '@/shared/lib/utils';
 
 type Props = {
   label: string;
   value: string;
   onSave: (next: string) => void;
-  type?: React.HTMLInputTypeAttribute;
+  type?: string;
   placeholder?: string;
   disabled?: boolean;
 };
@@ -23,35 +25,67 @@ const EditableField: React.FC<Props> = ({ label, value, onSave, type = 'text', p
       <div className="min-w-0 flex-1">
         <p className="text-xs text-muted-foreground">{label}</p>
         {editing ? (
-          <Input
-            autoFocus
-            type={type}
-            value={draft}
-            onChange={(e) => {
-              let val = e.target.value;
-              if (type === 'text' || type === 'textarea') {
+          type === 'textarea' ? (
+            <Textarea
+              autoFocus
+              value={draft}
+              onChange={(e) => {
+                let val = e.target.value;
                 val = val.split('\n').map(line => line.charAt(0).toUpperCase() + line.slice(1)).join('\n');
-              }
-              setDraft(val);
-            }}
-            placeholder={placeholder}
-            className="mt-1"
-            disabled={disabled}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                if (changed) {
-                  onSave(draft);
+                setDraft(val);
+              }}
+              placeholder={placeholder}
+              className="mt-1"
+              disabled={disabled}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.ctrlKey || e.shiftKey)) {
+                  e.preventDefault();
+                  if (changed) {
+                    onSave(draft);
+                    setEditing(false);
+                  }
+                } else if (e.key === 'Escape') {
+                  setDraft(value);
                   setEditing(false);
                 }
-              } else if (e.key === 'Escape') {
-                setDraft(value);
-                setEditing(false);
-              }
-            }}
-          />
+              }}
+            />
+          ) : (
+            <Input
+              autoFocus
+              type={type}
+              value={draft}
+              onChange={(e) => {
+                let val = e.target.value;
+                if (type === 'text') {
+                  val = val.split('\n').map(line => line.charAt(0).toUpperCase() + line.slice(1)).join('\n');
+                }
+                setDraft(val);
+              }}
+              placeholder={placeholder}
+              className="mt-1"
+              disabled={disabled}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (changed) {
+                    onSave(draft);
+                    setEditing(false);
+                  }
+                } else if (e.key === 'Escape') {
+                  setDraft(value);
+                  setEditing(false);
+                }
+              }}
+            />
+          )
         ) : (
-          <p className="mt-1 text-sm font-medium truncate">{value || '—'}</p>
+          <p className={cn(
+            "mt-1 text-sm font-medium",
+            type === 'textarea' ? "whitespace-pre-wrap" : "truncate"
+          )}>
+            {value || '—'}
+          </p>
         )}
       </div>
 

@@ -226,7 +226,10 @@ function getCaretCoordinates(element: HTMLTextAreaElement, position: number) {
   const { offsetTop: top, offsetLeft: left } = span;
   document.body.removeChild(div);
   
-  return { top, left };
+  return { 
+    top: top - element.scrollTop, 
+    left: left - element.scrollLeft 
+  };
 }
 
 AutocorrectTextarea.displayName = "AutocorrectTextarea";

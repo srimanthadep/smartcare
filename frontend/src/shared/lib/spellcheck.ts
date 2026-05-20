@@ -39,6 +39,10 @@ export const addToUserDictionary = async (word: string) => {
   const userWords = safeLocalStorageParse<string[]>(USER_WORDS_KEY, []);
   if (!userWords.includes(word)) {
     userWords.push(word);
-    localStorage.setItem(USER_WORDS_KEY, JSON.stringify(userWords));
+    try {
+      localStorage.setItem(USER_WORDS_KEY, JSON.stringify(userWords));
+    } catch (e) {
+      console.warn("Spellcheck: Failed to save user dictionary to localStorage", e);
+    }
   }
 };

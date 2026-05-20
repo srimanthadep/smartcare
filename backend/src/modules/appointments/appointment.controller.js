@@ -89,6 +89,10 @@ export const updateAppointment = async (req, res, next) => {
       i++;
     }
 
+    if (updates.length === 0) {
+      return res.status(400).json({ message: 'No fields to update' });
+    }
+
     const query = `UPDATE appointments SET ${updates.join(', ')} WHERE id = $1 RETURNING *`;
     await dbService.query(query, params);
 

@@ -101,6 +101,10 @@ export const updateInvoice = async (req, res, next) => {
       i++;
     }
 
+    if (updates.length === 0) {
+      return res.status(400).json({ message: 'No fields to update' });
+    }
+
     const query = `UPDATE invoices SET ${updates.join(', ')} WHERE id = $1 RETURNING *`;
     const result = await dbService.query(query, params);
     const invoice = dbService.mapRows('invoices', result.rows)[0];

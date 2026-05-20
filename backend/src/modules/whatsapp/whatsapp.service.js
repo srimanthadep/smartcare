@@ -176,7 +176,7 @@ We look forward to giving you a healthy, beautiful smile! See you soon! 😊`;
       if (isWhatsAppReady()) {
         try {
           console.log(`[WhatsApp] Generating PDF and attempting immediate invoice send to ${jid}`);
-          const pdfBuffer = await pdfService.generateInvoicePDF(patient, invoice, { lightweight: true });
+          const pdfBuffer = await pdfService.generateInvoicePDF(patient, invoice);
           
           // Store in mediaCache asynchronously
           mediaCacheService.storeBuffer(pdfBuffer, 'application/pdf', `Invoice_${invoice.id}.pdf`).catch((e) => {
@@ -230,7 +230,7 @@ We look forward to giving you a healthy, beautiful smile! See you soon! 😊`;
             const xrayRes = await dbService.query('SELECT * FROM xrays WHERE id = ANY($1)', [prescription.xrayIds]);
             xrays = dbService.mapRows('xrays', xrayRes.rows);
           }
-          const pdfBuffer = await pdfService.generatePrescriptionPDF(patient, prescription, xrays, { lightweight: true });
+          const pdfBuffer = await pdfService.generatePrescriptionPDF(patient, prescription, xrays);
 
           // Store in mediaCache asynchronously
           mediaCacheService.storeBuffer(pdfBuffer, 'application/pdf', `Prescription_${prescription.id}.pdf`).catch((e) => {
@@ -279,7 +279,7 @@ We look forward to giving you a healthy, beautiful smile! See you soon! 😊`;
       if (isWhatsAppReady()) {
         try {
           console.log(`[WhatsApp] Generating PDF and attempting immediate X-ray report send to ${jid}`);
-          const pdfBuffer = await pdfService.generateXRayReportPDF(patient, xray, { lightweight: true });
+          const pdfBuffer = await pdfService.generateXRayReportPDF(patient, xray);
 
           // Store in mediaCache asynchronously
           mediaCacheService.storeBuffer(pdfBuffer, 'application/pdf', `XRay_Report_${xray.id}.pdf`).catch((e) => {
@@ -405,7 +405,7 @@ export const performSend = async (job, socket) => {
             email: invoice.patientEmail
           };
           
-          const pdfBuffer = await pdfService.generateInvoicePDF(patient, invoice, { lightweight: true });
+          const pdfBuffer = await pdfService.generateInvoicePDF(patient, invoice);
           const storeRes = await mediaCacheService.storeBuffer(pdfBuffer, 'application/pdf', `Invoice_${invoiceId}.pdf`);
           buffer = pdfBuffer;
           cacheHash = storeRes.hash;
@@ -432,7 +432,7 @@ export const performSend = async (job, socket) => {
             const xrayRes = await dbService.query('SELECT * FROM xrays WHERE id = ANY($1)', [prescription.xrayIds]);
             xrays = dbService.mapRows('xrays', xrayRes.rows);
           }
-          const pdfBuffer = await pdfService.generatePrescriptionPDF(patient, prescription, xrays, { lightweight: true });
+          const pdfBuffer = await pdfService.generatePrescriptionPDF(patient, prescription, xrays);
           const storeRes = await mediaCacheService.storeBuffer(pdfBuffer, 'application/pdf', `Prescription_${prescriptionId}.pdf`);
           buffer = pdfBuffer;
           cacheHash = storeRes.hash;
@@ -454,7 +454,7 @@ export const performSend = async (job, socket) => {
             gender: xray.patientGender,
             email: xray.patientEmail
           };
-          const pdfBuffer = await pdfService.generateXRayReportPDF(patient, xray, { lightweight: true });
+          const pdfBuffer = await pdfService.generateXRayReportPDF(patient, xray);
           const storeRes = await mediaCacheService.storeBuffer(pdfBuffer, 'application/pdf', `XRay_Report_${xrayId}.pdf`);
           buffer = pdfBuffer;
           cacheHash = storeRes.hash;
