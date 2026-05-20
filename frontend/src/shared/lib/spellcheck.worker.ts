@@ -3,7 +3,7 @@ import * as Comlink from 'comlink';
 import nspell from 'nspell';
 import { DENTAL_TERMS } from './medical-terms';
 
-let spell: any = null;
+let spell: unknown = null;
 
 const worker = {
   async init(userWords: string[] = []) {
@@ -60,7 +60,7 @@ const worker = {
       return true;
     }
     try {
-      const cleanWord = word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").trim();
+      const cleanWord = word.replace(/[.,/#!$%^&*;:{}=\-_`~()]/g,"").trim();
       if (!cleanWord) return true;
       const result = spell.correct(cleanWord);
       if (import.meta.env.DEV) console.log(`Worker: Checking "${cleanWord}" -> ${result}`);
@@ -75,7 +75,7 @@ const worker = {
     if (import.meta.env.DEV) console.log(`Worker: Received suggest request for "${word}"`);
     if (!spell) return [];
     try {
-      const cleanWord = word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").trim();
+      const cleanWord = word.replace(/[.,/#!$%^&*;:{}=\-_`~()]/g,"").trim();
       if (!cleanWord) return [];
       const results = spell.suggest(cleanWord);
       if (import.meta.env.DEV) console.log(`Worker: Suggestions for "${cleanWord}" ->`, results);

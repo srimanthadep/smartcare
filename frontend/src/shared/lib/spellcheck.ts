@@ -18,7 +18,7 @@ export const getSpellchecker = async (): Promise<Comlink.Remote<Spellchecker>> =
   if (globalProxy) return globalProxy;
 
   if (import.meta.env.DEV) console.log("Spellcheck: Creating new worker instance...");
-  // @ts-ignore
+  // @ts-expect-error: Web worker instance creation with vite
   globalWorker = new Worker(new URL('./spellcheck.worker.ts', import.meta.url), {
     type: 'module'
   });

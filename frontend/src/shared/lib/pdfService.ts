@@ -173,7 +173,7 @@ export const pdfService = {
       margin: { left: 15 },
     });
 
-    y = (doc as any).lastAutoTable.finalY + 10;
+    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
 
     // ── Clinical Details ──────────────────────────────────────────────────────
     // Chief Complaint
@@ -215,7 +215,7 @@ export const pdfService = {
         margin: { left: 15, right: 15 },
         columnStyles: { 0: { fontStyle: "bold", cellWidth: 50 } }
       });
-      y = (doc as any).lastAutoTable.finalY + 12;
+      y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 12;
     }
 
     // ── Medications ───────────────────────────────────────────────────────────
@@ -238,7 +238,7 @@ export const pdfService = {
       margin: { left: 15, right: 15 },
     });
 
-    y = (doc as any).lastAutoTable.finalY + 15;
+    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15;
 
     // ── Advice & Notes ────────────────────────────────────────────────────────
     if (prescription.notes) {
@@ -274,9 +274,9 @@ export const pdfService = {
       await ensureRuntimeStampLoaded();
       const stampSrc = runtimeStampDataUrl || stamp;
       // draw stamp only once per document
-      if (!(doc as any).__siara_stamp_drawn) {
-        doc.addImage(stampSrc as any, "PNG", sigX + 85, sigY - 30, 30, 30);
-        (doc as any).__siara_stamp_drawn = true;
+      if (!(doc as unknown as { __siara_stamp_drawn: boolean }).__siara_stamp_drawn) {
+        doc.addImage(stampSrc as string, "PNG", sigX + 85, sigY - 30, 30, 30);
+        (doc as unknown as { __siara_stamp_drawn: boolean }).__siara_stamp_drawn = true;
       }
     } catch (e) {
       console.error("Stamp failed", e);
@@ -360,7 +360,7 @@ export const pdfService = {
       margin: { left: 15, right: 15 },
     });
 
-    y = (doc as any).lastAutoTable.finalY + 10;
+    y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
 
     // ── Financial Calculation ─────────────────────────────────────────────────
     const calcW = 70;
@@ -420,9 +420,9 @@ export const pdfService = {
     try {
       await ensureRuntimeStampLoaded();
       const stampSrc = runtimeStampDataUrl || stamp;
-      if (!(doc as any).__siara_stamp_drawn) {
-        doc.addImage(stampSrc as any, "PNG", sigX + 90, sigY - 45, 35, 35);
-        (doc as any).__siara_stamp_drawn = true;
+      if (!(doc as unknown as { __siara_stamp_drawn: boolean }).__siara_stamp_drawn) {
+        doc.addImage(stampSrc as string, "PNG", sigX + 90, sigY - 45, 35, 35);
+        (doc as unknown as { __siara_stamp_drawn: boolean }).__siara_stamp_drawn = true;
       }
     } catch (e) {
       console.error("Stamp failed", e);

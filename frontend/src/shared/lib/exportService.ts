@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import { Patient, PatientDiagnosis, ToothRecord, Invoice, Prescription, Medication } from '@/shared/types';
 
 const getLogoBase64 = async (): Promise<string | null> => {
   try {
@@ -31,11 +32,11 @@ const getLogoBase64 = async (): Promise<string | null> => {
 const drawPatientRecord = (
   doc: jsPDF,
   logoBase64: string | null,
-  patient: any,
-  dentalChart: any[],
-  invoices: any[],
-  prescriptions: any[],
-  diagnoses: any[],
+  patient: Patient,
+  dentalChart: ToothRecord[],
+  invoices: Invoice[],
+  prescriptions: Prescription[],
+  diagnoses: PatientDiagnosis[],
   startY: number = 40
 ) => {
   const pageWidth = doc.internal.pageSize.width;
@@ -88,7 +89,7 @@ const drawPatientRecord = (
       ["Registered:", patient.registeredOn, "Status:", patient.status],
     ],
   });
-  yPos = (doc as any).lastAutoTable.finalY + 25;
+  yPos = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 25;
 
   doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
@@ -102,14 +103,14 @@ const drawPatientRecord = (
       [
         patient.conditions?.join(", ") || "None recorded",
         patient.allergies?.join(", ") || "None recorded",
-        patient.medications?.map((m: any) => `${m.name} (${m.dosage})`).join(", ") || "None recorded"
+        patient.medications?.map((m: Medication) => `${m.name} (${m.dosage})`).join(", ") || "None recorded"
       ]
     ],
     theme: 'grid',
     headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42] },
     styles: { fontSize: 9 }
   });
-  yPos = (doc as any).lastAutoTable.finalY + 25;
+  yPos = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 25;
 
   if (diagnoses && diagnoses.length > 0) {
     if (yPos > doc.internal.pageSize.height - 100) { doc.addPage(); yPos = 40; }
@@ -121,12 +122,12 @@ const drawPatientRecord = (
     autoTable(doc, {
       startY: yPos,
       head: [['Date', 'Diagnosis', 'ICD-10', 'Status', 'Notes']],
-      body: diagnoses.map((d:any) => [d.recordedOn, d.name, d.icd10 || "-", d.status, d.notes || "-"]),
+      body: diagnoses.map((d) => [d.recordedOn, d.name, d.icd10 || "-", d.status, d.notes || "-"]),
       theme: 'grid',
       headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42] },
       styles: { fontSize: 9 }
     });
-    yPos = (doc as any).lastAutoTable.finalY + 25;
+    yPos = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 25;
   }
 
   if (dentalChart && dentalChart.length > 0) {
@@ -139,12 +140,12 @@ const drawPatientRecord = (
     autoTable(doc, {
       startY: yPos,
       head: [['Tooth', 'Condition', 'Notes']],
-      body: dentalChart.map((t:any) => [t.toothNumber, t.condition, t.notes || "-"]),
+      body: dentalChart.map((t) => [t.toothNumber, t.condition, t.notes || "-"]),
       theme: 'grid',
       headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42] },
       styles: { fontSize: 9 }
     });
-    yPos = (doc as any).lastAutoTable.finalY + 25;
+    yPos = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 25;
   }
 
   if (prescriptions && prescriptions.length > 0) {
@@ -154,15 +155,15 @@ const drawPatientRecord = (
     doc.text("Prescriptions History", 40, yPos);
     yPos += 15;
 
-    const pxRows: any[] = [];
-    prescriptions.forEach((px:any) => {
-       px.medicines?.forEach((m: any) => {
+    const pxRows: unknown[][] = [];
+    prescriptions.forEach((px) => {
+       px.medicines?.forEach((m) => {
            pxRows.push([
                new Date(px.date).toLocaleDateString(),
                px.doctorName,
                m.name,
                `${m.dosage} - ${m.frequency}`,
-               m.duration
+               m.duration || "-"
            ]);
        });
     });
@@ -175,7 +176,7 @@ const drawPatientRecord = (
       headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42] },
       styles: { fontSize: 9 }
     });
-    yPos = (doc as any).lastAutoTable.finalY + 25;
+    yPos = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 25;
   }
 
   if (invoices && invoices.length > 0) {
@@ -188,12 +189,12 @@ const drawPatientRecord = (
     autoTable(doc, {
       startY: yPos,
       head: [['Invoice ID', 'Date', 'Status', 'Total (INR)']],
-      body: invoices.map((inv:any) => [inv.id, inv.date, inv.status, `Rs. ${inv.total.toLocaleString()}`]),
+      body: invoices.map((inv) => [inv.id, inv.date, inv.status, `Rs. ${inv.total.toLocaleString()}`]),
       theme: 'grid',
       headStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42] },
       styles: { fontSize: 9 }
     });
-    yPos = (doc as any).lastAutoTable.finalY + 25;
+    yPos = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 25;
   }
 };
 
@@ -207,11 +208,11 @@ export const exportService = {
    * This is ideal for robust data backup and re-importation.
    */
   exportPatientToExcel: (
-    patient: any, 
-    dentalChart: any[] = [], 
-    invoices: any[] = [], 
-    prescriptions: any[] = [], 
-    diagnoses: any[] = []
+    patient: Patient, 
+    dentalChart: ToothRecord[] = [], 
+    invoices: Invoice[] = [], 
+    prescriptions: Prescription[] = [], 
+    diagnoses: PatientDiagnosis[] = []
   ) => {
     try {
       const wb = XLSX.utils.book_new();
@@ -283,13 +284,13 @@ export const exportService = {
 
       // 5. Prescriptions Sheet
       // Flatten prescriptions to one row per medicine for proper relational export
-      const pxData: any[] = [];
+      const pxData: Record<string, unknown>[] = [];
       if (prescriptions.length === 0) {
           pxData.push({ Prescription_ID: "No records" });
       } else {
           prescriptions.forEach(px => {
             if (px.medicines && px.medicines.length > 0) {
-                px.medicines.forEach((med: any) => {
+                px.medicines.forEach((med) => {
                     pxData.push({
                         Prescription_ID: px.id,
                         Date: new Date(px.date).toLocaleDateString(),
@@ -338,11 +339,11 @@ export const exportService = {
    * Generates a professional, chronological PDF report of the patient's record.
    */
   exportPatientToPDF: async (
-    patient: any, 
-    dentalChart: any[] = [], 
-    invoices: any[] = [], 
-    prescriptions: any[] = [], 
-    diagnoses: any[] = []
+    patient: Patient, 
+    dentalChart: ToothRecord[] = [], 
+    invoices: Invoice[] = [], 
+    prescriptions: Prescription[] = [], 
+    diagnoses: PatientDiagnosis[] = []
   ) => {
     try {
       const doc = new jsPDF('p', 'pt', 'a4');
@@ -351,7 +352,7 @@ export const exportService = {
       drawPatientRecord(doc, logoBase64, patient, dentalChart, invoices, prescriptions, diagnoses);
 
       const pageWidth = doc.internal.pageSize.width;
-      const pageCount = (doc.internal as any).getNumberOfPages();
+      const pageCount = (doc.internal as unknown as { getNumberOfPages: () => number }).getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         doc.setFontSize(8);
@@ -376,16 +377,16 @@ export const exportService = {
   /**
    * Bulk Export functions for Patient Directory
    */
-  exportAllPatientsToExcel: (bulkData: any[]) => {
+  exportAllPatientsToExcel: (bulkData: { patient: Patient, diagnoses: PatientDiagnosis[], dentalChart: ToothRecord[], invoices: Invoice[], prescriptions: Prescription[] }[]) => {
     try {
       const wb = XLSX.utils.book_new();
 
-      const demographicsData: any[] = [];
-      const historyData: any[] = [];
-      const chartData: any[] = [];
-      const diagData: any[] = [];
-      const pxData: any[] = [];
-      const invData: any[] = [];
+      const demographicsData: Record<string, unknown>[] = [];
+      const historyData: Record<string, unknown>[] = [];
+      const chartData: Record<string, unknown>[] = [];
+      const diagData: Record<string, unknown>[] = [];
+      const pxData: Record<string, unknown>[] = [];
+      const invData: Record<string, unknown>[] = [];
 
       bulkData.forEach(item => {
         const { patient, diagnoses, dentalChart, invoices, prescriptions } = item;
@@ -419,23 +420,23 @@ export const exportService = {
         }
 
         // Dental Chart
-        dentalChart.forEach((t:any) => {
+        dentalChart.forEach((t) => {
           chartData.push({
             Patient_ID: patient.id, Patient_Name: patient.name, Tooth_Number: t.toothNumber, Condition: t.condition, Notes: t.notes || ""
           });
         });
 
         // Diagnoses
-        diagnoses.forEach((d:any) => {
+        diagnoses.forEach((d) => {
           diagData.push({
             Patient_ID: patient.id, Patient_Name: patient.name, Diagnosis_ID: d.id, Name: d.name, ICD10: d.icd10 || "", Status: d.status, Recorded_On: d.recordedOn
           });
         });
 
         // Prescriptions
-        prescriptions.forEach((px:any) => {
+        prescriptions.forEach((px) => {
           if (px.medicines && px.medicines.length > 0) {
-              px.medicines.forEach((med: any) => {
+              px.medicines.forEach((med) => {
                   pxData.push({
                       Patient_ID: patient.id, Patient_Name: patient.name, Prescription_ID: px.id, Date: new Date(px.date).toLocaleDateString(), Doctor: px.doctorName, Medicine: med.name, Dosage: med.dosage, Frequency: med.frequency, Duration: med.duration
                   });
@@ -444,7 +445,7 @@ export const exportService = {
         });
 
         // Invoices
-        invoices.forEach((i:any) => {
+        invoices.forEach((i) => {
           invData.push({
             Patient_ID: patient.id, Patient_Name: patient.name, Invoice_ID: i.id, Date: i.date, Total_Amount_INR: i.total, Status: i.status
           });
@@ -467,7 +468,7 @@ export const exportService = {
     }
   },
 
-  exportAllPatientsToPDF: async (bulkData: any[]) => {
+  exportAllPatientsToPDF: async (bulkData: { patient: Patient, diagnoses: PatientDiagnosis[], dentalChart: ToothRecord[], invoices: Invoice[], prescriptions: Prescription[] }[]) => {
     try {
       const doc = new jsPDF('p', 'pt', 'a4');
       const logoBase64 = await getLogoBase64();
@@ -479,7 +480,7 @@ export const exportService = {
       }
 
       const pageWidth = doc.internal.pageSize.width;
-      const pageCount = (doc.internal as any).getNumberOfPages();
+      const pageCount = (doc.internal as unknown as { getNumberOfPages: () => number }).getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         doc.setFontSize(8);
