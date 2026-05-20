@@ -151,7 +151,7 @@ const PatientList: React.FC = () => {
     }
   };
 
-  const pageSize = 8;
+  const pageSize = 25;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const debouncedSearch = useDebounce(search, 400);
