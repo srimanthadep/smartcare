@@ -27,7 +27,7 @@ export const generatePrescription = async (req, res, next) => {
       context: context
     };
 
-    const draft = await aiService.generatePrescriptionDraft(aiPayload);
+    const draft = await aiService.generatePrescriptionDraft(aiPayload, req.user);
 
     res.json({ data: draft });
   } catch (error) {
@@ -45,7 +45,7 @@ export const chat = async (req, res, next) => {
       return res.status(400).json({ message: 'Message is required' });
     }
 
-    const response = await aiService.chat(message, history || []);
+    const response = await aiService.chat(message, history || [], req.user);
     res.json({ data: response });
   } catch (error) {
     next(error);
@@ -58,7 +58,7 @@ export const generateTreatmentPlan = async (req, res, next) => {
     if (!findings) {
       return res.status(400).json({ message: 'Findings are required' });
     }
-    const plan = await aiService.generateTreatmentPlan(findings);
+    const plan = await aiService.generateTreatmentPlan(findings, req.user);
     res.json({ data: plan });
   } catch (error) {
     next(error);
@@ -71,7 +71,7 @@ export const refineNotes = async (req, res, next) => {
     if (!rawNotes) {
       return res.status(400).json({ message: 'Notes are required' });
     }
-    const refined = await aiService.refineClinicalNotes(rawNotes);
+    const refined = await aiService.refineClinicalNotes(rawNotes, req.user);
     res.json({ data: refined });
   } catch (error) {
     next(error);

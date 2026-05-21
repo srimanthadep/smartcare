@@ -179,7 +179,7 @@ const processBackgroundQueue = async () => {
           [auditId, userId, userName, 'user', action, JSON.stringify({ details }), ip]
         );
         const { emitEvent, SOCKET_EVENTS } = await import('../../shared/sockets/socket.service.js');
-        emitEvent(SOCKET_EVENTS.ACTIVITY_LOGGED, { id, userId, userName, action, details, ip, timestamp });
+        emitEvent(SOCKET_EVENTS.ACTIVITY_LOGGED, { id: auditId, userId, userName, action, details, ip, timestamp });
         emitEvent('ADMIN_AUDIT_LOG', { id: auditId, actorName: userName, action, createdAt: timestamp });
       }
       sqliteQueue.markDone(job.id);

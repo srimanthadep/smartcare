@@ -10,7 +10,7 @@ class AIService {
   /**
    * Generates a prescription using Gemini AI API with strict medical safety guardrails.
    */
-  async generatePrescriptionDraft(patientData) {
+  async generatePrescriptionDraft(patientData, user = null) {
     if (!config.GEMINI_API_KEY) {
       throw new Error('AI service is not configured. Missing GEMINI_API_KEY.');
     }
@@ -45,6 +45,7 @@ Chief Complaint / Reason for Visit: ${patientData.context || 'General checkup'}
 Current Medications: ${patientData.currentMedications?.length ? patientData.currentMedications.join(', ') : 'None'}`;
 
     const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
+    const startTime = Date.now();
 
     try {
       console.log('Generating AI Prescription Draft via Gemini with strict safety rules...');
@@ -76,9 +77,41 @@ Current Medications: ${patientData.currentMedications?.length ? patientData.curr
         throw new Error('Invalid JSON structure from AI');
       }
 
+      if (user) {
+        const duration = Date.now() - startTime;
+        const usage = data.usageMetadata || {};
+        const pt = usage.promptTokenCount || 0;
+        const ct = usage.candidatesTokenCount || 0;
+        const cost = (pt * 0.075 + ct * 0.3) / 1000000;
+        const { logAIUsage } = await import('../admin/audit.service.js');
+        logAIUsage({
+          userId: user.sub || user.id,
+          userName: user.username || user.name || 'System',
+          tool: 'Prescription Generator',
+          tokensUsed: pt + ct,
+          estimatedCost: cost,
+          responseTimeMs: duration,
+          success: true
+        }).catch(e => console.error('Failed to log AI usage:', e));
+      }
+
       return parsedJSON;
     } catch (error) {
       console.error('Detailed AI Generation Error (Gemini):', error);
+      if (user) {
+        const duration = Date.now() - startTime;
+        const { logAIUsage } = await import('../admin/audit.service.js');
+        logAIUsage({
+          userId: user.sub || user.id,
+          userName: user.username || user.name || 'System',
+          tool: 'Prescription Generator',
+          tokensUsed: 0,
+          estimatedCost: 0,
+          responseTimeMs: duration,
+          success: false,
+          errorMessage: error.message
+        }).catch(e => console.error('Failed to log AI usage:', e));
+      }
       throw new Error('Failed to generate prescription from AI. Please try again or write manually.');
     }
   }
@@ -86,10 +119,11 @@ Current Medications: ${patientData.currentMedications?.length ? patientData.curr
   /**
    * General purpose chat with full clinical context and strict factual alignment.
    */
-  async chat(message, history = []) {
+  async chat(message, history = [], user = null) {
     if (!config.GEMINI_API_KEY) {
       throw new Error('AI service is not configured.');
     }
+    const startTime = Date.now();
 
     try {
       const { dbService } = await import('../../core/db/db.service.js');
@@ -159,9 +193,43 @@ Disclaimer: Add a note that this is an AI suggestion and the final clinical deci
       }
 
       const data = await response.json();
-      return data.candidates[0].content.parts[0].text;
+      const responseText = data.candidates[0].content.parts[0].text;
+
+      if (user) {
+        const duration = Date.now() - startTime;
+        const usage = data.usageMetadata || {};
+        const pt = usage.promptTokenCount || 0;
+        const ct = usage.candidatesTokenCount || 0;
+        const cost = (pt * 0.075 + ct * 0.3) / 1000000;
+        const { logAIUsage } = await import('../admin/audit.service.js');
+        logAIUsage({
+          userId: user.sub || user.id,
+          userName: user.username || user.name || 'System',
+          tool: 'Siara AI Chat',
+          tokensUsed: pt + ct,
+          estimatedCost: cost,
+          responseTimeMs: duration,
+          success: true
+        }).catch(e => console.error('Failed to log AI usage:', e));
+      }
+
+      return responseText;
     } catch (error) {
       console.error('Detailed AI Chat Error (Gemini):', error);
+      if (user) {
+        const duration = Date.now() - startTime;
+        const { logAIUsage } = await import('../admin/audit.service.js');
+        logAIUsage({
+          userId: user.sub || user.id,
+          userName: user.username || user.name || 'System',
+          tool: 'Siara AI Chat',
+          tokensUsed: 0,
+          estimatedCost: 0,
+          responseTimeMs: duration,
+          success: false,
+          errorMessage: error.message
+        }).catch(e => console.error('Failed to log AI usage:', e));
+      }
       throw new Error('Failed to get a response from Siara AI.');
     }
   }
@@ -169,7 +237,7 @@ Disclaimer: Add a note that this is an AI suggestion and the final clinical deci
   /**
    * Generates a structured treatment plan with deterministic financial & clinical models.
    */
-  async generateTreatmentPlan(findings) {
+  async generateTreatmentPlan(findings, user = null) {
     if (!config.GEMINI_API_KEY) {
       throw new Error('AI service is not configured.');
     }
@@ -201,6 +269,7 @@ PLANNING RULES:
 4. Output RAW JSON only.`;
 
     const fullPrompt = `${systemPrompt}\n\nClinical Findings: ${findings}`;
+    const startTime = Date.now();
 
     try {
       console.log('Generating AI Treatment Plan via Gemini with temperature 0.0...');
@@ -222,9 +291,44 @@ PLANNING RULES:
       }
 
       const data = await response.json();
-      return JSON.parse(data.candidates[0].content.parts[0].text);
+      const responseText = data.candidates[0].content.parts[0].text;
+      const parsedJSON = JSON.parse(responseText);
+
+      if (user) {
+        const duration = Date.now() - startTime;
+        const usage = data.usageMetadata || {};
+        const pt = usage.promptTokenCount || 0;
+        const ct = usage.candidatesTokenCount || 0;
+        const cost = (pt * 0.075 + ct * 0.3) / 1000000;
+        const { logAIUsage } = await import('../admin/audit.service.js');
+        logAIUsage({
+          userId: user.sub || user.id,
+          userName: user.username || user.name || 'System',
+          tool: 'Treatment Planner',
+          tokensUsed: pt + ct,
+          estimatedCost: cost,
+          responseTimeMs: duration,
+          success: true
+        }).catch(e => console.error('Failed to log AI usage:', e));
+      }
+
+      return parsedJSON;
     } catch (error) {
       console.error('AI Treatment Plan Error:', error);
+      if (user) {
+        const duration = Date.now() - startTime;
+        const { logAIUsage } = await import('../admin/audit.service.js');
+        logAIUsage({
+          userId: user.sub || user.id,
+          userName: user.username || user.name || 'System',
+          tool: 'Treatment Planner',
+          tokensUsed: 0,
+          estimatedCost: 0,
+          responseTimeMs: duration,
+          success: false,
+          errorMessage: error.message
+        }).catch(e => console.error('Failed to log AI usage:', e));
+      }
       throw new Error('Failed to generate treatment plan.');
     }
   }
@@ -232,7 +336,7 @@ PLANNING RULES:
   /**
    * Cleans up clinical notes with zero extrapolation.
    */
-  async refineClinicalNotes(rawNotes) {
+  async refineClinicalNotes(rawNotes, user = null) {
     if (!config.GEMINI_API_KEY) {
       throw new Error('AI service is not configured.');
     }
@@ -248,6 +352,7 @@ Format:
 - Advice & Next Steps`;
 
     const fullPrompt = `${systemPrompt}\n\nRaw Notes: ${rawNotes}`;
+    const startTime = Date.now();
 
     try {
       console.log('Refining Clinical Notes with zero-temperature...');
@@ -268,9 +373,43 @@ Format:
       }
 
       const data = await response.json();
-      return data.candidates[0].content.parts[0].text;
+      const responseText = data.candidates[0].content.parts[0].text;
+
+      if (user) {
+        const duration = Date.now() - startTime;
+        const usage = data.usageMetadata || {};
+        const pt = usage.promptTokenCount || 0;
+        const ct = usage.candidatesTokenCount || 0;
+        const cost = (pt * 0.075 + ct * 0.3) / 1000000;
+        const { logAIUsage } = await import('../admin/audit.service.js');
+        logAIUsage({
+          userId: user.sub || user.id,
+          userName: user.username || user.name || 'System',
+          tool: 'Clinical Notes Refiner',
+          tokensUsed: pt + ct,
+          estimatedCost: cost,
+          responseTimeMs: duration,
+          success: true
+        }).catch(e => console.error('Failed to log AI usage:', e));
+      }
+
+      return responseText;
     } catch (error) {
       console.error('AI Note Refinement Error:', error);
+      if (user) {
+        const duration = Date.now() - startTime;
+        const { logAIUsage } = await import('../admin/audit.service.js');
+        logAIUsage({
+          userId: user.sub || user.id,
+          userName: user.username || user.name || 'System',
+          tool: 'Clinical Notes Refiner',
+          tokensUsed: 0,
+          estimatedCost: 0,
+          responseTimeMs: duration,
+          success: false,
+          errorMessage: error.message
+        }).catch(e => console.error('Failed to log AI usage:', e));
+      }
       throw new Error('Failed to refine notes.');
     }
   }
@@ -278,12 +417,13 @@ Format:
   /**
    * Automatically categorizes an expense with absolute determinism.
    */
-  async autoCategorizeExpense(expenseName) {
+  async autoCategorizeExpense(expenseName, user = null) {
     if (!config.GEMINI_API_KEY) return 'Other';
 
     const systemPrompt = `You are a strict, factual accounting categorizer. Categorize this expense name into exactly one of these:
     Rent, Salaries, Medicine Supplies, Equipment, Utility Bills, Marketing, Other.
     Return ONLY the category name. No explanations, no extra characters.`;
+    const startTime = Date.now();
 
     try {
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${config.GEMINI_API_KEY}`, {
@@ -297,13 +437,61 @@ Format:
         })
       });
 
-      if (!response.ok) return 'Other';
+      if (!response.ok) {
+        if (user) {
+          const duration = Date.now() - startTime;
+          const { logAIUsage } = await import('../admin/audit.service.js');
+          logAIUsage({
+            userId: user.sub || user.id,
+            userName: user.username || user.name || 'System',
+            tool: 'Expense Categorizer',
+            tokensUsed: 0,
+            estimatedCost: 0,
+            responseTimeMs: duration,
+            success: false,
+            errorMessage: response.statusText
+          }).catch(e => console.error('Failed to log AI usage:', e));
+        }
+        return 'Other';
+      }
       const data = await response.json();
       const category = data.candidates[0].content.parts[0].text.trim();
       
+      if (user) {
+        const duration = Date.now() - startTime;
+        const usage = data.usageMetadata || {};
+        const pt = usage.promptTokenCount || 0;
+        const ct = usage.candidatesTokenCount || 0;
+        const cost = (pt * 0.075 + ct * 0.3) / 1000000;
+        const { logAIUsage } = await import('../admin/audit.service.js');
+        logAIUsage({
+          userId: user.sub || user.id,
+          userName: user.username || user.name || 'System',
+          tool: 'Expense Categorizer',
+          tokensUsed: pt + ct,
+          estimatedCost: cost,
+          responseTimeMs: duration,
+          success: true
+        }).catch(e => console.error('Failed to log AI usage:', e));
+      }
+
       const CATEGORIES = ["Rent", "Salaries", "Medicine Supplies", "Equipment", "Utility Bills", "Marketing", "Other"];
       return CATEGORIES.includes(category) ? category : 'Other';
     } catch (error) {
+      if (user) {
+        const duration = Date.now() - startTime;
+        const { logAIUsage } = await import('../admin/audit.service.js');
+        logAIUsage({
+          userId: user.sub || user.id,
+          userName: user.username || user.name || 'System',
+          tool: 'Expense Categorizer',
+          tokensUsed: 0,
+          estimatedCost: 0,
+          responseTimeMs: duration,
+          success: false,
+          errorMessage: error.message
+        }).catch(e => console.error('Failed to log AI usage:', e));
+      }
       return 'Other';
     }
   }
@@ -311,10 +499,11 @@ Format:
   /**
    * Analyzes a dental X-ray image using Gemini Vision with rigorous clinical verification guardrails.
    */
-  async analyzeXray(imageUrl, patientContext = {}) {
+  async analyzeXray(imageUrl, patientContext = {}, user = null) {
     if (!config.GEMINI_API_KEY) {
       throw new Error('AI service is not configured.');
     }
+    const startTime = Date.now();
 
     try {
       console.log(`Fetching X-ray for AI analysis: ${imageUrl}`);
@@ -384,9 +573,43 @@ CRITICAL CLINICAL CONSTRAINTS:
 
       const data = await response.json();
       const responseText = data.candidates[0].content.parts[0].text;
-      return JSON.parse(responseText);
+      const parsedJSON = JSON.parse(responseText);
+
+      if (user) {
+        const duration = Date.now() - startTime;
+        const usage = data.usageMetadata || {};
+        const pt = usage.promptTokenCount || 0;
+        const ct = usage.candidatesTokenCount || 0;
+        const cost = (pt * 0.075 + ct * 0.3) / 1000000;
+        const { logAIUsage } = await import('../admin/audit.service.js');
+        logAIUsage({
+          userId: user.sub || user.id,
+          userName: user.username || user.name || 'System',
+          tool: 'X-Ray Analyzer',
+          tokensUsed: pt + ct,
+          estimatedCost: cost,
+          responseTimeMs: duration,
+          success: true
+        }).catch(e => console.error('Failed to log AI usage:', e));
+      }
+
+      return parsedJSON;
     } catch (error) {
       console.error('X-Ray Analysis Error:', error);
+      if (user) {
+        const duration = Date.now() - startTime;
+        const { logAIUsage } = await import('../admin/audit.service.js');
+        logAIUsage({
+          userId: user.sub || user.id,
+          userName: user.username || user.name || 'System',
+          tool: 'X-Ray Analyzer',
+          tokensUsed: 0,
+          estimatedCost: 0,
+          responseTimeMs: duration,
+          success: false,
+          errorMessage: error.message
+        }).catch(e => console.error('Failed to log AI usage:', e));
+      }
       throw new Error(`Failed to analyze X-ray: ${error.message}`);
     }
   }

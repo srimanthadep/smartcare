@@ -385,7 +385,7 @@ export const analyzeXray = async (req, res, next) => {
     };
 
     // 3. Call AI Service
-    const analysis = await aiService.analyzeXray(xray.file_url, patientContext);
+    const analysis = await aiService.analyzeXray(xray.file_url, patientContext, req.user);
 
     // 4. Update X-ray record with AI findings if diagnosis/notes are empty
     // Or we can save them into 'annotations' or 'ai_analysis' field

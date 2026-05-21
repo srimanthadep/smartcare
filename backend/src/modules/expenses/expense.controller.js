@@ -23,7 +23,7 @@ export const createExpense = async (req, res, next) => {
     const id = await dbService.generateId('EXP', 'expenses');
     
     // Use provided category if available, otherwise auto-categorize with AI
-    const category = providedCategory || await aiService.autoCategorizeExpense(description);
+    const category = providedCategory || await aiService.autoCategorizeExpense(description, req.user);
     
     const result = await dbService.query(
       'INSERT INTO expenses (id, description, amount, category, date, tab) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
