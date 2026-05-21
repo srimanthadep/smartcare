@@ -96,22 +96,18 @@ export const getPatients = async (req, res, next) => {
 export const getPatientById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const [patientRes, reportsRes] = await Promise.all([
-      dbService.query('SELECT * FROM patients WHERE id = $1 AND is_deleted = FALSE', [id]),
-      dbService.query('SELECT * FROM reports WHERE patient_id = $1 AND is_deleted = FALSE', [id])
-    ]);
+    const patientRes = await dbService.query('SELECT * FROM patients WHERE id = $1 AND is_deleted = FALSE', [id]);
 
     if (patientRes.rows.length === 0) {
       return res.status(404).json({ message: 'Patient not found' });
     }
 
     const patient = dbService.mapRows('patients', patientRes.rows)[0];
-    const reports = dbService.mapRows('reports', reportsRes.rows);
 
     res.json({
       patient,
       diagnoses: [],
-      reports
+      reports: []
     });
   } catch (error) {
     next(error);
@@ -250,7 +246,6 @@ export const deletePatient = async (req, res, next) => {
       dbService.query('UPDATE prescriptions SET is_deleted = TRUE, deleted_at = NOW(), deleted_by = $2 WHERE patient_id = $1', [id, actorId]),
       dbService.query('UPDATE dental_charts SET is_deleted = TRUE WHERE patient_id = $1', [id]),
       dbService.query('UPDATE treatment_plans SET is_deleted = TRUE WHERE patient_id = $1', [id]),
-      dbService.query('UPDATE reports SET is_deleted = TRUE WHERE patient_id = $1', [id]),
       dbService.query('UPDATE recalls SET is_deleted = TRUE WHERE patient_id = $1', [id]),
       dbService.query('UPDATE xrays SET is_deleted = TRUE WHERE patient_id = $1', [id])
     ]);

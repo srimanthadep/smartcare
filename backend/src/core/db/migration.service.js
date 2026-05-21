@@ -88,7 +88,6 @@ export const runMigrations = async () => {
     ALTER TABLE treatment_plans ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;
     ALTER TABLE treatment_plan_templates ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;
     ALTER TABLE clinical_procedures ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;
-    ALTER TABLE reports ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE;
     
     -- L6: Add source_prescription_id column for reliable recall-prescription linking
     ALTER TABLE recalls ADD COLUMN IF NOT EXISTS source_prescription_id TEXT;
@@ -141,7 +140,6 @@ export const runMigrations = async () => {
     CREATE INDEX IF NOT EXISTS idx_patients_name_lower ON patients (LOWER(name));
     CREATE INDEX IF NOT EXISTS idx_patients_status ON patients (status) WHERE is_deleted = FALSE;
     CREATE INDEX IF NOT EXISTS idx_patients_registered ON patients (registered_on DESC);
-    CREATE INDEX IF NOT EXISTS idx_reports_patient ON reports (patient_id);
     CREATE INDEX IF NOT EXISTS idx_prescriptions_patient ON prescriptions (patient_id);
     CREATE INDEX IF NOT EXISTS idx_invoices_patient ON invoices (patient_id);
     CREATE INDEX IF NOT EXISTS idx_xrays_patient ON xrays (patient_id);
