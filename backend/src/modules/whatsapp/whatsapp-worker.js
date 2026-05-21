@@ -172,13 +172,8 @@ const processBackgroundQueue = async () => {
     try {
       if (job.action === 'logActivity') {
         const { userId, userName, action, details, ip } = job.payload || {};
-        const id = `LOG${Date.now()}_${Math.floor(Math.random() * 1000)}`;
         const auditId = `AUD${Date.now()}_${Math.floor(Math.random() * 10000)}`;
         const timestamp = new Date().toISOString();
-        await (await import('../../core/db/db.service.js')).dbService.query(
-          'INSERT INTO activity_logs (id, user_id, user_name, action, details, ip) VALUES ($1, $2, $3, $4, $5, $6)',
-          [id, userId, userName, action, details, ip]
-        );
         await (await import('../../core/db/db.service.js')).dbService.query(
           `INSERT INTO audit_logs (id, actor_id, actor_name, actor_role, action, metadata, ip_address) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
           [auditId, userId, userName, 'user', action, JSON.stringify({ details }), ip]

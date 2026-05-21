@@ -33,7 +33,6 @@ const AI = lazy(() => import("@/modules/ai/AI"));
 const Notifications = lazy(() => import("@/modules/notifications/Notifications"));
 const Settings = lazy(() => import("@/modules/settings/Settings"));
 const RecallSystem = lazy(() => import("@/modules/recalls/RecallSystem"));
-const ActivityLogs = lazy(() => import("@/modules/analytics/ActivityLogs"));
 const XRays = lazy(() => import("@/modules/xrays/XRays"));
 const NotFound = lazy(() => import("@/app/NotFound"));
 const PublicBooking = lazy(() => import("@/modules/appointments/PublicBooking"));
@@ -105,7 +104,6 @@ const App = () => (
                   <Route path="analytics" element={<Analytics />} />
                   <Route path="ai" element={<AI />} />
                   <Route path="notifications" element={<Notifications />} />
-                  <Route path="logs" element={<ActivityLogs />} />
                   <Route path="delete-history" element={<DeleteHistory />} />
                   <Route path="settings" element={<Settings />} />
                 </Route>

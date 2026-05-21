@@ -42,14 +42,14 @@ class DbService {
     const tables = [
       'users', 'patients', 'doctors', 'appointments',
       'invoices', 'prescriptions', 'medicines', 'prescription_templates',
-      'activity_logs', 'dental_charts', 'treatment_plans', 'diagnoses', 'reports', 'clinical_procedures', 'xrays'
+      'dental_charts', 'treatment_plans', 'diagnoses', 'reports', 'clinical_procedures', 'xrays'
     ];
 
     // Run queries in parallel for better performance
     const results = await Promise.all(
       tables.map(table => {
         // Exclude deleted items from tables that support soft delete
-        const noSoftDelete = ['activity_logs', 'doctors', 'medicines'];
+        const noSoftDelete = ['doctors', 'medicines'];
         const filter = noSoftDelete.includes(table) ? '' : ' WHERE is_deleted = FALSE';
         return this.query(`SELECT * FROM ${table}${filter}`);
       })
@@ -147,13 +147,6 @@ class DbService {
         createdDate: r.created_date ? new Date(r.created_date).toLocaleDateString('en-CA') : null,
         totalCost: Number(r.total_cost) || 0,
         phases: this.safeJsonParse(r.phases, [])
-      }));
-    }
-    if (table === 'activity_logs') {
-      return rows.map(r => ({
-        ...r,
-        userId: r.user_id,
-        userName: r.user_name
       }));
     }
     if (table === 'recalls') {
@@ -260,7 +253,7 @@ class DbService {
 
   // H9: Stream a single table for backup (avoids loading everything into memory)
   async streamTableRows(table) {
-    const noSoftDelete = ['activity_logs', 'doctors', 'medicines'];
+    const noSoftDelete = ['doctors', 'medicines'];
     const filter = noSoftDelete.includes(table) ? '' : ' WHERE is_deleted = FALSE';
     const result = await this.query(`SELECT * FROM ${table}${filter}`);
     return this.mapRows(table, result.rows);

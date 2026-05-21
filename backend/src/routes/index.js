@@ -25,7 +25,7 @@ import aiRoutes from '../modules/ai/ai.routes.js';
 import backupRoutes from '../shared/services/backup.routes.js';
 import adminRoutes from '../modules/admin/admin.routes.js';
 import * as dashboardController from '../modules/dashboard/dashboard.controller.js';
-import * as adminController from '../modules/auth/admin.controller.js';
+
 import * as xrayController from '../modules/xrays/xray.controller.js';
 import { auth } from '../core/middleware/auth.js';
 import { dbService } from '../core/db/db.service.js';
@@ -72,7 +72,6 @@ router.use(auth);
 // Core Logic
 router.get('/bootstrap', dashboardController.getBootstrap);
 router.get('/dashboard', dashboardController.getDashboard);
-router.get('/activity-logs', adminController.getActivityLogs);
 
 // Module Routes
 router.use('/patients', patientRoutes);

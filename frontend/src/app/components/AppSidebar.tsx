@@ -2,7 +2,7 @@ import React from 'react';
 import {
   LayoutDashboard, Users, CalendarDays, FileText, Receipt,
   Pill, Bot, Settings, Bell, Activity,
-  CalendarClock, History, Wallet, ScanLine, Shield, Trash2
+  CalendarClock, Wallet, ScanLine, Shield, Trash2
 } from 'lucide-react';
 import { NavLink } from '@/app/components/NavLink';
 import { useAuth } from '@/shared/contexts/AuthContext';
@@ -25,7 +25,6 @@ const allNavItems = [
   { title: 'X-Rays', url: '/xrays', icon: ScanLine, roles: ['doctor', 'admin'] },
   { title: 'AI Assistant', url: '/ai', icon: Bot, roles: ['doctor', 'admin'] },
   { title: 'Analytics', url: '/analytics', icon: Activity, roles: ['doctor', 'admin'] },
-  { title: 'Activity Logs', url: '/logs', icon: History, roles: ['admin'] },
   { title: 'Delete History', url: '/delete-history', icon: Trash2, roles: ['doctor', 'admin'] },
   { title: 'Notifications', url: '/notifications', icon: Bell, roles: ['doctor', 'admin'] },
   { title: 'Settings', url: '/settings', icon: Settings, roles: ['doctor', 'admin'] },

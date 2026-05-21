@@ -170,7 +170,7 @@ export const performFullBackup = async () => {
         const tables = [
             'users', 'patients', 'doctors', 'appointments',
             'invoices', 'prescriptions', 'medicines', 'prescription_templates',
-            'activity_logs', 'dental_charts', 'treatment_plans', 'diagnoses', 'reports', 'clinical_procedures'
+            'audit_logs', 'dental_charts', 'treatment_plans', 'diagnoses', 'reports', 'clinical_procedures'
         ];
         console.log(`✅ Processing ${tables.length} tables (streaming)`);
 

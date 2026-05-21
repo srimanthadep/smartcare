@@ -41,7 +41,6 @@ const moreTabs = [
   { title: "Analytics", url: "/analytics", icon: Activity, roles: ["doctor", "admin"] },
   { title: "AI Assistant", url: "/ai", icon: Bot, roles: ["doctor", "admin"] },
   { title: "Settings", url: "/settings", icon: Settings, roles: ["doctor", "admin"] },
-  { title: "Activity Logs", url: "/logs", icon: Activity, roles: ["admin"] },
   { title: "Delete History", url: "/delete-history", icon: Trash2, roles: ["doctor", "admin"] },
   { title: "Recall System", url: "/recalls", icon: CalendarClock, roles: ["doctor", "admin"] },
   { title: "X-Rays", url: "/xrays", icon: ScanLine, roles: ["doctor", "admin"] },

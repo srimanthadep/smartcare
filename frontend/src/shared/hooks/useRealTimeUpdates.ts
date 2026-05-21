@@ -43,7 +43,7 @@ export function useRealTimeUpdates() {
     });
 
     socket.on(EVENTS.ACTIVITY_LOGGED, () => {
-      queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-audit-logs'] });
     });
 
     return () => {

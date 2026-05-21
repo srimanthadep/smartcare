@@ -158,7 +158,7 @@ export const AppHeader: React.FC<{ onSearchClick?: () => void }> = ({ onSearchCl
               <DropdownMenuItem className="cursor-pointer rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent" onClick={() => navigate("/settings")}>
                 Settings
               </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent" onClick={() => navigate("/logs")}>
+              <DropdownMenuItem className="cursor-pointer rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent" onClick={() => navigate("/admin/audit-logs")}>
                 Activity logs
               </DropdownMenuItem>
               <DropdownMenuSeparator />
@@ -296,7 +296,7 @@ export const AppHeader: React.FC<{ onSearchClick?: () => void }> = ({ onSearchCl
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="cursor-pointer rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent"
-                onClick={() => navigate("/logs")}
+                onClick={() => navigate("/admin/audit-logs")}
               >
                 Activity logs
               </DropdownMenuItem>

@@ -252,10 +252,6 @@ export const api = {
     window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
   },
-  
-  getActivityLogs() {
-    return apiFetch<ActivityLog[]>("/api/activity-logs");
-  },
 
   getDentalChart(patientId: string) {
     return apiFetch<ToothChart>(`/api/dental-chart/${patientId}`);

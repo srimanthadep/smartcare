@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { api } from '@/shared/lib/api';
+import { adminApi } from '@/modules/admin/api';
 import { safeLocalStorageParse } from '@/shared/lib/storage';
 
 import { Button } from "@/shared/ui/button";
@@ -107,8 +108,9 @@ const Notifications: React.FC = () => {
     
     const fetchLogs = async () => {
       try {
-        const logs = await api.getActivityLogs();
-        const mapped: Notice[] = logs.map(log => {
+        const data = await adminApi.getAuditLogs({ limit: 25 });
+        const logs = data?.logs || [];
+        const mapped: Notice[] = logs.map((log: Record<string, string>) => {
           let kind: NoticeKind = "system";
           if (log.entityType === 'patient') kind = 'patient';
           if (log.entityType === 'invoice') kind = 'billing';
@@ -116,16 +118,16 @@ const Notifications: React.FC = () => {
           
           return {
             id: log.id,
-            title: `${log.action} - ${log.entityType}`,
-            body: log.details || `Activity recorded by ${log.userName}`,
-            time: formatDistanceToNow(new Date(log.timestamp), { addSuffix: true }),
+            title: `${(log.action || '').replace(/_/g, ' ')}${log.entityType ? ` - ${log.entityType}` : ''}`,
+            body: log.details || `Activity recorded by ${log.actorName || 'System'}`,
+            time: log.createdAt ? formatDistanceToNow(new Date(log.createdAt), { addSuffix: true }) : 'just now',
             read: false,
             kind,
             actionLabel: 'View',
-            actionPath: `/${log.entityType}s`
+            actionPath: log.entityType ? `/${log.entityType}s` : undefined
           };
         });
-        setNotifications(mapped);
+        if (mapped.length > 0) setNotifications(mapped);
       } catch (e) {
         console.error("Failed to load notifications", e);
         // Fallback to seed if network fails
