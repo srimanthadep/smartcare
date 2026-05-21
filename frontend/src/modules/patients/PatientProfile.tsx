@@ -357,7 +357,6 @@ const PatientProfile: React.FC = () => {
           <TabsTrigger value="prescriptions">Prescriptions</TabsTrigger>
           <TabsTrigger value="treatment-plans">Treatment Plans</TabsTrigger>
           <TabsTrigger value="xrays">X-Rays</TabsTrigger>
-          <TabsTrigger value="diagnoses">Diagnoses</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-4 space-y-4">
@@ -805,6 +804,11 @@ const PatientProfile: React.FC = () => {
                         <div>
                           <p className="font-medium">Prescription - {new Date(px.date).toLocaleDateString()}</p>
                           <p className="text-xs text-muted-foreground">{px.doctorName || "Dr. Saikiran"}</p>
+                          {px.diagnosis && (
+                            <p className="mt-1 mr-2 text-[10px] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded-sm inline-block">
+                              Diagnosis: {px.diagnosis}
+                            </p>
+                          )}
                           {px.nextVisitDate && (
                             <p className="mt-1 text-[10px] font-semibold text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded-sm inline-block">
                               Follow-up: {new Date(px.nextVisitDate).toLocaleDateString()}
@@ -924,35 +928,6 @@ const PatientProfile: React.FC = () => {
 
         <TabsContent value="xrays" className="mt-4">
           <PatientXRayTab patientId={id} />
-        </TabsContent>
-
-        <TabsContent value="diagnoses" className="mt-4">
-          <Card className="border-border/50">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-base font-heading"><Smile className="h-4 w-4" /> Diagnoses</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {diagnoses.length === 0 ? (
-                <div className="py-8 text-center text-sm text-muted-foreground">No diagnoses recorded</div>
-              ) : (
-                [...diagnoses].sort((a, b) => {
-                  const dateDiff = new Date(b.recordedOn).getTime() - new Date(a.recordedOn).getTime();
-                  return dateDiff !== 0 ? dateDiff : (b.id || "").localeCompare(a.id || "");
-                }).map((diagnosis) => (
-                  <div key={diagnosis.id} className="rounded-lg border border-border/50 bg-secondary/25 p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-medium">{diagnosis.name}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">{diagnosis.icd10 ? `ICD-10 ${diagnosis.icd10} · ` : ""}{diagnosis.recordedOn}</p>
-                      </div>
-                      <Badge variant={diagnosis.status === "Active" ? "default" : "secondary"} className="text-xs">{diagnosis.status}</Badge>
-                    </div>
-                    {diagnosis.notes && <p className="mt-2 text-sm text-muted-foreground">{diagnosis.notes}</p>}
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
         </TabsContent>
 
         <TabsContent value="allergies" className="mt-4">

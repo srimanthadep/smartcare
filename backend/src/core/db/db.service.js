@@ -42,7 +42,7 @@ class DbService {
     const tables = [
       'users', 'patients', 'doctors', 'appointments',
       'invoices', 'prescriptions', 'medicines', 'prescription_templates',
-      'dental_charts', 'treatment_plans', 'diagnoses', 'reports', 'clinical_procedures', 'xrays'
+      'dental_charts', 'treatment_plans', 'reports', 'clinical_procedures', 'xrays'
     ];
 
     // Run queries in parallel for better performance
@@ -186,13 +186,6 @@ class DbService {
         takenDate: r.taken_date ? new Date(r.taken_date).toLocaleDateString('en-CA') : null,
         createdAt: r.created_at,
         updatedAt: r.updated_at,
-      }));
-    }
-    if (table === 'diagnoses') {
-      return rows.map(r => ({
-        ...r,
-        patientId: r.patient_id,
-        recordedOn: r.recorded_on ? new Date(r.recorded_on).toLocaleDateString('en-CA') : null
       }));
     }
     if (table === 'reports') {

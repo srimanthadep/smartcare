@@ -96,9 +96,8 @@ export const getPatients = async (req, res, next) => {
 export const getPatientById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const [patientRes, diagnosesRes, reportsRes] = await Promise.all([
+    const [patientRes, reportsRes] = await Promise.all([
       dbService.query('SELECT * FROM patients WHERE id = $1 AND is_deleted = FALSE', [id]),
-      dbService.query('SELECT * FROM diagnoses WHERE patient_id = $1 AND is_deleted = FALSE', [id]),
       dbService.query('SELECT * FROM reports WHERE patient_id = $1 AND is_deleted = FALSE', [id])
     ]);
 
@@ -107,12 +106,11 @@ export const getPatientById = async (req, res, next) => {
     }
 
     const patient = dbService.mapRows('patients', patientRes.rows)[0];
-    const diagnoses = dbService.mapRows('diagnoses', diagnosesRes.rows);
     const reports = dbService.mapRows('reports', reportsRes.rows);
 
     res.json({
       patient,
-      diagnoses,
+      diagnoses: [],
       reports
     });
   } catch (error) {
@@ -122,7 +120,7 @@ export const getPatientById = async (req, res, next) => {
 
 export const createPatient = async (req, res, next) => {
   try {
-    const id = await dbService.generateId('PAT', 'patients');
+    const id = await dbService.generateId('P', 'patients');
     const {
       name, age, gender, phone, email, bloodGroup, status, registeredOn,
       address, allergies, conditions, medications, notes, consultationFee,
@@ -252,7 +250,6 @@ export const deletePatient = async (req, res, next) => {
       dbService.query('UPDATE prescriptions SET is_deleted = TRUE, deleted_at = NOW(), deleted_by = $2 WHERE patient_id = $1', [id, actorId]),
       dbService.query('UPDATE dental_charts SET is_deleted = TRUE WHERE patient_id = $1', [id]),
       dbService.query('UPDATE treatment_plans SET is_deleted = TRUE WHERE patient_id = $1', [id]),
-      dbService.query('UPDATE diagnoses SET is_deleted = TRUE WHERE patient_id = $1', [id]),
       dbService.query('UPDATE reports SET is_deleted = TRUE WHERE patient_id = $1', [id]),
       dbService.query('UPDATE recalls SET is_deleted = TRUE WHERE patient_id = $1', [id]),
       dbService.query('UPDATE xrays SET is_deleted = TRUE WHERE patient_id = $1', [id])
